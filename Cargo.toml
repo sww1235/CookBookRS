@@ -1,8 +1,87 @@
 [package]
 name = "cookbook-rs"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Stephen Walker-Weinshenker"]
+description = "Recipe database and browser"
+keywords = ["Cookbook", "Recipe", "Ingredient", "Cook", "Database"]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+dimensioned = "~0"
+log = "~0"
+serde = { version = "~1", features = ["derive"] }
+serde_yaml = "~0"
+simple_logger = "~4"
+
+[lib]
+name = "cookbook_core"
+path = "src/lib.rs"
+
+[lints.rust]
+missing_docs = "warn"
+[lints.clippy]
+# TODO: remove this. colored has a lower windows-sys version than
+# chrono which is causing errors. need colored to update first
+# to eliminate clippy spam. Also uncomment line in clippy.toml
+# when configuration option is available
+multiple_crate_versions = "warn"
+correctness = "warn"
+suspicious = "warn"
+perf = "warn"
+cargo = "warn"
+pedantic = "warn"
+style = "warn"
+# restriction lints
+arithmetic_side_effects = "warn"
+unnecessary_cast = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+fn_to_numeric_cast = "warn"
+fn_to_numeric_cast_with_truncation = "warn"
+char_lit_as_u8 = "warn"
+ptr_as_ptr = "warn"
+as_underscore = "warn"
+clone_on_ref_ptr = "warn"
+create_dir = "warn"
+default_numeric_fallback = "warn"
+empty_drop = "warn"
+empty_structs_with_brackets = "warn"
+exhaustive_enums = "warn"
+expect_used = "warn"
+filetype_is_file = "warn"
+float_cmp_const = "warn"
+fn_to_numeric_cast_any = "warn"
+format_push_string = "warn"
+if_then_some_else_none = "warn"
+large_include_file = "warn"
+lossy_float_literal = "warn"
+map_err_ignore = "warn"
+mem_forget = "warn"
+missing_docs_in_private_items = "warn"
+mixed_read_write_in_expression = "warn"
+mod_module_files = "warn"
+multiple_inherent_impl = "warn"
+panic_in_result_fn = "warn"
+partial_pub_fields = "warn"
+print_stderr = "warn"
+rc_mutex = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+same_name_method = "warn"
+shadow_unrelated = "warn"
+string_add = "warn"
+string_to_string = "warn"
+todo = "warn"
+try_err = "warn"
+unimplemented = "warn"
+unnecessary_self_imports = "warn"
+unseparated_literal_suffix = "warn"
+unwrap_in_result = "warn"
+unwrap_used = "warn"
+verbose_file_reads = "warn"
