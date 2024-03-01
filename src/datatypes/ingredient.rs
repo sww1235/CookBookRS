@@ -9,5 +9,4 @@ pub struct Ingredient {
     pub description: Option<String>,
     //TODO: units
     //TODO: inventory reference
-    //TODO: sum all ingredients into master list of ingredients for top of recipe
 }

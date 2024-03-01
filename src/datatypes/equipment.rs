@@ -1,6 +1,6 @@
 /// `Equipment` represents any implement you might use to prepare a recipe,
 /// from a stove, to a microwave, to a stand mixer, to a potato peeler
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Equipment {
     /// database unique ID
     pub id: u64,
