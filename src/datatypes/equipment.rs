@@ -3,13 +3,13 @@
 #[derive(Debug, Default, Clone)]
 pub struct Equipment {
     /// database unique ID
-    id: u64,
+    pub id: u64,
     /// short name of item
-    name: String,
+    pub name: String,
     /// longer description of item
-    description: Option<String>,
+    pub description: Option<String>,
     /// If item is owned. Allows filtering out recipes that require equipment you don't own so you
     /// don't get half way through a recipe and realize it needs some specialized piece of
     /// equipment like a melon baller or pineapple corer
-    is_owned: bool,
+    pub is_owned: bool,
 }
