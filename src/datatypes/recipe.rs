@@ -33,6 +33,8 @@ pub struct Recipe {
 
 impl Recipe {
     /// `step_time_totals` provides the time required for each type of step as a `HashMap`
+    #[must_use]
+    #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
     pub fn step_time_totals(&self) -> HashMap<StepType, Option<ucum::Second<f64>>> {
         let mut out_map: HashMap<StepType, Option<ucum::Second<f64>>> = HashMap::new();
         for step in &self.steps {
@@ -46,6 +48,8 @@ impl Recipe {
         out_map
     }
     /// `total_time` returns the total time required for a recipe
+    #[must_use]
+    #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
     pub fn total_time(&self) -> ucum::Second<f64> {
         let mut time = 0.0_f64 * ucum::S;
         for step in &self.steps {
@@ -54,13 +58,14 @@ impl Recipe {
         time
     }
     /// `ingredient_list` returns the total amount of ingredients required to make the recipe
+    #[must_use]
     pub fn ingredient_list(&self) -> HashMap<String, Ingredient> {
-        let mut out = HashMap::new();
+        let mut out: HashMap<String, Ingredient> = HashMap::new();
+        #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
         for step in &self.steps {
             for ingredient in &step.ingredients {
-                if out.contains_key(&ingredient.name) {
-                    //TODO: add quantities together
-                    todo!()
+                if let Some(i) = out.get_mut(&ingredient.name) {
+                    i.unit += ingredient.unit;
                 } else {
                     //TODO: figure out if ingredients should be tracked using RC or not
                     out.insert(ingredient.name.clone(), ingredient.clone());
@@ -70,6 +75,7 @@ impl Recipe {
         out
     }
     /// `equipment_list` returns the overall list of equipment needed to make the recipe
+    #[must_use]
     pub fn equipment_list(&self) -> Vec<Equipment> {
         let mut out = Vec::new();
         for step in &self.steps {
@@ -77,13 +83,14 @@ impl Recipe {
                 // all short circuits if the closure returns false, and then returns false. We
                 // invert that false to true to see if a value is not contained in the vector
                 if !out.iter().all(|e| e == equipment) {
-                    out.push(equipment.clone())
+                    out.push(equipment.clone());
                 }
             }
         }
         out
     }
     /// `all_equipment_owned` returns the overall list of equipment needed to make the recipe
+    #[must_use]
     pub fn all_equipment_owned(&self) -> bool {
         // iterate through all equipment in all steps, short circuiting if e.is_owned is false
         self.steps
@@ -97,6 +104,7 @@ fn add(
     lhs: &mut Option<ucum::Second<f64>>,
     rhs: Option<ucum::Second<f64>>,
 ) -> Option<ucum::Second<f64>> {
+    #[allow(clippy::arithmetic_side_effects)] //TODO: change this to saturating
     match (lhs, rhs) {
         (Some(l), Some(r)) => Some(*l + r),
         (Some(l), None) => Some(*l),
