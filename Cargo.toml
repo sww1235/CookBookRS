@@ -6,6 +6,8 @@ license = "MIT OR Apache-2.0"
 authors = ["Stephen Walker-Weinshenker"]
 description = "Recipe database and browser"
 keywords = ["Cookbook", "Recipe", "Ingredient", "Cook", "Database"]
+categories = ["Command line utilites", ]
+repository = "https://github.com/sww1235/CookBookRS"
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
