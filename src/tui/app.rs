@@ -2,7 +2,7 @@ use crate::{datatypes::recipe::Recipe, tui::ui};
 
 use std::io;
 
-use ratatui::{backend::Backend, terminal::Terminal};
+use ratatui::{backend::Backend, terminal::Terminal, widgets::ListState};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 
@@ -13,6 +13,10 @@ pub struct App {
     pub recipes: Vec<Recipe>,
     /// the current screen the application is on
     pub current_screen: CurrentScreen,
+    /// state for recipe list
+    pub recipe_list_state: ListState,
+    /// length of recipe list
+    pub recipe_list_len: usize,
     /// exit flag
     pub exit: bool,
 }
@@ -26,9 +30,9 @@ pub enum CurrentScreen {
     #[default]
     RecipeBrowser,
     /// `RecipeEditing` allows users to edit recipes
-    RecipeEditing,
+    RecipeEditor,
     /// `RecipeViewing` is the main way to view a recipe
-    RecipeViewing,
+    RecipeViewer,
 }
 
 impl App {
@@ -38,6 +42,8 @@ impl App {
         Self {
             recipes: Vec::new(),
             current_screen: CurrentScreen::default(),
+            recipe_list_state: ListState::default(),
+            recipe_list_len: usize::default(),
             exit: false,
         }
     }
@@ -55,6 +61,7 @@ impl App {
         Ok(())
     }
     /// `handle_events` handles all [`crossterm::event`]s
+    //TODO: switch this to async handling
     fn handle_events(&mut self) -> io::Result<()> {
         match event::read()? {
             // only match key presses to avoid key release/repeat events on Windows
@@ -67,9 +74,43 @@ impl App {
     }
     /// `handle_key_event` handles all `KeyEvent`s
     fn handle_key_events(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char('q') => self.exit(),
-            _ => {}
+        match self.current_screen {
+            CurrentScreen::RecipeBrowser => match key_event.code {
+                KeyCode::Char('q') => self.exit(),
+                //https://blog.logrocket.com/rust-and-tui-building-a-command-line-interface-in-rust/
+                KeyCode::Down => {
+                    // selected is the integer index of the selected item in the list
+                    if let Some(selected) = self.recipe_list_state.selected() {
+                        // checking to see if at bottom of list, so we can wrap
+                        if selected >= self.recipe_list_len - 1 {
+                            self.recipe_list_state.select(Some(0));
+                        } else {
+                            self.recipe_list_state.select(Some(selected + 1));
+                        }
+                    }
+                }
+                KeyCode::Up => {
+                    if let Some(selected) = self.recipe_list_state.selected() {
+                        // not at top of list, so move up
+                        if selected > 0 {
+                            self.recipe_list_state.select(Some(selected - 1));
+                        } else {
+                            // go to bottom of list
+                            self.recipe_list_state
+                                .select(Some(self.recipe_list_len - 1));
+                        }
+                    }
+                }
+                _ => {}
+            },
+            CurrentScreen::RecipeEditor => match key_event.code {
+                KeyCode::Esc => self.current_screen = CurrentScreen::RecipeBrowser,
+                _ => {}
+            },
+            CurrentScreen::RecipeViewer => match key_event.code {
+                KeyCode::Esc => self.current_screen = CurrentScreen::RecipeBrowser,
+                _ => {}
+            },
         }
     }
     /// `exit` exits App

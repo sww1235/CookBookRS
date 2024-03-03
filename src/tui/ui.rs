@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 /// `layout` contains the layout code for the initial UI
-pub fn layout(frame: &mut Frame, app: &App) {
+pub fn layout(frame: &mut Frame, app: &mut App) {
     // This should create a layout of 3 vertical columns
     // with the outer 2 taking up 25% of the space, and
     // the middle one taking up the center 50%
@@ -64,8 +64,9 @@ pub fn layout(frame: &mut Frame, app: &App) {
     }
 
     let recipe_list = List::new(recipe_list_items).block(Block::default().borders(Borders::ALL));
+    app.recipe_list_len = recipe_list.len();
 
-    frame.render_widget(recipe_list, outer_layout[0]);
+    frame.render_stateful_widget(recipe_list, outer_layout[0], &mut app.recipe_list_state);
 
     let current_nav_text = vec![
         // what you are doing, first part of text
@@ -73,10 +74,10 @@ pub fn layout(frame: &mut Frame, app: &App) {
             CurrentScreen::RecipeBrowser => {
                 Span::styled("Browsing", Style::default().fg(Color::Green))
             }
-            CurrentScreen::RecipeEditing => {
+            CurrentScreen::RecipeEditor => {
                 Span::styled("Editing", Style::default().fg(Color::Yellow))
             }
-            CurrentScreen::RecipeViewing => {
+            CurrentScreen::RecipeViewer => {
                 Span::styled("Viewing", Style::default().fg(Color::Blue))
             }
         },
