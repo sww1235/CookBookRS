@@ -1,6 +1,6 @@
 //! cookbook TODO: add more documentation
 
-use cookbook_core::tui::{app::App, tui};
+use cookbook_core::tui::{self, app::App};
 
 use std::io;
 
