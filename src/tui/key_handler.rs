@@ -7,6 +7,11 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
     match app.current_screen {
         CurrentScreen::RecipeBrowser => match key_event.code {
             KeyCode::Char('q') => app.exit(),
+            KeyCode::Char('c' | 'C') => {
+                if key_event.modifiers == KeyModifiers::CONTROL {
+                    app.exit();
+                }
+            }
             KeyCode::Char('n') => app.current_screen = CurrentScreen::RecipeCreator,
             //https://blog.logrocket.com/rust-and-tui-building-a-command-line-interface-in-rust/
             KeyCode::Down => {
@@ -38,16 +43,34 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
                 //TODO: prompt for save
                 app.current_screen = CurrentScreen::RecipeBrowser;
             }
+            KeyCode::Char('c' | 'C') => {
+                if key_event.modifiers == KeyModifiers::CONTROL {
+                    //TODO: prompt for save
+                    app.exit();
+                }
+            }
             _ => {}
         },
         CurrentScreen::RecipeViewer => match key_event.code {
             KeyCode::Esc => app.current_screen = CurrentScreen::RecipeBrowser,
+            KeyCode::Char('c' | 'C') => {
+                if key_event.modifiers == KeyModifiers::CONTROL {
+                    //TODO: prompt for save
+                    app.exit();
+                }
+            }
             _ => {}
         },
         CurrentScreen::RecipeCreator => match key_event.code {
             KeyCode::Esc => {
                 //TODO: prompt for save
                 app.current_screen = CurrentScreen::RecipeBrowser;
+            }
+            KeyCode::Char('c' | 'C') => {
+                if key_event.modifiers == KeyModifiers::CONTROL {
+                    //TODO: prompt for save
+                    app.exit();
+                }
             }
             _ => {}
         },
