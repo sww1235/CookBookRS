@@ -23,7 +23,15 @@ pub struct Recipe {
     pub source: String,
     /// recipe author
     pub author: String,
-    //pub amount_made: TODO: units,
+    /// amount made
+    pub amount_made: u64,
+    /// units for amount made.
+    ///
+    /// Thse are not type checked at all and are treated as a base quantity internally.
+    /// This is just a representation of the units to display.
+    /// There may be a future addition that automatically calculates calories, or serving
+    /// sizes based on calories.
+    pub amount_made_units: String,
     /// list of steps in recipe
     pub steps: Vec<Step>,
     //TODO: tags, versions
@@ -65,7 +73,7 @@ impl Recipe {
         for step in &self.steps {
             for ingredient in &step.ingredients {
                 if let Some(i) = out.get_mut(&ingredient.name) {
-                    i.unit += ingredient.unit;
+                    i.unit_quantity += ingredient.unit_quantity;
                 } else {
                     //TODO: figure out if ingredients should be tracked using RC or not
                     out.insert(ingredient.name.clone(), ingredient.clone());

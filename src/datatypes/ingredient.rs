@@ -11,8 +11,8 @@ pub struct Ingredient {
     pub name: String,
     /// optional description
     pub description: Option<String>,
-    /// Unit of ingredient
-    pub unit: UnitType,
+    /// Unit and quantity of ingredient
+    pub unit_quantity: UnitType,
     //TODO: inventory reference
 }
 
