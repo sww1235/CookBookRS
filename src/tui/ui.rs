@@ -40,33 +40,53 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
         .borders(Borders::ALL)
         .style(Style::default());
 
-    //TODO: change title
-    let title = Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue)))
-        .block(title_block);
+    match app.current_screen {
+        CurrentScreen::RecipeBrowser => {
+            //TODO: change title
+            let title = Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue)))
+                .block(title_block);
 
-    //render_widget essentially pushes each widget into a frameusing the layout handler defined
-    //earlier
-    frame.render_widget(title, inner_layout[0]);
+            //render_widget essentially pushes each widget into a frameusing the layout handler defined
+            //earlier
+            frame.render_widget(title, inner_layout[0]);
 
-    let mut recipe_list_items = Vec::<ListItem>::new();
+            let mut recipe_list_items = Vec::<ListItem>::new();
 
-    for recipe in &app.recipes {
-        recipe_list_items.push(ListItem::new(Line::from(Span::styled(
-            recipe.name.clone(),
-            Style::default().fg(Color::Green),
-        ))));
+            for recipe in &app.recipes {
+                recipe_list_items.push(ListItem::new(Line::from(Span::styled(
+                    recipe.name.clone(),
+                    Style::default().fg(Color::Green),
+                ))));
+            }
+            if recipe_list_items.is_empty() {
+                recipe_list_items.push(ListItem::new(Line::from(Span::styled(
+                    "No Recipes",
+                    Style::default().fg(Color::Red),
+                ))));
+            }
+
+            let recipe_list =
+                List::new(recipe_list_items).block(Block::default().borders(Borders::ALL));
+            app.recipe_list_len = recipe_list.len();
+
+            frame.render_stateful_widget(recipe_list, outer_layout[0], &mut app.recipe_list_state);
+        }
+        CurrentScreen::RecipeEditor => {
+            todo!()
+        }
+        CurrentScreen::RecipeViewer => {
+            todo!()
+        }
+        CurrentScreen::RecipeCreator => {
+            let title = Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue)))
+                .block(title_block);
+
+            //render_widget essentially pushes each widget into a frame using the layout handler defined
+            //earlier
+            frame.render_widget(title, inner_layout[0]);
+            todo!()
+        }
     }
-    if recipe_list_items.is_empty() {
-        recipe_list_items.push(ListItem::new(Line::from(Span::styled(
-            "No Recipes",
-            Style::default().fg(Color::Red),
-        ))));
-    }
-
-    let recipe_list = List::new(recipe_list_items).block(Block::default().borders(Borders::ALL));
-    app.recipe_list_len = recipe_list.len();
-
-    frame.render_stateful_widget(recipe_list, outer_layout[0], &mut app.recipe_list_state);
 
     let current_nav_text = vec![
         // what you are doing, first part of text
@@ -80,11 +100,28 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
             CurrentScreen::RecipeViewer => {
                 Span::styled("Viewing", Style::default().fg(Color::Blue))
             }
+            CurrentScreen::RecipeCreator => {
+                Span::styled("Creating", Style::default().fg(Color::Magenta))
+            }
         },
         // divider bar
         Span::styled(" | ", Style::default().fg(Color::White)),
         // keyboard shortcuts
-        Span::styled("q:quit", Style::default().fg(Color::White)),
+        match app.current_screen {
+            CurrentScreen::RecipeBrowser => Span::styled(
+                "q:quit, n:new, \u{2195}: scroll",
+                Style::default().fg(Color::White),
+            ),
+            CurrentScreen::RecipeEditor => {
+                Span::styled("ESC:return to browsing", Style::default().fg(Color::White))
+            }
+            CurrentScreen::RecipeViewer => {
+                Span::styled("ESC:return to browsing", Style::default().fg(Color::White))
+            }
+            CurrentScreen::RecipeCreator => {
+                Span::styled("Creating", Style::default().fg(Color::White))
+            }
+        },
     ];
     let footer =
         Paragraph::new(Line::from(current_nav_text)).block(Block::default().borders(Borders::ALL));

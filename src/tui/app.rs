@@ -1,10 +1,6 @@
-use crate::{datatypes::recipe::Recipe, tui::ui};
+use crate::datatypes::recipe::Recipe;
 
-use std::io;
-
-use ratatui::{backend::Backend, terminal::Terminal, widgets::ListState};
-
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use ratatui::widgets::ListState;
 
 /// main application struct
 #[derive(Debug, Default)]
@@ -17,8 +13,12 @@ pub struct App {
     pub recipe_list_state: ListState,
     /// length of recipe list
     pub recipe_list_len: usize,
-    /// exit flag
-    pub exit: bool,
+    /// editing flag
+    pub editing: bool,
+    /// editing state
+    pub editing_state: EditingState,
+    /// running flag
+    pub running: bool,
 }
 
 /// `CurrentScreen` represents the screen the user is currently seeing
@@ -33,6 +33,23 @@ pub enum CurrentScreen {
     RecipeEditor,
     /// `RecipeViewing` is the main way to view a recipe
     RecipeViewer,
+    /// `RecipeCreator` is used for entry of new recipes
+    RecipeCreator,
+}
+
+/// `EditingState` represents the current state of the editing/creation workflow
+#[derive(Debug, Default)]
+#[non_exhaustive]
+pub enum EditingState {
+    /// Idle
+    #[default]
+    Idle,
+    /// Editing title
+    Title(String),
+    /// Editing ingredient
+    Ingredient,
+    /// Editing step
+    Step,
 }
 
 impl App {
@@ -44,77 +61,19 @@ impl App {
             current_screen: CurrentScreen::default(),
             recipe_list_state: ListState::default(),
             recipe_list_len: usize::default(),
-            exit: false,
+            running: false,
+            editing: false,
+            editing_state: EditingState::default(),
         }
     }
 
-    /// `run` starts the main application loop that exists until the user quits
-    ///
-    /// # Errors
-    /// Will error if any of the underlying terminal manipulation commands fail
-    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> io::Result<()> {
-        while !self.exit {
-            // change the call to ui::ui_init to change what is displayed
-            terminal.draw(|frame| ui::layout(frame, self))?;
-            self.handle_events()?;
-        }
-        Ok(())
+    /// `tick` handles the tick event of the app
+    pub fn tick(&self) {
+        todo!()
     }
-    /// `handle_events` handles all [`crossterm::event`]s
-    //TODO: switch this to async handling
-    fn handle_events(&mut self) -> io::Result<()> {
-        match event::read()? {
-            // only match key presses to avoid key release/repeat events on Windows
-            Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_events(key_event);
-            }
-            _ => {}
-        };
-        Ok(())
-    }
-    /// `handle_key_event` handles all `KeyEvent`s
-    fn handle_key_events(&mut self, key_event: KeyEvent) {
-        match self.current_screen {
-            CurrentScreen::RecipeBrowser => match key_event.code {
-                KeyCode::Char('q') => self.exit(),
-                //https://blog.logrocket.com/rust-and-tui-building-a-command-line-interface-in-rust/
-                KeyCode::Down => {
-                    // selected is the integer index of the selected item in the list
-                    if let Some(selected) = self.recipe_list_state.selected() {
-                        // checking to see if at bottom of list, so we can wrap
-                        if selected >= self.recipe_list_len - 1 {
-                            self.recipe_list_state.select(Some(0));
-                        } else {
-                            self.recipe_list_state.select(Some(selected + 1));
-                        }
-                    }
-                }
-                KeyCode::Up => {
-                    if let Some(selected) = self.recipe_list_state.selected() {
-                        // not at top of list, so move up
-                        if selected > 0 {
-                            self.recipe_list_state.select(Some(selected - 1));
-                        } else {
-                            // go to bottom of list
-                            self.recipe_list_state
-                                .select(Some(self.recipe_list_len - 1));
-                        }
-                    }
-                }
-                _ => {}
-            },
-            CurrentScreen::RecipeEditor => match key_event.code {
-                KeyCode::Esc => self.current_screen = CurrentScreen::RecipeBrowser,
-                _ => {}
-            },
-            CurrentScreen::RecipeViewer => match key_event.code {
-                KeyCode::Esc => self.current_screen = CurrentScreen::RecipeBrowser,
-                _ => {}
-            },
-        }
-    }
+
     /// `exit` exits App
-    fn exit(&mut self) {
-        self.exit = true;
+    pub fn exit(&mut self) {
+        self.running = false;
     }
 }

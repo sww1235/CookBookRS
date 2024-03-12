@@ -1,17 +1,37 @@
 //! cookbook TODO: add more documentation
 
-use cookbook_core::tui::{self, app::App};
+use cookbook_core::tui::{
+    app::App,
+    event::{Event, EventHandler},
+    key_handler, Tui,
+};
 
 use std::io;
+use std::time::Duration;
 
 use clap::Parser;
 
 fn main() -> io::Result<()> {
     let _cli = Cli::parse();
-    let mut terminal = tui::init()?;
-    let app_result = App::new().run(&mut terminal);
-    tui::restore()?;
-    app_result
+    let events = EventHandler::new(Duration::from_millis(250));
+    let mut tui = Tui::init(events)?;
+    let mut app = App::new();
+    while app.running {
+        // render interface
+        tui.draw(&mut app)?;
+        match tui.events.next()? {
+            Event::Tick => app.tick(),
+            Event::Key(key_event) => key_handler::handle_key_events(&mut app, key_event),
+            Event::Mouse(_) => {
+                todo!()
+            }
+            Event::Resize(_, _) => {
+                todo!()
+            }
+        }
+    }
+    Tui::restore()?;
+    Ok(())
 }
 /// `Cli` holds the defintions for command line arguments used in this binary
 #[derive(Parser)]
