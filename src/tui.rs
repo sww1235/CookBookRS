@@ -11,6 +11,7 @@ pub mod event;
 pub mod key_handler;
 
 use std::io::{self, stdout, Stdout};
+use std::sync::mpsc;
 
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
@@ -93,5 +94,38 @@ impl Tui<CrosstermBackend<Stdout>> {
         Self::restore()?;
         self.terminal.show_cursor()?;
         Ok(())
+    }
+}
+
+/// Error type for TUI
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// std::io::Error
+    IOError(io::Error),
+    /// std::sync::mpsc::RecvError
+    RecvError(mpsc::RecvError),
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Self::IOError(ref e) => write!(f, "{e}"),
+            Self::RecvError(ref e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Self {
+        Self::IOError(e)
+    }
+}
+
+impl From<mpsc::RecvError> for Error {
+    fn from(e: mpsc::RecvError) -> Self {
+        Self::RecvError(e)
     }
 }

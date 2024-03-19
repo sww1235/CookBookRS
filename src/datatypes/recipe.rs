@@ -18,7 +18,7 @@ pub struct Recipe {
     /// optional description
     pub description: Option<String>,
     /// recipe comments
-    pub comments: Option<String>,
+    pub comments: Option<String>, //TODO: make this more structured
     /// recipe source
     pub source: String,
     /// recipe author

@@ -1,3 +1,5 @@
+use super::Error;
+
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 
 use std::io;
@@ -7,6 +9,7 @@ use std::time::{Duration, Instant};
 
 ///Terminal Events
 #[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
 pub enum Event {
     /// Tick
     Tick,
