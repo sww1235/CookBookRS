@@ -23,7 +23,7 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
         .split(frame.size());
 
     // This should split the middle box into 3 areas, one on the bottom that will hold the menu and
-    // be 1 unit tall, one on the top that will show the title of the current recipe and be 10
+    // be 3 unit tall, one on the top that will show the title of the current recipe and be 5
     // units tall, and the middle will take up the remaining space
     let inner_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -52,17 +52,18 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
 
             let mut recipe_list_items = Vec::<ListItem>::new();
 
-            for recipe in &app.recipes {
-                recipe_list_items.push(ListItem::new(Line::from(Span::styled(
-                    recipe.name.clone(),
-                    Style::default().fg(Color::Green),
-                ))));
-            }
             if recipe_list_items.is_empty() {
                 recipe_list_items.push(ListItem::new(Line::from(Span::styled(
                     "No Recipes",
                     Style::default().fg(Color::Red),
                 ))));
+            } else {
+                for recipe in &app.recipes {
+                    recipe_list_items.push(ListItem::new(Line::from(Span::styled(
+                        recipe.name.clone(),
+                        Style::default().fg(Color::Green),
+                    ))));
+                }
             }
 
             let recipe_list =
@@ -112,14 +113,23 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                 "q:quit, n:new, \u{2195}: scroll",
                 Style::default().fg(Color::White),
             ),
-            CurrentScreen::RecipeEditor => {
-                Span::styled("ESC:return to browsing", Style::default().fg(Color::White))
-            }
             CurrentScreen::RecipeViewer => {
-                Span::styled("ESC:return to browsing", Style::default().fg(Color::White))
+                Span::styled("ESC: return to browsing", Style::default().fg(Color::White))
             }
-            CurrentScreen::RecipeCreator => {
-                Span::styled("Creating", Style::default().fg(Color::White))
+            CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor => {
+                let mut keybinds = String::new();
+                if app.editing_state == EditingState::Idle {
+                    keybinds += "ESC: return to browsing ";
+                } else {
+                    keybinds += "ESC: exit text editing ";
+                }
+                keybinds += "TAB: switch focus between recipe parts ";
+                // left/right arrows
+                keybinds += "\u{2194}: cycle between fields ";
+                // up/down arrows
+                keybinds += "\u{2195}: cycle between steps/equipment entries";
+
+                Span::styled(keybinds, Style::default().fg(Color::White))
             }
         },
     ];

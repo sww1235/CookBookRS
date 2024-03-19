@@ -1,24 +1,30 @@
 use crate::datatypes::recipe::Recipe;
 
-use ratatui::widgets::ListState;
+use ratatui::widgets::{ListState, ScrollbarState};
 
 /// main application struct
 #[derive(Debug, Default)]
 pub struct App {
     /// the recipes contained in the application
     pub recipes: Vec<Recipe>,
+    /// either a new recipe, or a clone of the recipe that is currently being edited
+    pub edit_recipe: Option<Recipe>,
     /// the current screen the application is on
     pub current_screen: CurrentScreen,
     /// state for recipe list
     pub recipe_list_state: ListState,
     /// length of recipe list
     pub recipe_list_len: usize,
-    /// editing flag
-    pub editing: bool,
+    /// editing flag, indicating which recipe you are editing. Not used for creating new recipes
+    pub editing: Option<usize>,
     /// editing state
     pub editing_state: EditingState,
     /// running flag
     pub running: bool,
+    /// recipe list scrollbar state
+    pub recipe_scroll_state: ScrollbarState,
+    /// scrollbar state for viewer/editor
+    pub middle_scrollbar_state: ScrollbarState,
 }
 
 /// `CurrentScreen` represents the screen the user is currently seeing
@@ -38,18 +44,22 @@ pub enum CurrentScreen {
 }
 
 /// `EditingState` represents the current state of the editing/creation workflow
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EditingState {
     /// Idle
     #[default]
     Idle,
-    /// Editing title
-    Title(String),
-    /// Editing ingredient
-    Ingredient,
-    /// Editing step
-    Step,
+    /// Editing recipe
+    Recipe,
+    /// Editing step, first index is step index
+    Step(usize),
+    /// Editing ingredient, first index is step index, second index is ingredient index within step
+    Ingredient(usize, usize),
+    /// Editing equipment, first index is step index, second index is equipment index within step
+    Equipment(usize, usize),
+    ///Save Prompt
+    Save,
 }
 
 impl App {
@@ -58,12 +68,15 @@ impl App {
     pub fn new() -> Self {
         Self {
             recipes: Vec::new(),
+            edit_recipe: None,
             current_screen: CurrentScreen::default(),
             recipe_list_state: ListState::default(),
             recipe_list_len: usize::default(),
             running: false,
-            editing: false,
+            editing: None,
             editing_state: EditingState::default(),
+            recipe_scroll_state: ScrollbarState::default(),
+            middle_scrollbar_state: ScrollbarState::default(),
         }
     }
 

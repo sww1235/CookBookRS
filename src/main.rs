@@ -20,14 +20,17 @@ fn main() -> Result<(), Error> {
     while app.running {
         // render interface
         tui.draw(&mut app)?;
+        #[allow(clippy::match_same_arms)] //TODO: remove this eventually
         match tui.events.next()? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => key_handler::handle_key_events(&mut app, key_event),
             Event::Mouse(_) => {
-                todo!()
+                //TODO
             }
-            Event::Resize(_, _) => {
-                todo!()
+            // redraw app on resize
+            Event::Resize(_, _) => tui.draw(&mut app)?,
+            _ => {
+                //TODO
             }
         }
     }
