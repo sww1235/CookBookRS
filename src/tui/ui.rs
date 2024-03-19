@@ -1,4 +1,7 @@
-use crate::tui::app::{App, CurrentScreen};
+use crate::{
+    datatypes::recipe::Recipe,
+    tui::app::{App, CurrentScreen, EditingState},
+};
 
 use ratatui::{
     layout::{Constraint, Direction, Layout},
@@ -79,12 +82,78 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
             todo!()
         }
         CurrentScreen::RecipeCreator => {
-            let title = Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue)))
-                .block(title_block);
+            if let Some(recipe) = &app.edit_recipe {
+                let recipe_edit_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    //*TODO**: use strum functionality to fix this
+                    //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
+                    //function if too many fields
+                    .constraints([Constraint::Ratio(
+                        1,
+                        Recipe::fields().len().try_into().expect("too many fields"),
+                        //TODO: add chunk to show step count
+                    )])
+                    .split(inner_layout[1]);
+                let recipe_title_layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(80), Constraint::Percentage(20)])
+                    .split(inner_layout[0]);
+                if !recipe.name.is_empty() {
+                    let title = Paragraph::new(Text::styled(
+                        recipe.name.clone(),
+                        Style::default().fg(Color::Blue),
+                    ))
+                    .block(title_block);
+                    frame.render_widget(title, recipe_title_layout[0]);
+                } else {
+                    let title = Paragraph::new(Text::styled(
+                        "New Recipe",
+                        Style::default().fg(Color::Green),
+                    ))
+                    .block(title_block);
+                    frame.render_widget(title, recipe_title_layout[0]);
+                }
+                let step_block = Block::default()
+                    .borders(Borders::ALL)
+                    .style(Style::default());
 
-            //render_widget essentially pushes each widget into a frame using the layout handler defined
-            //earlier
-            frame.render_widget(title, inner_layout[0]);
+                let step_count = Paragraph::new(Text::styled(
+                    recipe.steps.len().to_string(),
+                    Style::default().fg(Color::Green),
+                ))
+                .block(step_block);
+                frame.render_widget(step_count, recipe_title_layout[1]);
+
+                match app.editing_state {
+                    EditingState::Idle => {
+                        todo!()
+                    }
+                    EditingState::Recipe => {
+                        //TODO: need to check if recipe_edit_layout has enough blocks, and
+                        //implement scrolling logic if not
+                        let name_entry_block = Block::default().title("Name").borders(Borders::ALL);
+                        let name_text = Paragraph::new(recipe.name.clone()).block(name_entry_block);
+                        frame.render_widget(name_text, recipe_edit_layout[0]);
+                        let description_entry_block =
+                            Block::default().title("Description").borders(Borders::ALL);
+                        let description_text =
+                            Paragraph::new(recipe.description.clone().unwrap_or_default().clone())
+                                .block(description_entry_block);
+                        frame.render_widget(description_text, recipe_edit_layout[1]);
+                        //TODO: fix this for proper comment handling
+                        let comment_entry_block =
+                            Block::default().title("Comments").borders(Borders::ALL);
+                        let comment_text =
+                            Paragraph::new(recipe.comments.clone().unwrap_or_default().clone())
+                                .block(comment_entry_block);
+                        frame.render_widget(comment_text, recipe_edit_layout[2]);
+                        //TODO: source, author, amountmade, amountmadeunits
+                    }
+                    _ => {
+                        todo!()
+                    }
+                }
+            } //TODO: throw error here for empty list or something
             todo!()
         }
     }

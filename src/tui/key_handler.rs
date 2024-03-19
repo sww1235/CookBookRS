@@ -1,6 +1,11 @@
-use super::app::{App, CurrentScreen, EditingState};
+use crate::{
+    datatypes::recipe::Recipe,
+    tui::app::{App, CurrentScreen, EditingState},
+};
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::num::Wrapping;
+
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 /// `handle_key_event` handles all `KeyEvent`s
 pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
@@ -17,41 +22,26 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
                     app.exit();
                 }
             }
-            KeyCode::Char('n') => app.current_screen = CurrentScreen::RecipeCreator,
+            KeyCode::Char('n') => {
+                // create new recipe and start editing it
+                app.edit_recipe = Some(Recipe::new());
+                //TODO: fix this with proper error handling
+                app.editing_state = EditingState::Idle;
+                app.current_screen = CurrentScreen::RecipeCreator;
+            }
             //https://blog.logrocket.com/rust-and-tui-building-a-command-line-interface-in-rust/
             KeyCode::Down => {
                 // selected is the integer index of the selected item in the list
                 if let Some(selected) = app.recipe_list_state.selected() {
-                    // checking to see if at bottom of list, so we can wrap
-                    if selected >= app.recipe_list_len - 1 {
-                        app.recipe_list_state.select(Some(0));
-                    } else {
-                        app.recipe_list_state.select(Some(selected + 1));
-                    }
+                    app.recipe_list_state
+                        .select(Some((Wrapping(selected) + Wrapping(1_usize)).0));
                 }
             }
             KeyCode::Up => {
                 if let Some(selected) = app.recipe_list_state.selected() {
                     // not at top of list, so move up
-                    if selected > 0 {
-                        app.recipe_list_state.select(Some(selected - 1));
-                    } else {
-                        // go to bottom of list
-                        app.recipe_list_state.select(Some(app.recipe_list_len - 1));
-                    }
-                }
-            }
-            _ => {}
-        },
-        CurrentScreen::RecipeEditor => match key_event.code {
-            KeyCode::Esc => {
-                //TODO: prompt for save
-                app.current_screen = CurrentScreen::RecipeBrowser;
-            }
-            KeyCode::Char('c' | 'C') => {
-                if key_event.modifiers == KeyModifiers::CONTROL {
-                    //TODO: prompt for save
-                    app.exit();
+                    app.recipe_list_state
+                        .select(Some((Wrapping(selected) - Wrapping(1_usize)).0));
                 }
             }
             _ => {}
