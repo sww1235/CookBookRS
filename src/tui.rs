@@ -41,7 +41,7 @@ impl Tui<CrosstermBackend<Stdout>> {
     ///
     /// May panic if terminal setup/teardown code fails. Panic handler should take care of
     /// resetting terminal back to normal state
-    pub fn init(events: event::EventHandler) -> io::Result<Tui<CrosstermBackend<Stdout>>> {
+    pub fn init(events: event::EventHandler) -> io::Result<Self> {
         // enable terminal raw mode
         enable_raw_mode()?;
         // execute a command on the terminal handle returned by stdout()
@@ -51,7 +51,7 @@ impl Tui<CrosstermBackend<Stdout>> {
 
         terminal.hide_cursor()?;
         terminal.clear()?;
-        let tui = Tui { terminal, events };
+        let tui = Self { terminal, events };
 
         // set up panic restore hook
         let panic_hook = std::panic::take_hook();
@@ -71,7 +71,6 @@ impl Tui<CrosstermBackend<Stdout>> {
     /// # Errors
     /// Will error if any of the underlying terminal manipulation commands fail
     pub fn draw(&mut self, app: &mut app::App) -> io::Result<()> {
-        //TODO: figure out how to pass different UIs to this function
         self.terminal.draw(|frame| ui::layout(frame, app))?;
         Ok(())
     }
