@@ -39,9 +39,9 @@ impl Add for UnitType {
     #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
     fn add(self, other: Self) -> Self {
         match (self, other) {
-            (UnitType::Quantity(l), UnitType::Quantity(r)) => UnitType::Quantity(l + r),
-            (UnitType::Mass(l), UnitType::Mass(r)) => UnitType::Mass(l + r),
-            (UnitType::Volume(l), UnitType::Volume(r)) => UnitType::Volume(l + r),
+            (Self::Quantity(l), Self::Quantity(r)) => Self::Quantity(l + r),
+            (Self::Mass(l), Self::Mass(r)) => Self::Mass(l + r),
+            (Self::Volume(l), Self::Volume(r)) => Self::Volume(l + r),
             _ => panic!(
                 "Attempted to add different unit types together. This should not have happened"
             ),
@@ -56,6 +56,6 @@ impl AddAssign for UnitType {
 }
 impl Default for UnitType {
     fn default() -> Self {
-        UnitType::Quantity(0.0_f64)
+        Self::Quantity(0.0_f64)
     }
 }

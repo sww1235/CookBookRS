@@ -2,7 +2,6 @@ use super::Error;
 
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 
-use std::io;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};

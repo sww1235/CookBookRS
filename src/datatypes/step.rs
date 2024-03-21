@@ -32,6 +32,7 @@ pub struct Step {
 /// `StepType` represents what type of step each step is in a recipe. It is used to bucket times
 /// for recipe total duration
 #[non_exhaustive]
+#[allow(clippy::module_name_repetitions)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum StepType {
     /// Prep steps
@@ -48,10 +49,10 @@ pub enum StepType {
 impl fmt::Display for StepType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            StepType::Prep => write!(f, "Prep"),
-            StepType::Cook => write!(f, "Cook"),
-            StepType::Wait => write!(f, "Wait"),
-            StepType::Other => write!(f, "Other"),
+            Self::Prep => write!(f, "Prep"),
+            Self::Cook => write!(f, "Cook"),
+            Self::Wait => write!(f, "Wait"),
+            Self::Other => write!(f, "Other"),
         }
     }
 }

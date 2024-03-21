@@ -80,6 +80,7 @@ pub struct Step {
     /// equipment used in this step
     pub equipment: Vec<Equipment>,
     /// Step type
+    #[allow(clippy::struct_field_names)]
     pub step_type: StepType,
 }
 
