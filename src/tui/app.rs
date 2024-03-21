@@ -1,9 +1,9 @@
-use crate::datatypes::recipe::Recipe;
+use crate::datatypes::{recipe::Recipe, tag::Tag};
 
 use ratatui::widgets::{ListState, ScrollbarState};
 
 /// main application struct
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct App {
     /// the recipes contained in the application
     pub recipes: Vec<Recipe>,
@@ -25,10 +25,16 @@ pub struct App {
     pub recipe_scroll_state: ScrollbarState,
     /// scrollbar state for viewer/editor
     pub middle_scrollbar_state: ScrollbarState,
+    /// tag list
+    pub tags: Vec<Tag>,
+    /// tag list state
+    pub tag_list_state: ListState,
+    /// tag list length
+    pub tag_list_len: usize,
 }
 
 /// `CurrentScreen` represents the screen the user is currently seeing
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum CurrentScreen {
     /// `RecipeBrowser` is the main screen that shows a list of recipes, and allows users to filter
@@ -59,11 +65,11 @@ pub enum EditingState {
     /// Editing equipment, first index is step index, second index is equipment index within step
     Equipment(usize, usize),
     ///Save Prompt
-    Save,
+    SavePrompt,
 }
 
 impl App {
-    /// `new` creates a new `App`
+    /// [`new`] creates a new [`App`]
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -77,15 +83,32 @@ impl App {
             editing_state: EditingState::default(),
             recipe_scroll_state: ScrollbarState::default(),
             middle_scrollbar_state: ScrollbarState::default(),
+            tags: Vec::new(),
+            tag_list_state: ListState::default(),
+            tag_list_len: usize::default(),
         }
     }
 
-    /// `tick` handles the tick event of the app
+    /// [`compile_tag_list`] scans through all tags on all recipes, compiles them into the main app
+    /// tag list, then sorts and deduplicates the list
+    pub fn compile_tag_list(&mut self) {
+        for recipe in &self.recipes {
+            //TODO: maybe switch to using try_reserve instead
+            self.tags.reserve(recipe.tags.len());
+            self.tags.extend(recipe.tags.clone());
+        }
+        // don't care about order of duplicate elements since we are removing them
+        self.tags.sort_unstable();
+        self.tags.dedup();
+        self.tags.shrink_to_fit();
+    }
+
+    /// [`tick`] handles the tick event of the app
     pub fn tick(&self) {
         todo!()
     }
 
-    /// `exit` exits App
+    /// [`exit`] exits App
     pub fn exit(&mut self) {
         self.running = false;
     }

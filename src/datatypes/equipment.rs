@@ -1,8 +1,11 @@
+use struct_field_names_as_array::FieldNamesAsSlice;
+
 /// `Equipment` represents any implement you might use to prepare a recipe,
 /// from a stove, to a microwave, to a stand mixer, to a potato peeler
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, FieldNamesAsSlice)]
 pub struct Equipment {
     /// database unique ID
+    #[field_names_as_slice(skip)]
     pub id: u64,
     /// short name of item
     pub name: String,

@@ -3,11 +3,13 @@ use super::{equipment::Equipment, ingredient::Ingredient};
 use std::fmt;
 
 use dimensioned::ucum;
+use struct_field_names_as_array::FieldNamesAsSlice;
 
 /// `Step` represents a discrete step within a recipe
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq, FieldNamesAsSlice)]
 pub struct Step {
     /// database ID
+    #[field_names_as_slice(skip)]
     pub id: u64,
     /// time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
@@ -18,8 +20,10 @@ pub struct Step {
     /// instructions for step
     pub instructions: String,
     /// ingredients used in this step
+    #[field_names_as_slice(skip)]
     pub ingredients: Vec<Ingredient>,
     /// equipment used in this step
+    #[field_names_as_slice(skip)]
     pub equipment: Vec<Equipment>,
     /// Step type
     pub step_type: StepType,

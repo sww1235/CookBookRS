@@ -2,10 +2,13 @@ use dimensioned::ucum;
 
 use std::ops::{Add, AddAssign};
 
+use struct_field_names_as_array::FieldNamesAsSlice;
+
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
-#[derive(Debug, Clone, Default)]
+#[derive(Default, Debug, Clone, PartialEq, FieldNamesAsSlice)]
 pub struct Ingredient {
     /// database ID
+    #[field_names_as_slice(skip)]
     pub id: u64,
     /// ingredient short name
     pub name: String,
@@ -19,7 +22,7 @@ pub struct Ingredient {
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnitType {
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.

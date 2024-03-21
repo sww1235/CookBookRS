@@ -2,28 +2,35 @@ use super::{
     equipment::Equipment,
     ingredient::Ingredient,
     step::{Step, StepType},
+    tag::Tag,
 };
 
 use std::collections::HashMap;
 
 use dimensioned::ucum;
+use struct_field_names_as_array::FieldNamesAsSlice;
 
 /// `Recipe` represents one recipe from start to finish
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq, FieldNamesAsSlice)]
 pub struct Recipe {
     /// database ID
+    #[field_names_as_slice(skip)]
     pub id: u64,
     /// short name of recipe
     pub name: String,
     /// optional description
     pub description: Option<String>,
+    //TODO: maybe make comments a bit more formal, want to be able to record when recipe was last
+    //made
     /// recipe comments
-    pub comments: Option<String>, //TODO: make this more structured
+    pub comments: Option<String>,
     /// recipe source
     pub source: String,
     /// recipe author
     pub author: String,
     /// amount made
+    #[field_names_as_slice(skip)] //TODO: create associated function to output these values
+    //formatted correctly
     pub amount_made: u64,
     /// units for amount made.
     ///
@@ -31,15 +38,41 @@ pub struct Recipe {
     /// This is just a representation of the units to display.
     /// There may be a future addition that automatically calculates calories, or serving
     /// sizes based on calories.
+    #[field_names_as_slice(skip)]
     pub amount_made_units: String,
     /// list of steps in recipe
+    #[field_names_as_slice(skip)]
     pub steps: Vec<Step>,
+    /// list of tags on recipe
+    #[field_names_as_slice(skip)]
+    pub tags: Vec<Tag>,
     //TODO: tags, versions
-    //TODO: maybe make comments a bit more formal, want to be able to record when recipe was last
-    //made
+    /// if the recipe has unsaved changes or not
+    //TODO: figure out a save system
+    #[field_names_as_slice(skip)]
+    pub saved: bool,
 }
 
 impl Recipe {
+    /// `new` creates a new [`Recipe`]
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            id: u64::MIN,
+            name: String::default(),
+            description: None,
+            comments: None,
+            source: String::default(),
+            author: String::default(),
+            amount_made: u64::MIN,
+            amount_made_units: String::default(),
+            steps: Vec::new(),
+            tags: Vec::new(),
+            //TODO: versions
+            saved: false,
+        }
+    }
+
     /// `step_time_totals` provides the time required for each type of step as a `HashMap`
     #[must_use]
     #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
