@@ -52,7 +52,6 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
 
     match app.current_screen {
         CurrentScreen::RecipeBrowser => {
-            //TODO: change title
             let title = Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue)))
                 .block(title_block);
 
@@ -60,6 +59,7 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
             //earlier
             frame.render_widget(title, title_area);
 
+            //TODO: this should be moved outside the match, since it gets rendered on all screens
             let mut recipe_list_items = Vec::<ListItem>::new();
 
             if recipe_list_items.is_empty() {
@@ -76,12 +76,14 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                 }
             }
 
-            let recipe_list =
-                List::new(recipe_list_items).block(Block::default().borders(Borders::ALL));
+            let recipe_list = List::new(recipe_list_items)
+                .block(Block::default().borders(Borders::ALL).title("Recipe List"));
             app.recipe_list_len = recipe_list.len();
 
             frame.render_stateful_widget(recipe_list, recipe_list_area, &mut app.recipe_list_state);
 
+            //TODO: add this to the recipe creator/recipe editor section, but with a reference to
+            //the tag list of the edited recipe
             let mut tag_list_items = Vec::<ListItem>::new();
             if app.tags.is_empty() {
                 tag_list_items.push(ListItem::new(Line::from(Span::styled(
@@ -97,9 +99,11 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                 }
             }
 
-            let tag_list = List::new(tag_list_items).block(Block::default().borders(Borders::ALL));
+            let tag_list = List::new(tag_list_items)
+                .block(Block::default().borders(Borders::ALL).title("Tag List"));
             app.tag_list_len = tag_list.len();
             frame.render_stateful_widget(tag_list, tag_list_area, &mut app.tag_list_state);
+            //TODO: render recipe
         }
         CurrentScreen::RecipeViewer => {
             // only show tags associated with recipe
@@ -172,6 +176,7 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                         //TODO: implement scrolling
                         todo!()
                     }
+                    //TODO: create blocks and widgets here for fields
                     // last constraint for step/equipment block
                     recipe_edit_constraints.push(Constraint::Length(3));
                     let recipe_edit_layout = Layout::default()
@@ -193,7 +198,8 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
 
                     let step_block = Block::default()
                         .borders(Borders::ALL)
-                        .style(Style::default());
+                        .style(Style::default())
+                        .title("Number of Steps");
 
                     let step_count = Paragraph::new(Text::styled(
                         recipe.steps.len().to_string(),
@@ -235,6 +241,7 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                         //TODO: implement scrolling
                         todo!()
                     }
+                    //TODO: create blocks and widgets here for fields
                     // last constraint for step/equipment block
                     step_edit_constraints.push(Constraint::Length(3));
                     let step_edit_layout = Layout::default()
@@ -256,7 +263,8 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
 
                     let equipment_block = Block::default()
                         .borders(Borders::ALL)
-                        .style(Style::default());
+                        .style(Style::default())
+                        .title("Equipment Count for Step"); //TODO: add step number?
 
                     let equipment_count = Paragraph::new(Text::styled(
                         recipe.steps[step_num].equipment.len().to_string(),
@@ -267,7 +275,8 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
 
                     let ingredient_block = Block::default()
                         .borders(Borders::ALL)
-                        .style(Style::default());
+                        .style(Style::default())
+                        .title("Ingredient Count for Step"); //TODO: add step number?
 
                     let ingredient_count = Paragraph::new(Text::styled(
                         recipe.steps[step_num].ingredients.len().to_string(),
@@ -316,6 +325,7 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                         //TODO: implement scrolling
                         todo!()
                     }
+                    //TODO: create blocks and widgets here for fields
                     // last constraint for step/equipment block
                     ingredient_edit_constraints.push(Constraint::Length(3));
                     let ingredient_edit_layout = Layout::default()
@@ -337,7 +347,8 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
 
                     let step_block = Block::default()
                         .borders(Borders::ALL)
-                        .style(Style::default());
+                        .style(Style::default())
+                        .title("Step Number");
 
                     let step_id = Paragraph::new(Text::styled(
                         step_num.to_string(),
@@ -386,6 +397,7 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                         //TODO: implement scrolling
                         todo!()
                     }
+                    //TODO: create blocks and widgets here for fields
                     // last constraint for step/equipment block
                     equipment_edit_constraints.push(Constraint::Length(3));
                     let equipment_edit_layout = Layout::default()
@@ -407,7 +419,8 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
 
                     let step_block = Block::default()
                         .borders(Borders::ALL)
-                        .style(Style::default());
+                        .style(Style::default())
+                        .title("Step Number");
 
                     let step_id = Paragraph::new(Text::styled(
                         step_num.to_string(),
