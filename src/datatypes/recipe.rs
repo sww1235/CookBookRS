@@ -46,7 +46,7 @@ pub struct Recipe {
     /// list of tags on recipe
     #[field_names_as_slice(skip)]
     pub tags: Vec<Tag>,
-    //TODO: tags, versions
+    //TODO: versions
     /// if the recipe has unsaved changes or not
     //TODO: figure out a save system
     #[field_names_as_slice(skip)]

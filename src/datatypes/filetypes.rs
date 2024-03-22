@@ -26,7 +26,9 @@ pub struct Recipe {
     pub amount_made_units: String,
     /// list of steps in recipe
     pub steps: Vec<Step>,
-    //TODO: tags, versions
+    /// tags
+    pub tags: Vec<String>,
+    //TODO: versions
     //TODO: maybe make comments a bit more formal, want to be able to record when recipe was last
     //made
 }

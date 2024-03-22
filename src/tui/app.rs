@@ -105,7 +105,8 @@ impl App {
 
     /// [`tick`] handles the tick event of the app
     pub fn tick(&self) {
-        todo!()
+        //TODO: investigate this further
+        //https://github.com/ratatui-org/templates/blob/966cf2e2b5808de8c905eacd1f4209fe82f804fe/simple/src/app.rs#L31
     }
 
     /// [`exit`] exits App
