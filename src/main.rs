@@ -17,6 +17,7 @@ fn main() -> Result<(), Error> {
     let events = EventHandler::new(Duration::from_millis(250));
     let mut tui = Tui::init(events)?;
     let mut app = App::new();
+    app.running = true;
     while app.running {
         // render interface
         tui.draw(&mut app)?;
