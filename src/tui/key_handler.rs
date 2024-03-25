@@ -64,6 +64,7 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
         // - Tab toggles between editing recipe fields, recipe steps, equipment or ingredients
         // - left/right arrow keys cycle between fields
         // - up/down arrow keys cycle between the individual steps/equipment
+        // - e starts editing the recipe
         // -
         // want a separate editing screen for the steps in the recipe
         CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor => match key_event.code {
@@ -94,11 +95,13 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
                     _ => {}
                 }
             }
-            KeyCode::Char('c' | 'C') => {
-                if key_event.modifiers == KeyModifiers::CONTROL {
-                    //TODO: prompt for save
-                    app.exit();
-                }
+            KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => {
+                //TODO: prompt for save
+                app.exit();
+            }
+            //TODO: maybe change this to r for recpe?
+            KeyCode::Char('e') if app.editing_state == EditingState::Idle => {
+                app.editing_state = EditingState::Recipe;
             }
             //KeyCode
             _ => {}

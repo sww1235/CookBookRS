@@ -176,13 +176,31 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                         //TODO: implement scrolling
                         todo!()
                     }
-                    //TODO: create blocks and widgets here for fields
                     // last constraint for step/equipment block
                     recipe_edit_constraints.push(Constraint::Length(3));
                     let recipe_edit_layout = Layout::default()
                         .direction(Direction::Vertical)
                         .constraints(recipe_edit_constraints)
                         .split(recipe_area);
+
+                    // FIXME: hopefully this is the same sorting as before
+                    //TODO: create blocks and widgets here for fields
+                    for field_name in Recipe::FIELD_NAMES_AS_SLICE {
+                        let block = Block::default()
+                            .borders(Borders::ALL)
+                            .style(Style::default())
+                            .title(*field_name);
+                        //TODO: need to be able to determine which field you are in, enum
+                        //style, and also access a reference/mutable reference to that field
+                        //TODO: placeholder text for now
+                        let paragraph = Paragraph::new(Text::styled(
+                            "placeholder",
+                            Style::default().fg(Color::Red),
+                        ))
+                        .block(block);
+                        //frame.render_widget(paragraph, TODO: figure out how to access the
+                        //correct
+                    }
 
                     // recipe_edit_layout should always have something in it.
                     // This is a valid place to panic
@@ -433,7 +451,21 @@ pub fn layout(frame: &mut Frame, app: &mut App) {
                 }
 
                 EditingState::Idle => {
-                    todo!()
+                    if app.current_screen == CurrentScreen::RecipeCreator {
+                        let instruction_block = Block::default()
+                            .borders(Borders::ALL)
+                            .style(Style::default());
+                        let instructions = Paragraph::new(Text::styled(
+                            "Press e to start editing new recipe",
+                            Style::default().fg(Color::Red),
+                        ))
+                        .block(instruction_block);
+                        frame.render_widget(instructions, recipe_area);
+                    } else {
+                        // if existing recipe, display same fields as editingstate::recipe, but don't
+                        // allow edits
+                        todo!()
+                    }
                 }
                 EditingState::SavePrompt => {}
             }

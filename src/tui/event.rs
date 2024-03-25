@@ -23,6 +23,7 @@ pub enum Event {
 ///Terminal Event Handler
 #[derive(Debug)]
 #[allow(clippy::module_name_repetitions)]
+#[allow(dead_code)] //TODO: figure out why this is detecting dead code
 pub struct EventHandler {
     /// Event sender channel
     sender: mpsc::Sender<Event>,
