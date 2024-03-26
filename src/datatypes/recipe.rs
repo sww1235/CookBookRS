@@ -5,16 +5,21 @@ use super::{
     tag::Tag,
 };
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
-use struct_field_names_as_array::FieldNamesAsSlice;
+use ratatui::{
+    buffer::Buffer,
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Style},
+    text::{Line, Span, Text},
+    widgets::{Block, Borders, List, ListItem, Paragraph, StatefulWidget, Widget},
+};
 
 /// `Recipe` represents one recipe from start to finish
-#[derive(Default, Debug, Clone, PartialEq, FieldNamesAsSlice)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Recipe {
     /// database ID
-    #[field_names_as_slice(skip)]
     pub id: u64,
     /// short name of recipe
     pub name: String,
@@ -29,28 +34,36 @@ pub struct Recipe {
     /// recipe author
     pub author: String,
     /// amount made
-    #[field_names_as_slice(skip)] //TODO: create associated function to output these values
-    //formatted correctly
-    pub amount_made: u64,
+    pub amount_made: AmountMade,
+    /// list of steps in recipe
+    pub steps: Vec<Step>,
+    /// list of tags on recipe
+    pub tags: Vec<Tag>,
+    //TODO: versions
+    /// if the recipe has unsaved changes or not
+    //TODO: figure out a save system
+    pub saved: bool,
+}
+
+/// [`AmountMade`] represents the total finished quantity that the recipe makes, like 24 cookies,
+/// 24 servings, 6 portions, etc.
+#[derive(Default, Debug, Clone, PartialEq)]
+pub struct AmountMade {
+    /// amount made
+    pub quantity: u64,
     /// units for amount made.
     ///
     /// Thse are not type checked at all and are treated as a base quantity internally.
     /// This is just a representation of the units to display.
     /// There may be a future addition that automatically calculates calories, or serving
     /// sizes based on calories.
-    #[field_names_as_slice(skip)]
-    pub amount_made_units: String,
-    /// list of steps in recipe
-    #[field_names_as_slice(skip)]
-    pub steps: Vec<Step>,
-    /// list of tags on recipe
-    #[field_names_as_slice(skip)]
-    pub tags: Vec<Tag>,
-    //TODO: versions
-    /// if the recipe has unsaved changes or not
-    //TODO: figure out a save system
-    #[field_names_as_slice(skip)]
-    pub saved: bool,
+    pub units: String,
+}
+
+impl fmt::Display for AmountMade {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Makes: {} {}", self.quantity, self.units)
+    }
 }
 
 impl Recipe {
@@ -64,8 +77,7 @@ impl Recipe {
             comments: None,
             source: String::default(),
             author: String::default(),
-            amount_made: u64::MIN,
-            amount_made_units: String::default(),
+            amount_made: AmountMade::default(),
             steps: Vec::new(),
             tags: Vec::new(),
             //TODO: versions
@@ -139,6 +151,163 @@ impl Recipe {
             .all(|s| s.equipment.iter().all(|e| e.is_owned))
     }
 }
+
+pub enum RecipeState {
+    //TODO: selected field, which step is selected, etc
+}
+
+// display version of recipe
+impl Widget for Recipe {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        //TODO: implement
+    }
+}
+// edit version of recipe
+impl StatefulWidget for Recipe {
+    type State = RecipeState;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // Use split here, since we don't care about naming the fields specifically
+
+        //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
+        //function if too many fields
+        //
+        //Want
+        //- comment field to be at least 5 lines high plus borders
+        //- description field to be at least 5 lines high plus borders
+        //- want other fields to be 1 line high plus borders
+        //- need 3 rows for space for blocks at bottom
+
+        let mut recipe_edit_constraints = Vec::new();
+
+        // name, description, comments, source, author, amount_made
+        let num_fields = 6;
+        let num_special_fields = 2;
+        // subtract 2 for comment/description fields
+        // multiply by 3 for other field total height
+        // add 7 for comment field
+        // add 7 for description field
+        // add 3 for bottom blocks
+        // add 2 for border? //TODO: fix borders
+        let required_field_height = ((num_fields - num_special_fields) * 3) + 7 + 7 + 3 + 2;
+        if usize::from(area.height) >= required_field_height {
+            // recipe_area.height is greater than minimum required
+
+            // need 2 for border and 1 for text.
+            // name
+            recipe_edit_constraints.push(Constraint::Length(3));
+            // description
+            recipe_edit_constraints.push(Constraint::Min(7));
+            //for now, just a bigger area.
+            //TODO: special case this for additional comment functionality
+            // comments
+            recipe_edit_constraints.push(Constraint::Min(7));
+            // source
+            recipe_edit_constraints.push(Constraint::Length(3));
+            // author
+            recipe_edit_constraints.push(Constraint::Length(3));
+            // amount_made
+            recipe_edit_constraints.push(Constraint::Length(3));
+        } else {
+            //TODO: implement scrolling
+            todo!()
+        }
+        // last constraint for step/equipment block
+        recipe_edit_constraints.push(Constraint::Length(3));
+        let edit_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(recipe_edit_constraints)
+            .split(area);
+
+        let name_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title("Name");
+        let name_paragraph =
+            Paragraph::new(Text::styled(self.name, Style::default().fg(Color::Red)))
+                .block(name_block);
+        //TODO: update state here
+        name_paragraph.render(edit_layout[0], buf);
+
+        let description_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title("description");
+        let description_paragraph = Paragraph::new(Text::styled(
+            self.description.unwrap_or_default(),
+            Style::default().fg(Color::Red),
+        ))
+        .block(description_block);
+        //TODO: update state here
+        description_paragraph.render(edit_layout[1], buf);
+
+        let comment_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title("comments");
+        let comment_paragraph = Paragraph::new(Text::styled(
+            self.comments.unwrap_or_default(),
+            Style::default().fg(Color::Red),
+        ))
+        .block(comment_block);
+        //TODO: update state here
+        comment_paragraph.render(edit_layout[2], buf);
+
+        let source_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title("source");
+        let source_paragraph =
+            Paragraph::new(Text::styled(self.source, Style::default().fg(Color::Red)))
+                .block(source_block);
+        //TODO: update state here
+        source_paragraph.render(edit_layout[3], buf);
+
+        let author_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title("source");
+        let author_paragraph =
+            Paragraph::new(Text::styled(self.author, Style::default().fg(Color::Red)))
+                .block(author_block);
+        //TODO: update state here
+        author_paragraph.render(edit_layout[4], buf);
+
+        let amount_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title("amount");
+        let amount_paragraph = Paragraph::new(Text::styled(
+            self.amount_made.to_string(),
+            Style::default().fg(Color::Red),
+        ))
+        .block(amount_block);
+        //TODO: update state here
+        amount_paragraph.render(edit_layout[5], buf);
+
+        // recipe_edit_layout should always have something in it.
+        // This is a valid place to panic
+        #[allow(clippy::expect_used)]
+        let [left_info_area, right_info_area] = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .areas(*edit_layout.last().expect("No edit areas defined"));
+
+        let step_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default())
+            .title("Number of Steps");
+
+        let step_count = Paragraph::new(Text::styled(
+            self.steps.len().to_string(),
+            Style::default().fg(Color::Green),
+        ))
+        .block(step_block);
+        step_count.render(left_info_area, buf);
+        // render an empty block with borders on the right
+        Widget::render(Block::default().borders(Borders::ALL), right_info_area, buf);
+    }
+}
+
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/
 /// helper function for `step_time_totals` to allow adding an option and an option togther
 fn add(
