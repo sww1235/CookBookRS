@@ -1,9 +1,6 @@
 /// `app` is the main application logic and structure
 pub mod app;
 
-/// `ui` contains the layout and formatting code for the TUI
-pub mod ui;
-
 /// `event` contains the event handling logic for the application
 pub mod event;
 
@@ -19,7 +16,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use ratatui::{backend::Backend, prelude::CrosstermBackend, Terminal};
+use ratatui::{backend::Backend, prelude::CrosstermBackend, widgets::StatefulWidget, Terminal};
 
 // based on the ratatui [simple
 // example](https://github.com/ratatui-org/templates/blob/main/simple/src/tui.rs)
@@ -71,8 +68,10 @@ impl Tui<CrosstermBackend<Stdout>> {
     ///
     /// # Errors
     /// Will error if any of the underlying terminal manipulation commands fail
-    pub fn draw(&mut self, app: &mut app::App) -> io::Result<()> {
-        self.terminal.draw(|frame| ui::layout(frame, app))?;
+    pub fn draw(&mut self, app: &app::App, app_state: &mut app::AppState) -> io::Result<()> {
+        self.terminal.draw(|frame| {
+            app.render(frame.size(), self.terminal.current_buffer_mut(), app_state)
+        })?;
         Ok(())
     }
 
