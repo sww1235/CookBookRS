@@ -26,16 +26,12 @@ pub struct App {
     pub edit_recipe: Option<Recipe>,
     /// the current screen the application is on
     pub current_screen: CurrentScreen,
-    /// length of recipe list
-    pub recipe_list_len: usize,
     /// editing flag, indicating which recipe you are editing. Not used for creating new recipes
     pub editing: Option<usize>,
     /// running flag
     pub running: bool,
     /// tag list
     pub tags: Vec<Tag>,
-    /// tag list length
-    pub tag_list_len: usize,
 }
 
 /// `CurrentScreen` represents the screen the user is currently seeing
@@ -81,11 +77,9 @@ impl App {
             recipes: Vec::new(),
             edit_recipe: None,
             current_screen: CurrentScreen::default(),
-            recipe_list_len: usize::default(),
             running: false,
             editing: None,
             tags: Vec::new(),
-            tag_list_len: usize::default(),
         }
     }
 
@@ -120,8 +114,12 @@ pub struct AppState {
     pub recipe_list_state: ListState,
     /// tag list state
     pub tag_list_state: ListState,
+    /// tag list length
+    pub tag_list_len: usize,
     /// recipe list scrollbar state
     pub recipe_scroll_state: ScrollbarState,
+    /// length of recipe list
+    pub recipe_list_len: usize,
     /// scrollbar state for viewer/editor
     pub middle_scrollbar_state: ScrollbarState,
     /// editing state
@@ -188,7 +186,7 @@ impl StatefulWidget for App {
 
         let recipe_list = List::new(recipe_list_items)
             .block(Block::default().borders(Borders::ALL).title("Recipe List"));
-        self.recipe_list_len = recipe_list.len();
+        state.recipe_list_len = recipe_list.len();
 
         StatefulWidget::render(
             recipe_list,
@@ -197,7 +195,7 @@ impl StatefulWidget for App {
             &mut state.recipe_list_state,
         );
 
-        let current_nav_text = Vec::new();
+        let mut current_nav_text = Vec::new();
 
         match self.current_screen {
             CurrentScreen::RecipeBrowser => {
@@ -226,7 +224,7 @@ impl StatefulWidget for App {
 
                 let tag_list = List::new(tag_list_items)
                     .block(Block::default().borders(Borders::ALL).title("Tag List"));
-                self.tag_list_len = tag_list.len();
+                state.tag_list_len = tag_list.len();
                 StatefulWidget::render(tag_list, tag_list_area, buf, &mut state.tag_list_state);
                 //TODO: render recipe
                 //
@@ -252,7 +250,6 @@ impl StatefulWidget for App {
                 #[allow(clippy::expect_used)] //TODO: confirm this
                 let recipe = &self
                     .edit_recipe
-                    .as_mut()
                     .expect("No recipe currently being edited while in edit screen");
 
                 if recipe.name.is_empty() && self.current_screen == CurrentScreen::RecipeCreator {
@@ -273,14 +270,14 @@ impl StatefulWidget for App {
 
                 match state.editing_state {
                     EditingState::Recipe => {
-                        StatefulWidget::render(*recipe, recipe_area, buf, state.recipe_state)
+                        StatefulWidget::render(*recipe, recipe_area, buf, &mut state.recipe_state)
                     }
                     EditingState::Step(step_num) => {
                         StatefulWidget::render(
                             recipe.steps[step_num],
                             recipe_area,
                             buf,
-                            state.step_state,
+                            &mut state.step_state,
                         );
                     }
                     EditingState::Ingredient(step_num, ingredient_num) => {
@@ -288,7 +285,7 @@ impl StatefulWidget for App {
                             recipe.steps[step_num].ingredients[ingredient_num],
                             recipe_area,
                             buf,
-                            state.ingredient_state,
+                            &mut state.ingredient_state,
                         );
                     }
                     EditingState::Equipment(step_num, equipment_num) => {
@@ -296,7 +293,7 @@ impl StatefulWidget for App {
                             recipe.steps[step_num].equipment[equipment_num],
                             recipe_area,
                             buf,
-                            state.equipment_state,
+                            &mut state.equipment_state,
                         );
                     }
                     EditingState::Idle => {
@@ -348,6 +345,6 @@ impl StatefulWidget for App {
         }
         let footer = Paragraph::new(Line::from(current_nav_text))
             .block(Block::default().borders(Borders::ALL));
-        footer.render(area, buf);
+        footer.render(menu_area, buf);
     }
 }

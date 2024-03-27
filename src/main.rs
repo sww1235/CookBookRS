@@ -1,7 +1,7 @@
 //! cookbook TODO: add more documentation
 
 use cookbook_core::tui::{
-    app::App,
+    app::{App, AppState},
     event::{Event, EventHandler},
     key_handler, Error, Tui,
 };
@@ -17,6 +17,7 @@ fn main() -> Result<(), Error> {
     let events = EventHandler::new(Duration::from_millis(250));
     let mut tui = Tui::init(events)?;
     let mut app = App::new();
+    let mut app_state = AppState::default();
     app.running = true;
     while app.running {
         // render interface
@@ -24,12 +25,12 @@ fn main() -> Result<(), Error> {
         #[allow(clippy::match_same_arms)] //TODO: remove this eventually
         match tui.events.next()? {
             Event::Tick => app.tick(),
-            Event::Key(key_event) => key_handler::handle_key_events(&mut app, key_event),
+            Event::Key(key_event) => key_handler::handle_key_events(&mut app, app_state, key_event),
             Event::Mouse(_) => {
                 //TODO
             }
             // redraw app on resize
-            Event::Resize(_, _) => tui.draw(&mut app)?,
+            Event::Resize(_, _) => tui.draw(&app, app_state)?,
             _ => {
                 //TODO
             }

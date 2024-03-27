@@ -1,6 +1,6 @@
 use crate::{
     datatypes::recipe::Recipe,
-    tui::app::{App, CurrentScreen, EditingState},
+    tui::app::{App, AppState, CurrentScreen, EditingState},
 };
 
 use std::num::Wrapping;
@@ -8,7 +8,7 @@ use std::num::Wrapping;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 /// `handle_key_event` handles all `KeyEvent`s
-pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
+pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: KeyEvent) {
     if key_event.kind == KeyEventKind::Release {
         // Skip events that are not KeyEventKind::Press
         return;
@@ -26,21 +26,23 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
                 // create new recipe and start editing it
                 app.edit_recipe = Some(Recipe::new());
                 //TODO: fix this with proper error handling
-                app.editing_state = EditingState::Idle;
+                app_state.editing_state = EditingState::Idle;
                 app.current_screen = CurrentScreen::RecipeCreator;
             }
             //https://blog.logrocket.com/rust-and-tui-building-a-command-line-interface-in-rust/
             KeyCode::Down => {
                 // selected is the integer index of the selected item in the list
-                if let Some(selected) = app.recipe_list_state.selected() {
-                    app.recipe_list_state
+                if let Some(selected) = app_state.recipe_list_state.selected() {
+                    app_state
+                        .recipe_list_state
                         .select(Some((Wrapping(selected) + Wrapping(1_usize)).0));
                 }
             }
             KeyCode::Up => {
-                if let Some(selected) = app.recipe_list_state.selected() {
+                if let Some(selected) = app_state.recipe_list_state.selected() {
                     // not at top of list, so move up
-                    app.recipe_list_state
+                    app_state
+                        .recipe_list_state
                         .select(Some((Wrapping(selected) - Wrapping(1_usize)).0));
                 }
             }
@@ -70,27 +72,27 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
         CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor => match key_event.code {
             // want to be able to stop editing but still be in creation/editing view
             KeyCode::Esc => {
-                if app.editing_state == EditingState::Idle {
+                if app_state.editing_state == EditingState::Idle {
                     //TODO: prompt for save
                     app.current_screen = CurrentScreen::RecipeBrowser;
                 } else {
-                    app.editing_state = EditingState::Idle;
+                    app_state.editing_state = EditingState::Idle;
                 }
             }
             KeyCode::Tab => {
                 //toggle between editing recipe, steps, or ingredients
-                match app.editing_state {
+                match app_state.editing_state {
                     EditingState::Recipe => {
-                        app.editing_state = EditingState::Step(0);
+                        app_state.editing_state = EditingState::Step(0);
                     }
                     EditingState::Step(step) => {
-                        app.editing_state = EditingState::Ingredient(step, 0);
+                        app_state.editing_state = EditingState::Ingredient(step, 0);
                     }
                     EditingState::Ingredient(step, _) => {
-                        app.editing_state = EditingState::Equipment(step, 0);
+                        app_state.editing_state = EditingState::Equipment(step, 0);
                     }
                     EditingState::Equipment(_, _) => {
-                        app.editing_state = EditingState::Recipe;
+                        app_state.editing_state = EditingState::Recipe;
                     }
                     _ => {}
                 }
@@ -100,8 +102,8 @@ pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
                 app.exit();
             }
             //TODO: maybe change this to r for recpe?
-            KeyCode::Char('e') if app.editing_state == EditingState::Idle => {
-                app.editing_state = EditingState::Recipe;
+            KeyCode::Char('e') if app_state.editing_state == EditingState::Idle => {
+                app_state.editing_state = EditingState::Recipe;
             }
             //KeyCode
             _ => {}
