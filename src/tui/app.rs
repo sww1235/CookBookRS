@@ -13,7 +13,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{
         Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget,
-        Widget,
+        StatefulWidgetRef, Widget, WidgetRef,
     },
 };
 
@@ -109,6 +109,10 @@ impl App {
     }
 }
 
+/// [`AppState`] represents the main state of the application. It holds all states for subparts of
+/// the app, and anything that might need to change during a call to
+/// [`StatefulWidgetRef::render_ref()`]
+#[derive(Debug, Default)]
 pub struct AppState {
     /// state for recipe list
     pub recipe_list_state: ListState,
@@ -134,9 +138,9 @@ pub struct AppState {
     pub equipment_state: EquipmentState,
 }
 
-impl StatefulWidget for App {
+impl StatefulWidgetRef for App {
     type State = AppState;
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // This should create a layout of 3 vertical columns
         // with the outer 2 taking up 25% of the space, and
         // the middle one taking up the center 50%
@@ -250,6 +254,7 @@ impl StatefulWidget for App {
                 #[allow(clippy::expect_used)] //TODO: confirm this
                 let recipe = &self
                     .edit_recipe
+                    .as_ref()
                     .expect("No recipe currently being edited while in edit screen");
 
                 if recipe.name.is_empty() && self.current_screen == CurrentScreen::RecipeCreator {
@@ -269,28 +274,31 @@ impl StatefulWidget for App {
                 }
 
                 match state.editing_state {
-                    EditingState::Recipe => {
-                        StatefulWidget::render(*recipe, recipe_area, buf, &mut state.recipe_state)
-                    }
+                    EditingState::Recipe => StatefulWidgetRef::render_ref(
+                        *recipe,
+                        recipe_area,
+                        buf,
+                        &mut state.recipe_state,
+                    ),
                     EditingState::Step(step_num) => {
-                        StatefulWidget::render(
-                            recipe.steps[step_num],
+                        StatefulWidgetRef::render_ref(
+                            &recipe.steps[step_num],
                             recipe_area,
                             buf,
                             &mut state.step_state,
                         );
                     }
                     EditingState::Ingredient(step_num, ingredient_num) => {
-                        StatefulWidget::render(
-                            recipe.steps[step_num].ingredients[ingredient_num],
+                        StatefulWidgetRef::render_ref(
+                            &recipe.steps[step_num].ingredients[ingredient_num],
                             recipe_area,
                             buf,
                             &mut state.ingredient_state,
                         );
                     }
                     EditingState::Equipment(step_num, equipment_num) => {
-                        StatefulWidget::render(
-                            recipe.steps[step_num].equipment[equipment_num],
+                        StatefulWidgetRef::render_ref(
+                            &recipe.steps[step_num].equipment[equipment_num],
                             recipe_area,
                             buf,
                             &mut state.equipment_state,

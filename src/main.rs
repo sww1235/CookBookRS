@@ -21,16 +21,18 @@ fn main() -> Result<(), Error> {
     app.running = true;
     while app.running {
         // render interface
-        tui.draw(&mut app)?;
+        tui.draw(&app, &mut app_state)?;
         #[allow(clippy::match_same_arms)] //TODO: remove this eventually
         match tui.events.next()? {
             Event::Tick => app.tick(),
-            Event::Key(key_event) => key_handler::handle_key_events(&mut app, app_state, key_event),
+            Event::Key(key_event) => {
+                key_handler::handle_key_events(&mut app, &mut app_state, key_event)
+            }
             Event::Mouse(_) => {
                 //TODO
             }
             // redraw app on resize
-            Event::Resize(_, _) => tui.draw(&app, app_state)?,
+            Event::Resize(_, _) => tui.draw(&app, &mut app_state)?,
             _ => {
                 //TODO
             }

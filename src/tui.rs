@@ -16,7 +16,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use ratatui::{backend::Backend, prelude::CrosstermBackend, widgets::StatefulWidget, Terminal};
+use ratatui::{backend::Backend, prelude::CrosstermBackend, widgets::StatefulWidgetRef, Terminal};
 
 // based on the ratatui [simple
 // example](https://github.com/ratatui-org/templates/blob/main/simple/src/tui.rs)
@@ -70,7 +70,7 @@ impl Tui<CrosstermBackend<Stdout>> {
     /// Will error if any of the underlying terminal manipulation commands fail
     pub fn draw(&mut self, app: &app::App, state: &mut app::AppState) -> io::Result<()> {
         self.terminal
-            .draw(|frame| app.render(frame.size(), self.terminal.current_buffer_mut(), state))?;
+            .draw(|frame| app.render_ref(frame.size(), frame.buffer_mut(), state))?;
         Ok(())
     }
 

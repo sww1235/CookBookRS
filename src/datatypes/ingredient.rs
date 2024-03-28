@@ -4,7 +4,10 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph, StatefulWidget, Widget},
+    widgets::{
+        Block, Borders, List, ListItem, Paragraph, StatefulWidget, StatefulWidgetRef, Widget,
+        WidgetRef,
+    },
 };
 
 use std::ops::{Add, AddAssign};
@@ -37,21 +40,22 @@ pub enum UnitType {
     Volume(ucum::Meter3<f64>),
 }
 
+#[derive(Debug, Default)]
 pub struct IngredientState {
     //TODO: selected field, etc
 }
 
 // Display version of ingredient
-impl Widget for Ingredient {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl WidgetRef for Ingredient {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         //TODO: implement
     }
 }
 
 // edit version of ingredient
-impl StatefulWidget for Ingredient {
+impl StatefulWidgetRef for Ingredient {
     type State = IngredientState;
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // Use split here, since we don't care about naming the fields specifically
 
         //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
@@ -98,9 +102,11 @@ impl StatefulWidget for Ingredient {
             .borders(Borders::ALL)
             .style(Style::default())
             .title("Name");
-        let name_paragraph =
-            Paragraph::new(Text::styled(self.name, Style::default().fg(Color::Red)))
-                .block(name_block);
+        let name_paragraph = Paragraph::new(Text::styled(
+            self.name.clone(),
+            Style::default().fg(Color::Red),
+        ))
+        .block(name_block);
         //TODO: update state here
         name_paragraph.render(edit_layout[0], buf);
 
@@ -109,7 +115,7 @@ impl StatefulWidget for Ingredient {
             .style(Style::default())
             .title("description");
         let description_paragraph = Paragraph::new(Text::styled(
-            self.description.unwrap_or_default(),
+            self.description.clone().unwrap_or_default(),
             Style::default().fg(Color::Red),
         ))
         .block(description_block);

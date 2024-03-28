@@ -8,7 +8,10 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph, StatefulWidget, Widget},
+    widgets::{
+        Block, Borders, List, ListItem, Paragraph, StatefulWidget, StatefulWidgetRef, Widget,
+        WidgetRef,
+    },
 };
 
 /// `Step` represents a discrete step within a recipe
@@ -32,21 +35,22 @@ pub struct Step {
     pub step_type: StepType,
 }
 
+#[derive(Default, Debug)]
 pub struct StepState {
     //TODO: selected field, which ingredient/equipment is selected, etc
 }
 
 // Display version of step
-impl Widget for Step {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl WidgetRef for Step {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         //TODO: implement
     }
 }
 
 // edit version of step
-impl StatefulWidget for Step {
+impl StatefulWidgetRef for Step {
     type State = StepState;
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // Use split here, since we don't care about naming the fields specifically
 
         //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
@@ -121,7 +125,7 @@ impl StatefulWidget for Step {
             .style(Style::default())
             .title("Instructions");
         let instruction_paragraph = Paragraph::new(Text::styled(
-            self.instructions,
+            self.instructions.clone(),
             Style::default().fg(Color::Red),
         ))
         .block(instruction_block);

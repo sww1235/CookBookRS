@@ -13,7 +13,10 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph, StatefulWidget, Widget},
+    widgets::{
+        Block, Borders, List, ListItem, Paragraph, StatefulWidget, StatefulWidgetRef, Widget,
+        WidgetRef,
+    },
 };
 
 /// `Recipe` represents one recipe from start to finish
@@ -152,20 +155,21 @@ impl Recipe {
     }
 }
 
-pub enum RecipeState {
+#[derive(Default, Debug)]
+pub struct RecipeState {
     //TODO: selected field, which step is selected, etc
 }
 
 // display version of recipe
-impl Widget for Recipe {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl WidgetRef for Recipe {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         //TODO: implement
     }
 }
 // edit version of recipe
-impl StatefulWidget for Recipe {
+impl StatefulWidgetRef for Recipe {
     type State = RecipeState;
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // Use split here, since we don't care about naming the fields specifically
 
         //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
@@ -222,9 +226,11 @@ impl StatefulWidget for Recipe {
             .borders(Borders::ALL)
             .style(Style::default())
             .title("Name");
-        let name_paragraph =
-            Paragraph::new(Text::styled(self.name, Style::default().fg(Color::Red)))
-                .block(name_block);
+        let name_paragraph = Paragraph::new(Text::styled(
+            self.name.clone(),
+            Style::default().fg(Color::Red),
+        ))
+        .block(name_block);
         //TODO: update state here
         name_paragraph.render(edit_layout[0], buf);
 
@@ -233,7 +239,7 @@ impl StatefulWidget for Recipe {
             .style(Style::default())
             .title("description");
         let description_paragraph = Paragraph::new(Text::styled(
-            self.description.unwrap_or_default(),
+            self.description.clone().unwrap_or_default(),
             Style::default().fg(Color::Red),
         ))
         .block(description_block);
@@ -245,7 +251,8 @@ impl StatefulWidget for Recipe {
             .style(Style::default())
             .title("comments");
         let comment_paragraph = Paragraph::new(Text::styled(
-            self.comments.unwrap_or_default(),
+            //TODO: remove this clone in the future
+            self.comments.clone().unwrap_or_default(),
             Style::default().fg(Color::Red),
         ))
         .block(comment_block);
@@ -256,9 +263,11 @@ impl StatefulWidget for Recipe {
             .borders(Borders::ALL)
             .style(Style::default())
             .title("source");
-        let source_paragraph =
-            Paragraph::new(Text::styled(self.source, Style::default().fg(Color::Red)))
-                .block(source_block);
+        let source_paragraph = Paragraph::new(Text::styled(
+            self.source.clone(),
+            Style::default().fg(Color::Red),
+        ))
+        .block(source_block);
         //TODO: update state here
         source_paragraph.render(edit_layout[3], buf);
 
@@ -266,9 +275,11 @@ impl StatefulWidget for Recipe {
             .borders(Borders::ALL)
             .style(Style::default())
             .title("source");
-        let author_paragraph =
-            Paragraph::new(Text::styled(self.author, Style::default().fg(Color::Red)))
-                .block(author_block);
+        let author_paragraph = Paragraph::new(Text::styled(
+            self.author.clone(),
+            Style::default().fg(Color::Red),
+        ))
+        .block(author_block);
         //TODO: update state here
         author_paragraph.render(edit_layout[4], buf);
 
