@@ -64,8 +64,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
         //      If already in idle mode, exits editing if recipe hasn't been saved yet?
         // - ^C exits app
         // - Tab toggles between editing recipe fields, recipe steps, equipment or ingredients
-        // - left/right arrow keys cycle between fields
-        // - up/down arrow keys cycle between the individual steps/equipment
+        // - up/down arrow keys cycle between fields
+        // - left/right arrow keys cycle between the individual steps/equipment
         // - e starts editing the recipe
         // -
         // want a separate editing screen for the steps in the recipe
@@ -79,6 +79,36 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     app_state.editing_state = EditingState::Idle;
                 }
             }
+            KeyCode::Left => match app_state.editing_state {
+                EditingState::Recipe => {
+                    app_state.recipe_state.selected_field -= Wrapping(1);
+                }
+                EditingState::Step(_) => {
+                    app_state.step_state.selected_field -= Wrapping(1);
+                }
+                EditingState::Ingredient(_, _) => {
+                    app_state.ingredient_state.selected_field -= Wrapping(1);
+                }
+                EditingState::Equipment(_, _) => {
+                    app_state.equipment_state.selected_field -= Wrapping(1);
+                }
+                _ => {}
+            },
+            KeyCode::Right => match app_state.editing_state {
+                EditingState::Recipe => {
+                    app_state.recipe_state.selected_field += Wrapping(1);
+                }
+                EditingState::Step(_) => {
+                    app_state.step_state.selected_field += Wrapping(1);
+                }
+                EditingState::Ingredient(_, _) => {
+                    app_state.ingredient_state.selected_field += Wrapping(1);
+                }
+                EditingState::Equipment(_, _) => {
+                    app_state.equipment_state.selected_field += Wrapping(1);
+                }
+                _ => {}
+            },
             KeyCode::Tab => {
                 //toggle between editing recipe, steps, or ingredients
                 match app_state.editing_state {
