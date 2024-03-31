@@ -5,6 +5,7 @@ use super::{
     tag::Tag,
 };
 
+use std::num::Wrapping;
 use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
@@ -12,11 +13,8 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    text::{Line, Span, Text},
-    widgets::{
-        Block, Borders, List, ListItem, Paragraph, StatefulWidget, StatefulWidgetRef, Widget,
-        WidgetRef,
-    },
+    text::Text,
+    widgets::{Block, Borders, Paragraph, StatefulWidgetRef, Widget, WidgetRef},
 };
 
 /// `Recipe` represents one recipe from start to finish
@@ -155,10 +153,27 @@ impl Recipe {
     }
 }
 
+/// [`RecipeState`]
 #[derive(Default, Debug)]
+#[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct RecipeState {
     //TODO: selected field, which step is selected, etc
+    pub selected_field: Wrapping<usize>,
 }
+
+///// [`RecipeField`]
+//#[derive(Default, Debug)]
+//#[allow(clippy::module_name_repetitions)]
+//#[allow(missing_docs)]
+//pub enum RecipeField {
+//    #[default]
+//    Name,
+//    Description,
+//    Comments,
+//    Source,
+//    Author,
+//    AmountMade,
+//}
 
 // display version of recipe
 impl WidgetRef for Recipe {
@@ -167,6 +182,11 @@ impl WidgetRef for Recipe {
     }
 }
 // edit version of recipe
+#[allow(
+    non_upper_case_globals,
+    clippy::missing_docs_in_private_items,
+    clippy::items_after_statements
+)] //TODO: remove after derive implementation
 impl StatefulWidgetRef for Recipe {
     type State = RecipeState;
     fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -184,15 +204,16 @@ impl StatefulWidgetRef for Recipe {
         let mut recipe_edit_constraints = Vec::new();
 
         // name, description, comments, source, author, amount_made
-        let num_fields = 6;
-        let num_special_fields = 2;
+        const num_fields: usize = 6;
+        const num_special_fields: usize = 2;
         // subtract 2 for comment/description fields
         // multiply by 3 for other field total height
         // add 7 for comment field
         // add 7 for description field
         // add 3 for bottom blocks
         // add 2 for border? //TODO: fix borders
-        let required_field_height = ((num_fields - num_special_fields) * 3) + 7 + 7 + 3 + 2;
+        const required_field_height: usize =
+            ((num_fields - num_special_fields) * 3) + 7 + 7 + 3 + 2;
         if usize::from(area.height) >= required_field_height {
             // recipe_area.height is greater than minimum required
 
@@ -226,11 +247,15 @@ impl StatefulWidgetRef for Recipe {
             .borders(Borders::ALL)
             .style(Style::default())
             .title("Name");
-        let name_paragraph = Paragraph::new(Text::styled(
-            self.name.clone(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(name_block);
+        let mut name_style = Style::default();
+
+        //TODO: repeat this for other fields
+        if state.selected_field.0 == 0 {
+            // this is edit style. //TODO: standardize this
+            name_style = name_style.fg(Color::Red);
+        }
+        let name_paragraph =
+            Paragraph::new(Text::styled(self.name.clone(), name_style)).block(name_block);
         //TODO: update state here
         name_paragraph.render(edit_layout[0], buf);
 

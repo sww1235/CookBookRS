@@ -13,7 +13,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{
         Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget,
-        StatefulWidgetRef, Widget, WidgetRef,
+        StatefulWidgetRef, Widget,
     },
 };
 
@@ -113,6 +113,7 @@ impl App {
 /// the app, and anything that might need to change during a call to
 /// [`StatefulWidgetRef::render_ref()`]
 #[derive(Debug, Default)]
+#[allow(clippy::module_name_repetition)]
 pub struct AppState {
     /// state for recipe list
     pub recipe_list_state: ListState,

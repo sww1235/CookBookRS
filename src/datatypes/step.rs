@@ -1,17 +1,15 @@
 use super::{equipment::Equipment, ingredient::Ingredient};
 
 use std::fmt;
+use std::num::Wrapping;
 
 use dimensioned::ucum;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    text::{Line, Span, Text},
-    widgets::{
-        Block, Borders, List, ListItem, Paragraph, StatefulWidget, StatefulWidgetRef, Widget,
-        WidgetRef,
-    },
+    text::Text,
+    widgets::{Block, Borders, Paragraph, StatefulWidgetRef, Widget, WidgetRef},
 };
 
 /// `Step` represents a discrete step within a recipe
@@ -35,9 +33,12 @@ pub struct Step {
     pub step_type: StepType,
 }
 
+/// [`StepState`]
 #[derive(Default, Debug)]
+#[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct StepState {
     //TODO: selected field, which ingredient/equipment is selected, etc
+    pub selected_field: Wrapping<usize>,
 }
 
 // Display version of step
@@ -48,6 +49,11 @@ impl WidgetRef for Step {
 }
 
 // edit version of step
+#[allow(
+    non_upper_case_globals,
+    clippy::missing_docs_in_private_items,
+    clippy::items_after_statements
+)] //TODO: remove after derive implementation
 impl StatefulWidgetRef for Step {
     type State = StepState;
     fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -63,12 +69,12 @@ impl StatefulWidgetRef for Step {
         let mut step_edit_constraints = Vec::new();
 
         //time_needed, temperature, instructions, step_type
-        let num_fields = 4;
-        let num_special_fields = 0;
+        const num_fields: usize = 4;
+        const num_special_fields: usize = 0;
         // multiply by 3 for other field total height
         // add 3 for bottom blocks
         // add 2 for border? //TODO: fix borders
-        let required_field_height = ((num_fields - num_special_fields) * 3) + 3 + 2;
+        const required_field_height: usize = ((num_fields - num_special_fields) * 3) + 3 + 2;
 
         if usize::from(area.height) >= required_field_height {
             // recipe_area.height is greater than minimum required

@@ -26,7 +26,7 @@ fn main() -> Result<(), Error> {
         match tui.events.next()? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => {
-                key_handler::handle_key_events(&mut app, &mut app_state, key_event)
+                key_handler::handle_key_events(&mut app, &mut app_state, key_event);
             }
             Event::Mouse(_) => {
                 //TODO

@@ -3,13 +3,11 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    text::{Line, Span, Text},
-    widgets::{
-        Block, Borders, List, ListItem, Paragraph, StatefulWidget, StatefulWidgetRef, Widget,
-        WidgetRef,
-    },
+    text::Text,
+    widgets::{Block, Borders, Paragraph, StatefulWidgetRef, Widget, WidgetRef},
 };
 
+use std::num::Wrapping;
 use std::ops::{Add, AddAssign};
 
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
@@ -40,9 +38,12 @@ pub enum UnitType {
     Volume(ucum::Meter3<f64>),
 }
 
+/// [`IngredientState`]
 #[derive(Debug, Default)]
+#[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct IngredientState {
     //TODO: selected field, etc
+    pub selected_field: Wrapping<usize>,
 }
 
 // Display version of ingredient
@@ -53,6 +54,11 @@ impl WidgetRef for Ingredient {
 }
 
 // edit version of ingredient
+#[allow(
+    non_upper_case_globals,
+    clippy::missing_docs_in_private_items,
+    clippy::items_after_statements
+)] //TODO: remove after derive implementation
 impl StatefulWidgetRef for Ingredient {
     type State = IngredientState;
     fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -68,14 +74,14 @@ impl StatefulWidgetRef for Ingredient {
         let mut ingredient_edit_constraints = Vec::new();
 
         // name, description, unit_quantity
-        let num_fields = 3;
-        let num_special_fields = 1;
+        const num_fields: usize = 3;
+        const num_special_fields: usize = 1;
         // subtract 1 for description
         // multiply by 3 for other field total height
         // add 7 for description
         // add 3 for bottom blocks
         // add 2 for border? //TODO: fix borders
-        let required_field_height = ((num_fields - num_special_fields) * 3) + 7 + 3 + 2;
+        const required_field_height: usize = ((num_fields - num_special_fields) * 3) + 7 + 3 + 2;
 
         if usize::from(area.height) >= required_field_height {
             // recipe_area.height is greater than minimum required
