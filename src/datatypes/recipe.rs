@@ -161,20 +161,6 @@ pub struct RecipeState {
     pub selected_field: Wrapping<usize>,
 }
 
-///// [`RecipeField`]
-//#[derive(Default, Debug)]
-//#[allow(clippy::module_name_repetitions)]
-//#[allow(missing_docs)]
-//pub enum RecipeField {
-//    #[default]
-//    Name,
-//    Description,
-//    Comments,
-//    Source,
-//    Author,
-//    AmountMade,
-//}
-
 // display version of recipe
 impl WidgetRef for Recipe {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {

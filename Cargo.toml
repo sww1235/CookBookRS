@@ -41,10 +41,10 @@ strum = {version = "~0.26", features = ["derive"] }
 name = "cookbook_core"
 path = "src/lib.rs"
 
-[lints.rust]
+[workspace.lints.rust]
 missing_docs = "warn"
 unsafe_code = "forbid"
-[lints.clippy]
+[workspace.lints.clippy]
 multiple_crate_versions = "warn"
 correctness = "warn"
 suspicious = "warn"

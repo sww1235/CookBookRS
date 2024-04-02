@@ -113,7 +113,7 @@ impl App {
 /// the app, and anything that might need to change during a call to
 /// [`StatefulWidgetRef::render_ref()`]
 #[derive(Debug, Default)]
-#[allow(clippy::module_name_repetition)]
+#[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct AppState {
     /// state for recipe list
     pub recipe_list_state: ListState,
