@@ -355,14 +355,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                 }
                 left_field = Some(
                     quote! {
-                       let left_block = Block::default()
-                            .borders(Borders::ALL)
-                            .style(Style::default())
+                       let left_block = ratatui::widgets::block::Block::default()
+                            .borders(ratatui::widgets::Borders::ALL)
+                            .style(ratatui::style::Style::default())
                             .title(stringify!(lower_field_title));
 
-                        let left_paragraph = Paragraph::new(Text::styled(
-                            self.#field_name.len().to_string(),
-                            Style::default().fg(Color::Green),
+                        let left_paragraph = ratatui::widgets::Paragraph::new(
+                            ratatui::text::Text::styled(
+                                self.#field_name.len().to_string(),
+                                ratatui::style::Style::default().fg(ratatui::style::Color::Green),
                         ))
                         .block(left_block);
                         left_paragraph.render(left_info_area, buf);
@@ -372,7 +373,9 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                 left_field = Some(
                     quote! {
                         // render an empty block with borders on the left
-                        Widget::render(Block::default().borders(Borders::ALL), left_info_area, buf);
+                        ratatui::widgets::Widget::render(
+                            ratatui::widgets::block::Block::default().borders(
+                                ratatui::widgets::Borders::ALL), left_info_area, buf);
                     }, // end of quote block
                 );
             }
@@ -393,14 +396,16 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                 }
                 right_field = Some(
                     quote! {
-                       let right_block = Block::default()
-                            .borders(Borders::ALL)
-                            .style(Style::default())
+                       let right_block = ratatui::widgets::block::Block::default()
+                            .borders(ratatui::widgets::Borders::ALL)
+                            .style(ratatui::style::Style::default())
                             .title(stringify!(lower_field_title));
 
-                        let right_paragraph = Paragraph::new(Text::styled(
-                            self.#field_name.len().to_string(),
-                            Style::default().fg(Color::Green),
+                        let right_paragraph = ratatui::widgets::Paragraph::new(
+                            ratatui::text::Text::styled(
+                                self.#field_name.len().to_string(),
+                                ratatui::style::Style::default().fg(
+                                    ratatui::style::Color::Green),
                         ))
                         .block(right_block);
                         right_paragraph.render(right_info_area, buf);
@@ -410,7 +415,9 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                 right_field = Some(
                     quote! {
                         // render an empty block with borders on the right
-                        Widget::render(Block::default().borders(Borders::ALL), right_info_area, buf);
+                        ratatui::widgets::Widget::render(
+                            ratatui::widgets::block::Block::default().borders(
+                                ratatui::widgets::Borders::ALL), right_info_area, buf);
                     }, // end of quote block
                 );
             }
@@ -432,8 +439,8 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             field_display_code.insert(
                 display_order,
                 quote! {
-                    let #block_name = ratatui::widgets::Block::default()
-                       .borders(ratatui::Widgets::Borders::ALL)
+                    let #block_name = ratatui::widgets::block::Block::default()
+                       .borders(ratatui::widgets::Borders::ALL)
                        .style(ratatui::style::Style::default())
                        .title(#field_title);
                     let mut #style_name = ratatui::style::Style::default();
@@ -441,7 +448,8 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     if state.selected_field.0 == #display_order {
                         #style_name = #style_name.fg(ratatui::style::Color::Red);
                     }
-                    let #paragraph_name = ratatui::widget::#widget_type::new(ratatui::text::Text::styled(
+                    let #paragraph_name = ratatui::widgets::#widget_type::new(
+                        ratatui::text::Text::styled(
                             self.#field_name.clone(), #style_name)).block(#block_name);
                     #paragraph_name.render(constraints[#display_order], buf);
                 },
