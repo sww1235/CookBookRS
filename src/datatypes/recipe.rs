@@ -5,6 +5,8 @@ use super::{
     tag::Tag,
 };
 
+use cookbook_macros::StatefulWidgetRef;
+
 use std::num::Wrapping;
 use std::{collections::HashMap, fmt};
 

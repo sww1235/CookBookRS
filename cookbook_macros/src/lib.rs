@@ -3,7 +3,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta};
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token};
 
 use std::collections::BTreeMap;
 
@@ -32,7 +32,7 @@ use std::collections::BTreeMap;
 /// info box.
 /// - `skip` will skip the field from being rendered.
 #[proc_macro_derive(
-    Widget,
+    StatefulWidgetRef,
     attributes(
         state_struct,
         display_order,
@@ -77,6 +77,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
     let mut total_field_height: u16 = 0;
     let mut left_field = None;
     let mut right_field = None;
+    let mut lower_field_title: Option<String> = None;
 
     // allowing this, since I want it to be clear I am selecting the 0th element in the list.
     // essentially treating the iterator the same as a tuple or vec.
@@ -147,12 +148,11 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             let paragraph_name = format_ident!("{}_paragraph", field_name);
             let style_name = format_ident!("{}_style", field_name);
             let field_title = format_ident!("{}_style", to_ascii_titlecase(stringify!(field_name)));
-            let mut display_order = 0;
-            let mut constraint_type = String::new();
-            let mut constraint_value = 0;
+            let mut display_order: Option<u16> = None;
+            let mut constraint_type: Option<String> = None;
+            let mut constraint_value: Option<u16> = None;
             //this is the default widget for displaying text
             let mut widget_type = "Paragraph".to_string();
-            let mut lower_field_title: Option<String> = None;
 
             // handle remaining attributes
             for attr in &f.attrs {
@@ -160,7 +160,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     if let Meta::NameValue(ref name_value) = attr.meta {
                         if let Expr::Lit(ref lit) = name_value.value {
                             if let Lit::Int(ref lit_int) = lit.lit {
-                                display_order = lit_int.base10_parse::<u16>()?;
+                                display_order = Some(lit_int.base10_parse::<u16>()?);
                             } else {
                                 return Err(syn::Error::new_spanned(
                                 attr,
@@ -184,13 +184,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                         if let Expr::Lit(ref lit) = name_value.value {
                             if let Lit::Str(ref lit_str) = lit.lit {
                                 match lit_str.value().as_str() {
-                                    "Min" | "min" => constraint_type = "Min".to_string(),
-                                    "Max" | "max" => constraint_type = "Max".to_string(),
-                                    "Length" | "length" => constraint_type = "Length".to_string(),
-                                    "Percentage" | "percentage" => {
-                                        constraint_type = "Percentage".to_string();
+                                    "Min" | "min" => constraint_type = Some("Min".to_string()),
+                                    "Max" | "max" => constraint_type = Some("Max".to_string()),
+                                    "Length" | "length" => {
+                                        constraint_type = Some("Length".to_string());
                                     }
-                                    "Fill" | "fill" => constraint_type = "Fill".to_string(),
+                                    "Percentage" | "percentage" => {
+                                        constraint_type = Some("Percentage".to_string());
+                                    }
+                                    "Fill" | "fill" => constraint_type = Some("Fill".to_string()),
                                     "Ratio" | "ratio" => {
                                         return Err(syn::Error::new_spanned(
                                                 attr,
@@ -224,7 +226,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     if let Meta::NameValue(ref name_value) = attr.meta {
                         if let Expr::Lit(ref lit) = name_value.value {
                             if let Lit::Int(ref lit_int) = lit.lit {
-                                constraint_value = lit_int.base10_parse::<u16>()?;
+                                constraint_value = Some(lit_int.base10_parse::<u16>()?);
                             } else {
                                 return Err(syn::Error::new_spanned(
                                 attr,
@@ -277,11 +279,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                             segments: syn::punctuated::Punctuated::new(),
                         }))
                     {
-                        left_field = Some(
-                            quote! {}, // empty tokenstring here for now. Need to have the
-                                       // #field_title = attribute value available as well which is
-                                       // not available until after the end of the for loop.
-                        );
+                        left_field = Some(field_name.clone());
                     } else {
                         return Err(syn::Error::new_spanned(
                             attr.path(),
@@ -298,11 +296,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                             segments: syn::punctuated::Punctuated::new(),
                         }))
                     {
-                        right_field = Some(
-                            quote! {}, // empty tokenstring here for now. Need to have the
-                                       // #field_title = attribute value available as well which is
-                                       // not available until after the end of the for loop.
-                        );
+                        right_field = Some(field_name.clone());
                     } else {
                         return Err(syn::Error::new_spanned(
                             attr.path(),
@@ -337,97 +331,61 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     continue;
                 }
             }
-
-            if left_field.is_some() {
-                // this is per field
-                if let Some(lower_field_title) = &lower_field_title {
-                    if lower_field_title.is_empty() {
-                        return Err(syn::Error::new_spanned(
-                            left_field,
-                            "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
-                        ));
-                    }
-                } else {
-                    return Err(syn::Error::new_spanned(
-                            left_field,
-                            "`field_title` attribute needs to be specified on field with `left_field` attribute",
-                        ));
-                }
-                left_field = Some(
-                    quote! {
-                       let left_block = ratatui::widgets::block::Block::default()
-                            .borders(ratatui::widgets::Borders::ALL)
-                            .style(ratatui::style::Style::default())
-                            .title(stringify!(lower_field_title));
-
-                        let left_paragraph = ratatui::widgets::Paragraph::new(
-                            ratatui::text::Text::styled(
-                                self.#field_name.len().to_string(),
-                                ratatui::style::Style::default().fg(ratatui::style::Color::Green),
-                        ))
-                        .block(left_block);
-                        left_paragraph.render(left_info_area, buf);
-                    }, // end of quote block
-                );
-            } else {
-                left_field = Some(
-                    quote! {
-                        // render an empty block with borders on the left
-                        ratatui::widgets::Widget::render(
-                            ratatui::widgets::block::Block::default().borders(
-                                ratatui::widgets::Borders::ALL), left_info_area, buf);
-                    }, // end of quote block
-                );
+            if display_order.is_none() {
+                return Err(syn::Error::new_spanned(
+                    f,
+                    "`the `display_order` attribute is not specified",
+                ));
             }
-            if right_field.is_some() {
-                // this is per field
-                if let Some(lower_field_title) = &lower_field_title {
-                    if lower_field_title.is_empty() {
-                        return Err(syn::Error::new_spanned(
-                            left_field,
-                            "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
-                        ));
-                    }
-                } else {
-                    return Err(syn::Error::new_spanned(
-                            left_field,
-                            "`field_title` attribute needs to be specified on field with `left_field` attribute",
-                        ));
-                }
-                right_field = Some(
-                    quote! {
-                       let right_block = ratatui::widgets::block::Block::default()
-                            .borders(ratatui::widgets::Borders::ALL)
-                            .style(ratatui::style::Style::default())
-                            .title(stringify!(lower_field_title));
-
-                        let right_paragraph = ratatui::widgets::Paragraph::new(
-                            ratatui::text::Text::styled(
-                                self.#field_name.len().to_string(),
-                                ratatui::style::Style::default().fg(
-                                    ratatui::style::Color::Green),
-                        ))
-                        .block(right_block);
-                        right_paragraph.render(right_info_area, buf);
-                    }, // end of quote block
-                );
-            } else {
-                right_field = Some(
-                    quote! {
-                        // render an empty block with borders on the right
-                        ratatui::widgets::Widget::render(
-                            ratatui::widgets::block::Block::default().borders(
-                                ratatui::widgets::Borders::ALL), right_info_area, buf);
-                    }, // end of quote block
-                );
+            if constraint_type.is_none() {
+                return Err(syn::Error::new_spanned(
+                    f,
+                    "`the `constraint_type` attribute is not specified",
+                ));
             }
 
-            total_field_height += constraint_value;
-            let constraint = format_ident!(
-                "ratatui::layout::Constraint::{}({})",
-                constraint_type,
-                constraint_value
-            );
+            if constraint_value.is_none() {
+                return Err(syn::Error::new_spanned(
+                    f,
+                    "`the `constraint_value` attribute is not specified",
+                ));
+            }
+
+            // unwrap_or_default() here is ok as these are all checked for None above here
+            total_field_height += constraint_value.unwrap_or_default();
+            let mut funct_args = syn::punctuated::Punctuated::new();
+            let constraint_value_inner = constraint_value.unwrap_or_default();
+            funct_args.push(syn::Type::Verbatim(quote!(#constraint_value_inner)));
+
+            let mut constraint_path = syn::punctuated::Punctuated::new();
+            constraint_path.push(syn::PathSegment {
+                ident: format_ident!("ratatui"),
+                arguments: syn::PathArguments::None,
+            });
+            constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+            constraint_path.push(syn::PathSegment {
+                ident: format_ident!("layout"),
+                arguments: syn::PathArguments::None,
+            });
+            constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+            constraint_path.push(syn::PathSegment {
+                ident: format_ident!("Constraint"),
+                arguments: syn::PathArguments::None,
+            });
+            constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+            constraint_path.push(syn::PathSegment {
+                ident: format_ident!("{}", constraint_type.unwrap_or_default()),
+
+                arguments: syn::PathArguments::Parenthesized(syn::ParenthesizedGenericArguments {
+                    paren_token: syn::token::Paren::default(),
+                    inputs: funct_args,
+                    output: syn::ReturnType::Default,
+                }),
+            });
+            let constraint = syn::Path {
+                leading_colon: None,
+                segments: constraint_path,
+            };
 
             constraints_code.insert(
                 display_order,
@@ -458,6 +416,80 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             return Err(syn::Error::new_spanned(f, "fieldname is None"));
         }
     }
+
+    let left_field_content = if let Some(field_name) = &left_field {
+        if let Some(lower_field_title) = &lower_field_title {
+            if lower_field_title.is_empty() {
+                return Err(syn::Error::new_spanned(
+                            left_field,
+                            "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
+                        ));
+            }
+        } else {
+            return Err(syn::Error::new_spanned(
+                            left_field,
+                            "`field_title` attribute needs to be specified on field with `left_field` attribute",
+                        ));
+        }
+        quote! {
+           let left_block = ratatui::widgets::block::Block::default()
+                .borders(ratatui::widgets::Borders::ALL)
+                .style(ratatui::style::Style::default())
+                .title(stringify!(lower_field_title));
+
+            let left_paragraph = ratatui::widgets::Paragraph::new(
+                ratatui::text::Text::styled(
+                    self.#field_name.len().to_string(),
+                    ratatui::style::Style::default().fg(ratatui::style::Color::Green),
+            ))
+            .block(left_block);
+            left_paragraph.render(left_info_area, buf);
+        }
+    } else {
+        quote! {
+            // render an empty block with borders on the left
+            ratatui::widgets::Widget::render(
+                ratatui::widgets::block::Block::default().borders(
+                    ratatui::widgets::Borders::ALL), left_info_area, buf);
+        }
+    };
+    let right_field_content = if let Some(field_name) = &right_field {
+        if let Some(lower_field_title) = &lower_field_title {
+            if lower_field_title.is_empty() {
+                return Err(syn::Error::new_spanned(
+                            right_field,
+                            "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
+                        ));
+            }
+        } else {
+            return Err(syn::Error::new_spanned(
+                            right_field,
+                            "`field_title` attribute needs to be specified on field with `left_field` attribute",
+                        ));
+        }
+        quote! {
+           let right_block = ratatui::widgets::block::Block::default()
+                .borders(ratatui::widgets::Borders::ALL)
+                .style(ratatui::style::Style::default())
+                .title(stringify!(lower_field_title));
+
+            let right_paragraph = ratatui::widgets::Paragraph::new(
+                ratatui::text::Text::styled(
+                    self.#field_name.len().to_string(),
+                    ratatui::style::Style::default().fg(
+                        ratatui::style::Color::Green),
+            ))
+            .block(right_block);
+            right_paragraph.render(right_info_area, buf);
+        }
+    } else {
+        quote! {
+            // render an empty block with borders on the right
+            ratatui::widgets::Widget::render(
+                ratatui::widgets::block::Block::default().borders(
+                    ratatui::widgets::Borders::ALL), right_info_area, buf);
+        }
+    };
     // add 2 for borders and 3 for bottom blocks
     total_field_height += 5;
     let constraint_code_values: Vec<TokenStream2> = constraints_code.values().cloned().collect();
@@ -502,9 +534,9 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                         .direction(ratatui::layout::Direction::Horizontal)
                         .constraints([ratatui::layout::Constraint::Percentage(50), ratatui::layout::Constraint::Percentage(50)])
                         .areas(*layout.last().expect("No edit areas defined"));
-                    #left_field
+                    #left_field_content
 
-                    #right_field
+                    #right_field_content
 
                 }
             }

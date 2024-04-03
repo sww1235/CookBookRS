@@ -36,6 +36,7 @@ serde = { version = "~1", features = ["derive"] }
 toml = "~0"
 simple_logger = "~4"
 strum = {version = "~0.26", features = ["derive"] }
+cookbook_macros = {path="cookbook_macros"}
 
 [lib]
 name = "cookbook_core"
