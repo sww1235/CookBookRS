@@ -3,9 +3,15 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token};
+use syn::{
+    parse_macro_input, punctuated::Punctuated, Data, DataStruct, DeriveInput, Expr, Fields, Lit,
+    Meta, Path, PathArguments, PathSegment, Token, TraitBound, TraitBoundModifier, Type::ImplTrait,
+    TypeImplTrait, TypeParamBound,
+};
 
 use std::collections::BTreeMap;
+
+use std::mem;
 
 ///[`stateful_widget_ref_derive`] is the outer derive function that allows for
 ///deriving the [`StatefulWidgetRef`] trait on structs. This particular implementation generates a
@@ -116,22 +122,67 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
     //TODO: need to fix styling here
     for f in fields {
         // want to check only if the ident of the attr is skip.
-        let mut skip = f.attrs.iter().filter_map(|attr| {
-            if let Meta::Path(ref path) = attr.meta {
-                path.is_ident("skip").then_some(true)
-            } else {
-                None
-            }
-        });
-
         // allowing this, since I want it to be clear I am selecting the 0th element in the list.
         // essentially treating the iterator the same as a tuple or vec.
-        // TODO: maybe figure out how to not have `skip` be an iterator
         #[allow(clippy::iter_nth_zero)]
-        if skip.nth(0).unwrap_or(false) {
+        let skip = f
+            .attrs
+            .iter()
+            .filter_map(|attr| {
+                if let Meta::Path(ref path) = attr.meta {
+                    path.is_ident("skip").then_some(true)
+                } else {
+                    None
+                }
+            })
+            .nth(0)
+            .unwrap_or(false);
+        //TODO: fix this
+        let is_iterator = if let ImplTrait(impl_trait) = &f.ty {
+            impl_trait
+                == (&TypeImplTrait {
+                    impl_token: Token!(impl)(proc_macro2::Span::mixed_site()),
+                    bounds: {
+                        let mut punct = Punctuated::new();
+                        punct.push_value(TypeParamBound::Trait(TraitBound {
+                            paren_token: None,
+                            modifier: TraitBoundModifier::None,
+                            lifetimes: None,
+                            path: {
+                                let mut segments = Punctuated::new();
+                                segments.push_value(PathSegment {
+                                    ident: format_ident! {"std"},
+                                    arguments: PathArguments::None,
+                                });
+                                segments.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+                                segments.push_value(PathSegment {
+                                    ident: format_ident! {"iter"},
+                                    arguments: PathArguments::None,
+                                });
+                                segments.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+                                segments.push_value(PathSegment {
+                                    ident: format_ident! {"Iterator"},
+                                    arguments: PathArguments::None,
+                                });
+                                Path {
+                                    leading_colon: None,
+                                    segments,
+                                }
+                            },
+                        }));
+                        punct
+                    },
+                })
+        } else {
+            true
+        };
+
+        // want to skip fields that are marked skip and not iterators
+        if skip && !is_iterator {
             continue;
         }
         if let Some(field_name) = f.ident.clone() {
+            // checking these right away before setting them in the next iteration of the loop
             if left_field.is_some() {
                 return Err(syn::Error::new_spanned(
                                 f,
@@ -270,37 +321,51 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                             ));
                     }
                 } else if attr.path().is_ident("left_field") {
-                    // checking to make sure this attr is a path and doesn't have any values
-                    // associated with it
-                    // TODO: make sure the value of the field is a vector
-                    if std::mem::discriminant(&attr.meta)
-                        == std::mem::discriminant(&syn::Meta::Path(syn::Path {
-                            leading_colon: None,
-                            segments: syn::punctuated::Punctuated::new(),
-                        }))
-                    {
-                        left_field = Some(field_name.clone());
+                    // checking to make sure this field implements the iterator trait
+                    if is_iterator {
+                        // checking to make sure this attr is a path and doesn't have any values
+                        // associated with it
+                        if mem::discriminant(&attr.meta)
+                            == mem::discriminant(&Meta::Path(syn::Path {
+                                leading_colon: None,
+                                segments: Punctuated::new(),
+                            }))
+                        {
+                            left_field = Some(field_name.clone());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                attr.path(),
+                                "The `left_field` attribute should not be called with a value",
+                            ));
+                        }
                     } else {
                         return Err(syn::Error::new_spanned(
                             attr.path(),
-                            "The `left_field` attribute should not be called with a value",
+                            "The `left_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
                         ));
                     }
                 } else if attr.path().is_ident("right_field") {
-                    // checking to make sure this attr is a path and doesn't have any values
-                    // associated with it
-                    // TODO: make sure the value of the field is a vector
-                    if std::mem::discriminant(&attr.meta)
-                        == std::mem::discriminant(&syn::Meta::Path(syn::Path {
-                            leading_colon: None,
-                            segments: syn::punctuated::Punctuated::new(),
-                        }))
-                    {
-                        right_field = Some(field_name.clone());
+                    // checking to make sure this field implements the iterator trait
+                    if is_iterator {
+                        // checking to make sure this attr is a path and doesn't have any values
+                        // associated with it
+                        if std::mem::discriminant(&attr.meta)
+                            == std::mem::discriminant(&syn::Meta::Path(syn::Path {
+                                leading_colon: None,
+                                segments: syn::punctuated::Punctuated::new(),
+                            }))
+                        {
+                            right_field = Some(field_name.clone());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                attr.path(),
+                                "The `right_field` attribute should not be called with a value",
+                            ));
+                        }
                     } else {
                         return Err(syn::Error::new_spanned(
                             attr.path(),
-                            "The `right_field` attribute should not be called with a value",
+                            "The `left_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
                         ));
                     }
                 } else if attr.path().is_ident("field_title") {
@@ -331,20 +396,21 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     continue;
                 }
             }
-            if display_order.is_none() {
+            //only require these fields on fields that are not skip and not iterators
+            if display_order.is_none() && !is_iterator && !skip {
                 return Err(syn::Error::new_spanned(
                     f,
                     "`the `display_order` attribute is not specified",
                 ));
             }
-            if constraint_type.is_none() {
+            if constraint_type.is_none() && !is_iterator && !skip {
                 return Err(syn::Error::new_spanned(
                     f,
                     "`the `constraint_type` attribute is not specified",
                 ));
             }
 
-            if constraint_value.is_none() {
+            if constraint_value.is_none() && !is_iterator && !skip {
                 return Err(syn::Error::new_spanned(
                     f,
                     "`the `constraint_value` attribute is not specified",
