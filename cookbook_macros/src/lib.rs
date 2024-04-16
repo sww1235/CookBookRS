@@ -4,9 +4,8 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, punctuated::Punctuated, Data, DataStruct, DeriveInput, Expr, Fields, Lit,
-    Meta, Path, PathArguments, PathSegment, Token, TraitBound, TraitBoundModifier, Type::ImplTrait,
-    TypeImplTrait, TypeParamBound,
+    parse_macro_input, punctuated::Punctuated, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Path, PathArguments, PathSegment, Token, TraitBound,
+    TraitBoundModifier, Type::ImplTrait, TypeImplTrait, TypeParamBound,
 };
 
 use std::collections::BTreeMap;
@@ -39,23 +38,11 @@ use std::mem;
 /// - `skip` will skip the field from being rendered.
 #[proc_macro_derive(
     StatefulWidgetRef,
-    attributes(
-        state_struct,
-        display_order,
-        constraint_value,
-        constraint_type,
-        display_widget,
-        left_field,
-        right_field,
-        field_title,
-        skip
-    )
+    attributes(state_struct, display_order, constraint_value, constraint_type, display_widget, left_field, right_field, field_title, skip)
 )]
 pub fn stateful_widget_ref_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    expand_stateful_widget(input)
-        .unwrap_or_else(syn::Error::into_compile_error)
-        .into()
+    expand_stateful_widget(input).unwrap_or_else(syn::Error::into_compile_error).into()
 }
 
 // TODO: maybe fix this
@@ -67,12 +54,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             fields: Fields::Named(ref fields),
             ..
         }) => &fields.named,
-        _ => {
-            return Err(syn::Error::new_spanned(
-                input,
-                "This derive macro only works on structs with named fields.",
-            ))
-        }
+        _ => return Err(syn::Error::new_spanned(input, "This derive macro only works on structs with named fields.")),
     };
 
     let st_name = &input.ident;
@@ -87,7 +69,6 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
 
     // allowing this, since I want it to be clear I am selecting the 0th element in the list.
     // essentially treating the iterator the same as a tuple or vec.
-    // TODO: maybe figure out how to not have `state_struct` be an iterator
     #[allow(clippy::iter_nth_zero)]
     let state_struct = &input
         .attrs
@@ -95,87 +76,23 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
         .iter()
         .filter_map(|attr| {
             if attr.path().is_ident("state_struct") {
-                if let Meta::NameValue(ref name_value) = attr.meta {
-                    if let Expr::Lit(ref lit) = name_value.value {
-                        if let Lit::Str(ref lit_str) = lit.lit {
-                            Some(lit_str.value())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+                let Meta::NameValue(ref name_value) = attr.meta else { return None };
+                let Expr::Lit(ref lit) = name_value.value else { return None };
+                let Lit::Str(ref lit_str) = lit.lit else { return None };
+                Some(lit_str.value())
             } else {
                 None
             }
         })
         .nth(0);
     if state_struct.is_none() {
-        return Err(syn::Error::new_spanned(
-            &input,
-            "No `state_struct` specified during `StatefulWidgetRef` derive.",
-        ));
+        return Err(syn::Error::new_spanned(&input, "No `state_struct` specified during `StatefulWidgetRef` derive."));
     }
     //TODO: need to fix styling here
     for f in fields {
-        // want to check only if the ident of the attr is skip.
-        // allowing this, since I want it to be clear I am selecting the 0th element in the list.
-        // essentially treating the iterator the same as a tuple or vec.
-        #[allow(clippy::iter_nth_zero)]
-        let skip = f
-            .attrs
-            .iter()
-            .filter_map(|attr| {
-                if let Meta::Path(ref path) = attr.meta {
-                    path.is_ident("skip").then_some(true)
-                } else {
-                    None
-                }
-            })
-            .nth(0)
-            .unwrap_or(false);
-        //TODO: fix this
-        let is_iterator = if let ImplTrait(impl_trait) = &f.ty {
-            impl_trait
-                == (&TypeImplTrait {
-                    impl_token: Token!(impl)(proc_macro2::Span::mixed_site()),
-                    bounds: {
-                        let mut punct = Punctuated::new();
-                        punct.push_value(TypeParamBound::Trait(TraitBound {
-                            paren_token: None,
-                            modifier: TraitBoundModifier::None,
-                            lifetimes: None,
-                            path: {
-                                let mut segments = Punctuated::new();
-                                segments.push_value(PathSegment {
-                                    ident: format_ident! {"std"},
-                                    arguments: PathArguments::None,
-                                });
-                                segments.push_punct(Token![::](proc_macro2::Span::mixed_site()));
-                                segments.push_value(PathSegment {
-                                    ident: format_ident! {"iter"},
-                                    arguments: PathArguments::None,
-                                });
-                                segments.push_punct(Token![::](proc_macro2::Span::mixed_site()));
-                                segments.push_value(PathSegment {
-                                    ident: format_ident! {"Iterator"},
-                                    arguments: PathArguments::None,
-                                });
-                                Path {
-                                    leading_colon: None,
-                                    segments,
-                                }
-                            },
-                        }));
-                        punct
-                    },
-                })
-        } else {
-            true
-        };
+        let mut skip = false;
+        //TODO: remove this
+        let is_iterator = false;
 
         // want to skip fields that are marked skip and not iterators
         if skip && !is_iterator {
@@ -185,15 +102,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             // checking these right away before setting them in the next iteration of the loop
             if left_field.is_some() {
                 return Err(syn::Error::new_spanned(
-                                f,
-                                "The `left_field` attribute was specified more than once. It should only be specified on one field",
-                            ));
+                    f,
+                    "The `left_field` attribute was specified more than once. It should only be specified on one field",
+                ));
             }
             if right_field.is_some() {
                 return Err(syn::Error::new_spanned(
-                                f,
-                                "The `right_field` attribute was specified more than once. It should only be specified on one field",
-                            ));
+                    f,
+                    "The `right_field` attribute was specified more than once. It should only be specified on one field",
+                ));
             }
             let block_name = format_ident!("{}_block", field_name);
             let paragraph_name = format_ident!("{}_paragraph", field_name);
@@ -207,214 +124,194 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
 
             // handle remaining attributes
             for attr in &f.attrs {
-                if attr.path().is_ident("display_order") {
-                    if let Meta::NameValue(ref name_value) = attr.meta {
-                        if let Expr::Lit(ref lit) = name_value.value {
-                            if let Lit::Int(ref lit_int) = lit.lit {
-                                display_order = Some(lit_int.base10_parse::<u16>()?);
-                            } else {
-                                return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `display_order` attribute needs to be set equal to an integer",
-                            ));
+                match &attr.meta {
+                    // this path is the cookbook in cookbook("display_order")
+                    Meta::List(meta) if meta.path.is_ident("cookbook") => {
+                        // now parse the stuff inside the parenthesis
+                        attr.parse_nested_meta(|inner_meta| {
+                            // #[cookbook(skip)]
+                            if inner_meta.path.is_ident("skip") {
+                                skip = true;
                             }
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `display_order` attribute needs to be set equal to an integer",
-                            ));
-                        }
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `display_order` attribute needs to be called as a NamedValue attribute type",
-                            ));
-                    }
-                } else if attr.path().is_ident("constraint_type") {
-                    if let Meta::NameValue(ref name_value) = attr.meta {
-                        if let Expr::Lit(ref lit) = name_value.value {
-                            if let Lit::Str(ref lit_str) = lit.lit {
-                                match lit_str.value().as_str() {
-                                    "Min" | "min" => constraint_type = Some("Min".to_string()),
-                                    "Max" | "max" => constraint_type = Some("Max".to_string()),
-                                    "Length" | "length" => {
-                                        constraint_type = Some("Length".to_string());
+
+                            if inner_meta.path.is_ident("display_order") {
+                                // value() advances meta.input past the = in the input. Will error
+                                // if the = is not present.
+                                match inner_meta.value() {
+                                    Ok(value) => {
+                                        //TODO: refactor to use if-let chains once they are
+                                        //stablized
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(inner_meta.error("The `display_order` attribute needs to be set equal to a literal value"));
+                                        };
+                                        let Lit::Int(ref lit_int) = lit.lit else {
+                                            return Err(inner_meta.error("The `display_order` attribute needs to be set equal to an integer"));
+                                        };
+
+                                        display_order = Some(lit_int.base10_parse::<u16>()?);
+                                        Ok(())
                                     }
-                                    "Percentage" | "percentage" => {
-                                        constraint_type = Some("Percentage".to_string());
+                                    Err(_) => Err(inner_meta.error("The `display_order` attribute needs to be called as a NamedValue attribute type")),
+                                }
+                            } else if inner_meta.path.is_ident("constraint_type") {
+                                match inner_meta.value() {
+                                    Ok(value) => {
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(inner_meta.error("The `constraint_type` attribute needs to be set equal to a literal value"));
+                                        };
+                                        let Lit::Str(ref lit_str) = lit.lit else {
+                                            return Err(inner_meta.error("The `constraint_type` attribute needs to be set equal to an string"));
+                                        };
+                                        match lit_str.value().as_str() {
+                                            "Min" | "min" => {
+                                                constraint_type = Some("Min".to_string());
+                                                Ok(())
+                                            }
+                                            "Max" | "max" => {
+                                                constraint_type = Some("Max".to_string());
+                                                Ok(())
+                                            }
+                                            "Length" | "length" => {
+                                                constraint_type = Some("Length".to_string());
+                                                Ok(())
+                                            }
+                                            "Percentage" | "percentage" => {
+                                                constraint_type = Some("Percentage".to_string());
+                                                Ok(())
+                                            }
+                                            "Fill" | "fill" => {
+                                                constraint_type = Some("Fill".to_string());
+                                                Ok(())
+                                            }
+                                            "Ratio" | "ratio" => {
+                                                return Err(syn::Error::new_spanned(
+                                                    attr,
+                                                    "Ratio constraint type in attribute `constraint_type` is not supported by this derive macro",
+                                                ));
+                                            }
+                                            x => {
+                                                let err_string = format!("Constraint type {x} is not recognized");
+                                                return Err(syn::Error::new_spanned(attr, err_string));
+                                            }
+                                        }
                                     }
-                                    "Fill" | "fill" => constraint_type = Some("Fill".to_string()),
-                                    "Ratio" | "ratio" => {
-                                        return Err(syn::Error::new_spanned(
-                                                attr,
-                                                "Ratio constraint type in attribute `constraint_type` is not supported by this derive macro"));
+                                    Err(_) => Err(inner_meta.error("The `constraint_type` attribute needs to be called as a NamedValue attribute type")),
+                                }
+                            } else if inner_meta.path.is_ident("constraint_value") {
+                                match inner_meta.value() {
+                                    Ok(value) => {
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(inner_meta.error("The `constraint_value` attribute needs to be set equal to a literal value"));
+                                        };
+                                        let Lit::Int(ref lit_int) = lit.lit else {
+                                            return Err(inner_meta.error("The `constraint_value` attribute needs to be set equal to an integer"));
+                                        };
+                                        constraint_value = Some(lit_int.base10_parse::<u16>()?);
+                                        Ok(())
                                     }
-                                    x => {
-                                        let err_string =
-                                            format!("Constraint type {x} is not recognized");
-                                        return Err(syn::Error::new_spanned(attr, err_string));
+
+                                    Err(_) => Err(inner_meta.error("The `constraint_value` attribute needs to be called as a NamedValue attribute type")),
+                                }
+                            } else if inner_meta.path.is_ident("display_widget") {
+                                match inner_meta.value() {
+                                    Ok(value) => {
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(inner_meta.error("The `display_widget` attribute needs to be set equal to a literal value"));
+                                        };
+                                        let Lit::Str(ref lit_str) = lit.lit else {
+                                            return Err(inner_meta.error("The `display_widget` attribute needs to be set equal to an string"));
+                                        };
+                                        //TODO: perform validation here
+                                        widget_type = lit_str.value();
+                                        Ok(())
                                     }
+
+                                    Err(_) => Err(inner_meta.error("The `display_widget` attribute needs to be called as a NamedValue attribute type")),
+                                }
+                            } else if inner_meta.path.is_ident("left_field") {
+                                // checking to make sure this field implements the iterator trait
+                                if is_iterator {
+                                    // checking to make sure this attr is a path and doesn't have any values
+                                    // associated with it
+                                    // this is comparing the actual enum variant, and not the
+                                    // values within
+                                    if mem::discriminant(&attr.meta)
+                                        == mem::discriminant(&Meta::Path(syn::Path {
+                                            leading_colon: None,
+                                            segments: Punctuated::new(),
+                                        }))
+                                    {
+                                        left_field = Some(field_name.clone());
+                                        Ok(())
+                                    } else {
+                                        return Err(inner_meta.error("The `left_field` attribute should not be called with a value"));
+                                    }
+                                } else {
+                                    return Err(inner_meta.error(
+                                        "The `left_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
+                                    ));
+                                }
+                            } else if inner_meta.path.is_ident("right_field") {
+                                // checking to make sure this field implements the iterator trait
+                                if is_iterator {
+                                    // checking to make sure this attr is a path and doesn't have any values
+                                    // associated with it
+                                    // this is comparing the actual enum variant, and not the
+                                    // values within
+                                    if std::mem::discriminant(&attr.meta)
+                                        == std::mem::discriminant(&syn::Meta::Path(syn::Path {
+                                            leading_colon: None,
+                                            segments: syn::punctuated::Punctuated::new(),
+                                        }))
+                                    {
+                                        right_field = Some(field_name.clone());
+                                        Ok(())
+                                    } else {
+                                        return Err(inner_meta.error("The `right_field` attribute should not be called with a value"));
+                                    }
+                                } else {
+                                    return Err(inner_meta.error(
+                                        "The `right_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
+                                    ));
+                                }
+                            } else if inner_meta.path.is_ident("field_title") {
+                                match inner_meta.value() {
+                                    Ok(value) => {
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(inner_meta.error("The `field_title` attribute needs to be set equal to a literal value"));
+                                        };
+                                        let Lit::Str(ref lit_str) = lit.lit else {
+                                            return Err(inner_meta.error("The `field_title` attribute needs to be set equal to an string"));
+                                        };
+                                        //TODO: perform validation here
+                                        lower_field_title = Some(lit_str.value());
+                                        Ok(())
+                                    }
+
+                                    Err(_) => Err(inner_meta.error("The `field_title` attribute needs to be called as a NamedValue attribute type")),
                                 }
                             } else {
-                                return Err(syn::Error::new_spanned(
-                                attr,
-                                "the `constraint_type` attribute needs to be set equal to a string",
-                            ));
+                                //continue;
+                                Ok(())
                             }
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                attr,
-                                "the `constraint_type` attribute needs to be set equal to a string",
-                            ));
-                        }
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `constraint_type` attribute needs to be called as a NamedValue attribute type",
-                            ));
+                        })?;
                     }
-                } else if attr.path().is_ident("constraint_value") {
-                    if let Meta::NameValue(ref name_value) = attr.meta {
-                        if let Expr::Lit(ref lit) = name_value.value {
-                            if let Lit::Int(ref lit_int) = lit.lit {
-                                constraint_value = Some(lit_int.base10_parse::<u16>()?);
-                            } else {
-                                return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `constraint_value` attribute needs to be set equal to an integer",
-                            ));
-                            }
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `constraint_value` attribute needs to be set equal to an integer",
-                            ));
-                        }
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `constraint_value` attribute needs to be called as a NamedValue attribute type",
-                            ));
+                    _ => {
+                        // ignore any field attributes that are not syn::Meta::List() types with path
+                        continue;
                     }
-                } else if attr.path().is_ident("display_widget") {
-                    if let Meta::NameValue(ref name_value) = attr.meta {
-                        if let Expr::Lit(ref lit) = name_value.value {
-                            if let Lit::Str(ref lit_str) = lit.lit {
-                                //TODO: perform validation here
-                                widget_type = lit_str.value();
-                            } else {
-                                return Err(syn::Error::new_spanned(
-                                attr,
-                                "the `display_widget` attribute needs to be set equal to a string",
-                            ));
-                            }
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                attr,
-                                "the `display_widget` attribute needs to be set equal to a string",
-                            ));
-                        }
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `display_widget` attribute needs to be called as a NamedValue attribute type",
-                            ));
-                    }
-                } else if attr.path().is_ident("left_field") {
-                    // checking to make sure this field implements the iterator trait
-                    if is_iterator {
-                        // checking to make sure this attr is a path and doesn't have any values
-                        // associated with it
-                        if mem::discriminant(&attr.meta)
-                            == mem::discriminant(&Meta::Path(syn::Path {
-                                leading_colon: None,
-                                segments: Punctuated::new(),
-                            }))
-                        {
-                            left_field = Some(field_name.clone());
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                attr.path(),
-                                "The `left_field` attribute should not be called with a value",
-                            ));
-                        }
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                            attr.path(),
-                            "The `left_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
-                        ));
-                    }
-                } else if attr.path().is_ident("right_field") {
-                    // checking to make sure this field implements the iterator trait
-                    if is_iterator {
-                        // checking to make sure this attr is a path and doesn't have any values
-                        // associated with it
-                        if std::mem::discriminant(&attr.meta)
-                            == std::mem::discriminant(&syn::Meta::Path(syn::Path {
-                                leading_colon: None,
-                                segments: syn::punctuated::Punctuated::new(),
-                            }))
-                        {
-                            right_field = Some(field_name.clone());
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                attr.path(),
-                                "The `right_field` attribute should not be called with a value",
-                            ));
-                        }
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                            attr.path(),
-                            "The `left_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
-                        ));
-                    }
-                } else if attr.path().is_ident("field_title") {
-                    if let Meta::NameValue(ref name_value) = attr.meta {
-                        if let Expr::Lit(ref lit) = name_value.value {
-                            if let Lit::Str(ref lit_str) = lit.lit {
-                                //TODO: perform validation here
-                                lower_field_title = Some(lit_str.value());
-                            } else {
-                                return Err(syn::Error::new_spanned(
-                                    attr,
-                                    "the `field_title` attribute needs to be set equal to a string",
-                                ));
-                            }
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                attr,
-                                "the `field_title` attribute needs to be set equal to a string",
-                            ));
-                        }
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                                attr,
-                                "The `field_title` attribute needs to be called as a NamedValue attribute type",
-                            ));
-                    }
-                } else {
-                    continue;
                 }
             }
             //only require these fields on fields that are not skip and not iterators
             if display_order.is_none() && !is_iterator && !skip {
-                return Err(syn::Error::new_spanned(
-                    f,
-                    "`the `display_order` attribute is not specified",
-                ));
+                return Err(syn::Error::new_spanned(f, "`the `display_order` attribute is not specified"));
             }
             if constraint_type.is_none() && !is_iterator && !skip {
-                return Err(syn::Error::new_spanned(
-                    f,
-                    "`the `constraint_type` attribute is not specified",
-                ));
+                return Err(syn::Error::new_spanned(f, "`the `constraint_type` attribute is not specified"));
             }
 
             if constraint_value.is_none() && !is_iterator && !skip {
-                return Err(syn::Error::new_spanned(
-                    f,
-                    "`the `constraint_value` attribute is not specified",
-                ));
+                return Err(syn::Error::new_spanned(f, "`the `constraint_value` attribute is not specified"));
             }
 
             // unwrap_or_default() here is ok as these are all checked for None above here
@@ -487,15 +384,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
         if let Some(lower_field_title) = &lower_field_title {
             if lower_field_title.is_empty() {
                 return Err(syn::Error::new_spanned(
-                            left_field,
-                            "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
-                        ));
+                    left_field,
+                    "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
+                ));
             }
         } else {
             return Err(syn::Error::new_spanned(
-                            left_field,
-                            "`field_title` attribute needs to be specified on field with `left_field` attribute",
-                        ));
+                left_field,
+                "`field_title` attribute needs to be specified on field with `left_field` attribute",
+            ));
         }
         quote! {
            let left_block = ratatui::widgets::block::Block::default()
@@ -523,15 +420,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
         if let Some(lower_field_title) = &lower_field_title {
             if lower_field_title.is_empty() {
                 return Err(syn::Error::new_spanned(
-                            right_field,
-                            "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
-                        ));
+                    right_field,
+                    "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
+                ));
             }
         } else {
             return Err(syn::Error::new_spanned(
-                            right_field,
-                            "`field_title` attribute needs to be specified on field with `left_field` attribute",
-                        ));
+                right_field,
+                "`field_title` attribute needs to be specified on field with `left_field` attribute",
+            ));
         }
         quote! {
            let right_block = ratatui::widgets::block::Block::default()
@@ -560,8 +457,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
     total_field_height += 5;
     let constraint_code_values: Vec<TokenStream2> = constraints_code.values().cloned().collect();
 
-    let field_display_code_values: Vec<TokenStream2> =
-        field_display_code.values().cloned().collect();
+    let field_display_code_values: Vec<TokenStream2> = field_display_code.values().cloned().collect();
     Ok(
         quote! {
             #[automatically_derived]
