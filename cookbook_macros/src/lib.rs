@@ -2,11 +2,8 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
-use syn::{
-    parse_macro_input, punctuated::Punctuated, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Path, PathArguments, PathSegment, Token, TraitBound,
-    TraitBoundModifier, Type::ImplTrait, TypeImplTrait, TypeParamBound,
-};
+use quote::{format_ident, quote, quote_spanned};
+use syn::{parse_macro_input, punctuated::Punctuated, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token};
 
 use std::collections::BTreeMap;
 
@@ -58,6 +55,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
 
     let mut constraints_code = BTreeMap::new();
     let mut field_display_code = BTreeMap::new();
+    let mut len_check_fn_code = TokenStream2::new();
 
     let mut total_field_height: u16 = 0;
     let mut left_field = None;
@@ -101,13 +99,9 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
     //TODO: need to fix styling here
     for f in fields {
         let mut skip = false;
-        //TODO: remove this
-        let is_iterator = false;
+        //indicates if field is used to fill in a value in one of the two bottom fields
+        let mut bottom_field = false;
 
-        // want to skip fields that are marked skip and not iterators
-        if skip && !is_iterator {
-            continue;
-        }
         if let Some(field_name) = f.ident.clone() {
             // checking these right away before setting them in the next iteration of the loop
             if left_field.is_some() {
@@ -246,49 +240,39 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                                 }
                             } else if inner_meta.path.is_ident("left_field") {
                                 // checking to make sure this field implements the iterator trait
-                                if is_iterator {
-                                    // checking to make sure this attr is a path and doesn't have any values
-                                    // associated with it
-                                    // this is comparing the actual enum variant, and not the
-                                    // values within
-                                    if mem::discriminant(&attr.meta)
-                                        == mem::discriminant(&Meta::Path(syn::Path {
-                                            leading_colon: None,
-                                            segments: Punctuated::new(),
-                                        }))
-                                    {
-                                        left_field = Some(field_name.clone());
-                                        Ok(())
-                                    } else {
-                                        return Err(inner_meta.error("The `left_field` attribute should not be called with a value"));
-                                    }
+                                // checking to make sure this attr is a path and doesn't have any values
+                                // associated with it
+                                // this is comparing the actual enum variant, and not the
+                                // values within
+                                if mem::discriminant(&attr.meta)
+                                    == mem::discriminant(&Meta::Path(syn::Path {
+                                        leading_colon: None,
+                                        segments: Punctuated::new(),
+                                    }))
+                                {
+                                    left_field = Some(field_name.clone());
+
+                                    bottom_field = true;
+                                    Ok(())
                                 } else {
-                                    return Err(inner_meta.error(
-                                        "The `left_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
-                                    ));
+                                    return Err(inner_meta.error("The `cookbook(left_field)` attribute must not be called with a value"));
                                 }
                             } else if inner_meta.path.is_ident("right_field") {
-                                // checking to make sure this field implements the iterator trait
-                                if is_iterator {
-                                    // checking to make sure this attr is a path and doesn't have any values
-                                    // associated with it
-                                    // this is comparing the actual enum variant, and not the
-                                    // values within
-                                    if std::mem::discriminant(&attr.meta)
-                                        == std::mem::discriminant(&syn::Meta::Path(syn::Path {
-                                            leading_colon: None,
-                                            segments: syn::punctuated::Punctuated::new(),
-                                        }))
-                                    {
-                                        right_field = Some(field_name.clone());
-                                        Ok(())
-                                    } else {
-                                        return Err(inner_meta.error("The `right_field` attribute should not be called with a value"));
-                                    }
+                                // checking to make sure this attr is a path and doesn't have any values
+                                // associated with it
+                                // this is comparing the actual enum variant, and not the
+                                // values within
+                                if std::mem::discriminant(&attr.meta)
+                                    == std::mem::discriminant(&syn::Meta::Path(syn::Path {
+                                        leading_colon: None,
+                                        segments: syn::punctuated::Punctuated::new(),
+                                    }))
+                                {
+                                    right_field = Some(field_name.clone());
+                                    bottom_field = true;
+                                    Ok(())
                                 } else {
-                                    return Err(inner_meta.error(
-                                        "The `right_field` attribute needs to be specified on a field that implements std::iter::Iterator, normally a vector or hashmap.",
-                                    ));
+                                    return Err(inner_meta.error("The `cookboo(right_field)` attribute must not be called with a value"));
                                 }
                             } else if inner_meta.path.is_ident("field_title") {
                                 match inner_meta.value() {
@@ -320,16 +304,28 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     }
                 }
             }
-            //only require these fields on fields that are not skip and not iterators
-            if display_order.is_none() && !is_iterator && !skip {
-                return Err(syn::Error::new_spanned(f, "`the `display_order` attribute is not specified"));
+            if bottom_field {
+                //https://users.rust-lang.org/t/derive-macro-determine-if-field-implements-trait/109417/6
+                //TODO: finish this
+                let field_type = &f.ty;
+                let field_span = f.span();
+                len_check_fn_code = quote_spanned! {field_span=>
+                    fn _must_have_len_method_returning_usize(x: &#field_type)-> usize {x.len()}
+                };
             }
-            if constraint_type.is_none() && !is_iterator && !skip {
-                return Err(syn::Error::new_spanned(f, "`the `constraint_type` attribute is not specified"));
+            if skip && !bottom_field {
+                continue;
+            }
+            //only require these fields on fields that are not skip and not iterators
+            if display_order.is_none() && !bottom_field && !skip {
+                return Err(syn::Error::new_spanned(f, "`the `cookbook(display_order)` attribute is not specified"));
+            }
+            if constraint_type.is_none() && !bottom_field && !skip {
+                return Err(syn::Error::new_spanned(f, "`the `cookbook(constraint_type)` attribute is not specified"));
             }
 
-            if constraint_value.is_none() && !is_iterator && !skip {
-                return Err(syn::Error::new_spanned(f, "`the `constraint_value` attribute is not specified"));
+            if constraint_value.is_none() && !bottom_field && !skip {
+                return Err(syn::Error::new_spanned(f, "`the `cookbook(constraint_value)` attribute is not specified"));
             }
 
             // unwrap_or_default() here is ok as these are all checked for None above here
@@ -482,6 +478,8 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             impl ratatui::widgets::StatefulWidgetRef for #st_name {
                 type State = #state_struct;
                 fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer, state: &mut Self::State){
+
+                    #len_check_fn_code
                     // Use split here, since we don't care about naming the fields specifically
 
                     //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
