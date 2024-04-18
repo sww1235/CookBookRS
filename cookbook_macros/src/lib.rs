@@ -3,11 +3,9 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_macro_input, punctuated::Punctuated, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token};
+use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token};
 
 use std::collections::BTreeMap;
-
-use std::mem;
 
 ///[`stateful_widget_ref_derive`] is the outer derive function that allows for
 ///deriving the [`StatefulWidgetRef`] trait on structs. This particular implementation generates a
