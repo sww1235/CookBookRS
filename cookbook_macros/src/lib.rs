@@ -239,17 +239,11 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                                     Err(_) => Err(inner_meta.error("The `cookbook(display_widget)` attribute must be called as a NameValue attribute type")),
                                 }
                             } else if inner_meta.path.is_ident("left_field") {
-                                // checking to make sure this field implements the iterator trait
                                 // checking to make sure this attr is a path and doesn't have any values
                                 // associated with it
-                                // this is comparing the actual enum variant, and not the
-                                // values within
-                                if mem::discriminant(&attr.meta)
-                                    == mem::discriminant(&Meta::Path(syn::Path {
-                                        leading_colon: None,
-                                        segments: Punctuated::new(),
-                                    }))
-                                {
+                                // checking to make sure parsing the value errors.
+                                // TODO: see if this same approach works for Meta::List
+                                if inner_meta.value().is_err() {
                                     left_field = Some(field_name.clone());
 
                                     bottom_field = true;
@@ -257,17 +251,14 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                                 } else {
                                     return Err(inner_meta.error("The `cookbook(left_field)` attribute must not be called with a value"));
                                 }
+                                // this is comparing the actual enum variant, and not the
+                                // values within
                             } else if inner_meta.path.is_ident("right_field") {
                                 // checking to make sure this attr is a path and doesn't have any values
                                 // associated with it
-                                // this is comparing the actual enum variant, and not the
-                                // values within
-                                if std::mem::discriminant(&attr.meta)
-                                    == std::mem::discriminant(&syn::Meta::Path(syn::Path {
-                                        leading_colon: None,
-                                        segments: syn::punctuated::Punctuated::new(),
-                                    }))
-                                {
+                                // checking to make sure parsing the value errors.
+                                // TODO: see if this same approach works for Meta::List
+                                if inner_meta.value().is_err() {
                                     right_field = Some(field_name.clone());
                                     bottom_field = true;
                                     Ok(())
@@ -306,7 +297,6 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             }
             if bottom_field {
                 //https://users.rust-lang.org/t/derive-macro-determine-if-field-implements-trait/109417/6
-                //TODO: finish this
                 let field_type = &f.ty;
                 let field_span = f.span();
                 len_check_fn_code = quote_spanned! {field_span=>
@@ -316,7 +306,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             if skip && !bottom_field {
                 continue;
             }
-            //only require these fields on fields that are not skip and not iterators
+            //only require these fields on fields that are not skip and not bottom fields
             if display_order.is_none() && !bottom_field && !skip {
                 return Err(syn::Error::new_spanned(f, "`the `cookbook(display_order)` attribute is not specified"));
             }
