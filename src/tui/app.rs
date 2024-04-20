@@ -11,7 +11,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget, WidgetRef},
 };
 
 /// main application struct
@@ -197,8 +197,9 @@ impl StatefulWidgetRef for App {
                 let tag_list = List::new(tag_list_items).block(Block::default().borders(Borders::ALL).title("Tag List"));
                 state.tag_list_len = tag_list.len();
                 StatefulWidget::render(tag_list, tag_list_area, buf, &mut state.tag_list_state);
-                //TODO: render recipe
-                //
+                if !self.recipes.is_empty() {
+                    WidgetRef::render_ref(&self.recipes[state.recipe_list_state.selected().unwrap_or_default()], recipe_area, buf);
+                }
                 //TODO: store this text, and the keyboard shortcuts somewhere centralized
                 current_nav_text.push(Span::styled("Browsing", Style::default().fg(Color::Green)));
                 current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
