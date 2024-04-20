@@ -5,16 +5,16 @@ use super::{
     tag::Tag,
 };
 
-use cookbook_macros::StatefulWidgetRef;
+use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
 use std::num::Wrapping;
 use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
-use ratatui::widgets::{Widget, WidgetRef};
+use ratatui::widgets::Widget;
 
 /// `Recipe` represents one recipe from start to finish
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef)]
+#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
 #[cookbook(state_struct = "RecipeState")]
 pub struct Recipe {
     /// database ID
@@ -178,13 +178,6 @@ pub struct RecipeState {
     //TODO: selected field, which step is selected, etc
     pub selected_field: Wrapping<usize>,
 }
-
-// display version of recipe
-//impl WidgetRef for Recipe {
-//    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-//        //TODO: implement
-//    }
-//}
 
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/
 /// helper function for `step_time_totals` to allow adding an option and an option togther

@@ -1,4 +1,35 @@
 //! Procedural Macros for the [`CookbookRS`] crate
+//!
+//! These derive macros rely on several common attributes which are shown below, to correctly
+//! generate the desired layout of code.
+//!
+//! The derive implementation of [`WidgetRef`] and [`StatefulWidgetRef`] should produce the same
+//! visual output, with the exception of styling or other changes produced with states.
+//!
+//! The layout renders each field as a widget not marked with the `#[cookbook(skip)]` attribute or
+//! either `#[cookbook(left_field)]` or `#[cookbook(right_field)]` as the last two are special
+//! cased. The field widgets are then laid out in a vertical [`Layout`].
+//!
+//! # Struct Attributes
+//! - `state_struct` is the name of the struct that holds the state information for the struct that
+//! [`StatefulWidgetRef`] is being derived on. this is case sensitive. It is only processed if
+//! deriving [`StatefulWidgetRef`] and ignored otherwise.
+//!
+//! # Field Attributes
+//! - `display_order` is an integer that determines the order the field will be displayed. It is
+//! used as follows: `display_order = 2`.
+//! - `constraint_type` is matched against the values of [`ratatui::layout::Constraint`] and
+//! determines the type of constraint for each field. It supports all values except `Ratio`. It is
+//! used as follows: `constraint_type = min`. The first character is not case sensitive.
+//! - `constraint_value` is an integer that is used as the value inside the `Constraint`. It is
+//! used as follows: `constraint_value = 5`
+//! - `display_widget` is used to select the type of widget to use to display the value of the
+//! field. If not specified, will default to `Paragraph`. TODO: finish this
+//! - `left_field` is used to select the field that will be displayed as a count in the left hand
+//! info box.
+//! - `right_field` is used to select the field that will be displayed as a count in the right hand
+//! info box.
+//! - `skip` will skip the field from being rendered.
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
@@ -7,40 +38,25 @@ use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Ex
 
 use std::collections::BTreeMap;
 
-///[`stateful_widget_ref_derive`] is the outer derive function that allows for
-///deriving the [`StatefulWidgetRef`] trait on structs. This particular implementation generates a
-///subwidget for each field in the struct not marked with the `#skip` attribute. It also generates
-///a vertical [`Layout`] to display the structs
-///
-/// # Struct Attributes
-/// - `state_struct` is the name of the struct that holds the state information for the struct that
-/// [`StatefulWidgetRef`] is being derived on. this is case sensitive.
-///
-/// # Field Attributes
-/// - `display_order` is an integer that determines the order the field will be displayed. It is
-/// used as follows: `display_order = 2`.
-/// - `constraint_type` is matched against the values of [`ratatui::layout::Constraint`] and
-/// determines the type of constraint for each field. It supports all values except `Ratio`. It is
-/// used as follows: `constraint_type = min`. The first character is not case sensitive.
-/// - `constraint_value` is an integer that is used as the value inside the `Constraint`. It is
-/// used as follows: `constraint_value = 5`
-/// - `display_widget` is used to select the type of widget to use to display the value of the
-/// field. If not specified, will default to `Paragraph`. TODO: finish this
-/// - `left_field` is used to select the field that will be displayed as a count in the left hand
-/// info box.
-/// - `right_field` is used to select the field that will be displayed as a count in the right hand
-/// info box.
-/// - `skip` will skip the field from being rendered.
+///[`stateful_widget_ref_derive`] is the outer derive function for the [`StatefulWidgetRef`]
+///trait on structs with named fields.
 #[proc_macro_derive(StatefulWidgetRef, attributes(cookbook))]
 pub fn stateful_widget_ref_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    expand_stateful_widget(input).unwrap_or_else(syn::Error::into_compile_error).into()
+    expand(input, true).unwrap_or_else(syn::Error::into_compile_error).into()
+}
+///[`widget_ref_derive`] is the outer derive function for the [`WidgetRef`]
+///trait on structs with named fields
+#[proc_macro_derive(WidgetRef, attributes(cookbook))]
+pub fn widget_ref_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    expand(input, false).unwrap_or_else(syn::Error::into_compile_error).into()
 }
 
 // TODO: maybe fix this
 /// Implementation of [`StatefulWidget`] derive
 #[allow(clippy::arithmetic_side_effects, clippy::too_many_lines)]
-fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
+fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
     let fields = match input.data {
         Data::Struct(DataStruct {
             fields: Fields::Named(ref fields),
@@ -60,40 +76,43 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
     let mut right_field = None;
     let mut lower_field_title: Option<String> = None;
 
+    let mut state_struct = String::new();
     //This is checking outer attributes on struct, not on fields
-    let state_struct = {
-        let mut state_struct_value = None;
-        for attr in &input.attrs {
-            match &attr.meta {
-                // Outer attribute will always be of form Meta::List as we are looking for
-                // cookboo(__)
-                // this path is the cookbook in cookbook("display_order")
-                Meta::List(meta) if meta.path.is_ident("cookbook") => meta.parse_nested_meta(|inner_meta| {
-                    if inner_meta.path.is_ident("state_struct") {
-                        match inner_meta.value() {
-                            Ok(value) => {
-                                //TODO: refactor to use if-let chains once they are
-                                //stablized
-                                let Expr::Lit(ref lit) = value.parse()? else {
-                                    return Err(inner_meta.error("The `cookbook(state_struct)` attribute must be set equal to a literal value"));
-                                };
-                                let Lit::Str(ref lit_str) = lit.lit else {
-                                    return Err(inner_meta.error("The `cookbook(state_struct)` attribute must be set equal to a string"));
-                                };
-                                state_struct_value = Some(lit_str.value());
-                                Ok(())
+    if stateful {
+        state_struct = {
+            let mut state_struct_value = None;
+            for attr in &input.attrs {
+                match &attr.meta {
+                    // Outer attribute will always be of form Meta::List as we are looking for
+                    // cookboo(__)
+                    // this path is the cookbook in cookbook("display_order")
+                    Meta::List(meta) if meta.path.is_ident("cookbook") => meta.parse_nested_meta(|inner_meta| {
+                        if inner_meta.path.is_ident("state_struct") {
+                            match inner_meta.value() {
+                                Ok(value) => {
+                                    //TODO: refactor to use if-let chains once they are
+                                    //stablized
+                                    let Expr::Lit(ref lit) = value.parse()? else {
+                                        return Err(inner_meta.error("The `cookbook(state_struct)` attribute must be set equal to a literal value"));
+                                    };
+                                    let Lit::Str(ref lit_str) = lit.lit else {
+                                        return Err(inner_meta.error("The `cookbook(state_struct)` attribute must be set equal to a string"));
+                                    };
+                                    state_struct_value = Some(lit_str.value());
+                                    Ok(())
+                                }
+                                Err(_) => Err(inner_meta.error("The `cookbook(state_struct) attribute must be called as a NameValue attribute type")),
                             }
-                            Err(_) => Err(inner_meta.error("The `cookbook(state_struct) attribute must be called as a NameValue attribute type")),
+                        } else {
+                            Ok(())
                         }
-                    } else {
-                        Ok(())
-                    }
-                })?,
-                _ => continue,
+                    })?,
+                    _ => continue,
+                }
             }
-        }
-        state_struct_value.ok_or(syn::Error::new_spanned(&input, "No `cookbook(state_struct)` specified during `StatefulWidgetRef` derive."))
-    }?;
+            state_struct_value.ok_or(syn::Error::new_spanned(&input, "No `cookbook(state_struct)` specified during `StatefulWidgetRef` derive."))
+        }?;
+    }
     //TODO: need to fix styling here
     for f in fields {
         let mut skip = false;
@@ -103,7 +122,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
         if let Some(field_name) = f.ident.clone() {
             let block_name = format_ident!("{}_block", field_name);
             let paragraph_name = format_ident!("{}_paragraph", field_name);
-            let style_name = format_ident!("{}_style", field_name);
+            let field_text_style_name = format_ident!("{}_style", field_name);
             let field_title = to_ascii_titlecase(field_name.to_string().as_str());
             let mut display_order: Option<usize> = None;
             let mut constraint_type: Option<String> = None;
@@ -371,16 +390,26 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                         let field_value = self.#field_name.to_owned().unwrap_or_default().to_string();
                         let #paragraph_name = ratatui::widgets::#widget_type::new(
                             ratatui::text::Text::styled(
-                                field_value, #style_name)).block(#block_name);
+                                field_value, #field_text_style_name)).block(#block_name);
                     }
                 } else {
                     quote! {
                         let field_value = self.#field_name.to_owned().to_string();
                         let #paragraph_name = ratatui::widgets::#widget_type::new(
                             ratatui::text::Text::styled(
-                                field_value, #style_name)).block(#block_name);
+                                field_value, #field_text_style_name)).block(#block_name);
                     }
                 };
+                //TODO: fix styling here
+                let mut state_styling_code = TokenStream2::new();
+                if stateful {
+                    state_styling_code = quote! {
+                        // field is selected
+                        if state.selected_field.0 == #display_order {
+                            #field_text_style_name = #field_text_style_name.fg(ratatui::style::Color::Red);
+                        }
+                    }
+                }
                 field_display_code.insert(
                     display_order,
                     quote! {
@@ -388,11 +417,8 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                            .borders(ratatui::widgets::Borders::ALL)
                            .style(ratatui::style::Style::default())
                            .title(#field_title);
-                        let mut #style_name = ratatui::style::Style::default();
-                        // field is selected
-                        if state.selected_field.0 == #display_order {
-                            #style_name = #style_name.fg(ratatui::style::Color::Red);
-                        }
+                        let mut #field_text_style_name = ratatui::style::Style::default();
+                        #state_styling_code
                         #paragraph_name_code
                         #paragraph_name.render(layout[#display_order], buf);
                     },
@@ -479,56 +505,74 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
     let constraint_code_values: Vec<TokenStream2> = constraints_code.values().cloned().collect();
 
     let field_display_code_values: Vec<TokenStream2> = field_display_code.values().cloned().collect();
-    let state_struct_ident = format_ident!("{}", state_struct);
-    Ok(
-        quote! {
-            #[automatically_derived]
-            impl ratatui::widgets::StatefulWidgetRef for #st_name {
-                type State = #state_struct_ident;
-                fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer, state: &mut Self::State){
 
-                    #len_check_fn_code
-                    // Use split here, since we don't care about naming the fields specifically
+    let inner_fn_code = quote! {
 
-                    //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
-                    //function if too many fields
+        #len_check_fn_code
+        // Use split here, since we don't care about naming the fields specifically
 
-                    let mut constraints = Vec::new();
-                    if area.height >= #total_field_height {
-                        // output constraint vector pushes
-                       #(#constraint_code_values)*
-                    } else {
-                        //TODO: implement scrolling
-                        todo!()
+        //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
+        //function if too many fields
+
+        let mut constraints = Vec::new();
+        if area.height >= #total_field_height {
+            // output constraint vector pushes
+           #(#constraint_code_values)*
+        } else {
+            //TODO: implement scrolling
+            todo!()
+        }
+        // last constraint for step/equipment block
+        constraints.push(ratatui::layout::Constraint::Length(3));
+
+        let layout = ratatui::layout::Layout::default()
+            .direction(ratatui::layout::Direction::Vertical)
+            .constraints(constraints)
+            .split(area);
+
+        #(#field_display_code_values)*
+
+        //TODO: add remaining 2 blocks with attributes
+
+        // recipe_edit_layout should always have something in it.
+        // This is a valid place to panic
+        #[allow(clippy::expect_used)]
+        let [left_info_area, right_info_area] = ratatui::layout::Layout::default()
+            .direction(ratatui::layout::Direction::Horizontal)
+            .constraints([ratatui::layout::Constraint::Percentage(50), ratatui::layout::Constraint::Percentage(50)])
+            .areas(*layout.last().expect("No edit areas defined"));
+        #left_field_content
+
+        #right_field_content
+
+    };
+    if stateful {
+        let state_struct_ident = format_ident!("{}", state_struct);
+        Ok(
+            quote! {
+                #[automatically_derived]
+                impl ratatui::widgets::StatefulWidgetRef for #st_name {
+                    type State = #state_struct_ident;
+                    fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer, state: &mut Self::State){
+                        #inner_fn_code
                     }
-                    // last constraint for step/equipment block
-                    constraints.push(ratatui::layout::Constraint::Length(3));
+                }
 
-                    let layout = ratatui::layout::Layout::default()
-                        .direction(ratatui::layout::Direction::Vertical)
-                        .constraints(constraints)
-                        .split(area);
-
-                    #(#field_display_code_values)*
-
-                    //TODO: add remaining 2 blocks with attributes
-
-                    // recipe_edit_layout should always have something in it.
-                    // This is a valid place to panic
-                    #[allow(clippy::expect_used)]
-                    let [left_info_area, right_info_area] = ratatui::layout::Layout::default()
-                        .direction(ratatui::layout::Direction::Horizontal)
-                        .constraints([ratatui::layout::Constraint::Percentage(50), ratatui::layout::Constraint::Percentage(50)])
-                        .areas(*layout.last().expect("No edit areas defined"));
-                    #left_field_content
-
-                    #right_field_content
+            }, // end of quote block
+        )
+    } else {
+        Ok(
+            quote! {
+                #[automatically_derived]
+                impl ratatui::widgets::WidgetRef for #st_name {
+                    fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer){
+                        #inner_fn_code
+                    }
 
                 }
-            }
-
-        }, // end of quote block
-    )
+            }, // end of quote block
+        )
+    }
 }
 
 //https://stackoverflow.com/a/53571882/3342767
