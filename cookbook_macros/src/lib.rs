@@ -303,6 +303,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                 let field_type = &f.ty;
                 let field_span = f.span();
                 len_check_fn_code = quote_spanned! {field_span=>
+                    #[allow(clippy::ptr_arg)] //TODO fix this
                     fn _must_have_len_method_returning_usize(x: &#field_type)-> usize {x.len()}
                 };
             }
