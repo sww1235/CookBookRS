@@ -60,10 +60,29 @@ pub struct Ingredient {
     pub quantity: f64,
     //TODO: maybe change this to an enum?
     /// unit of ingredient as a text string
-    pub unit: String,
+    pub unit_quantity: UnitType,
     //TODO: inventory reference
 }
 
+/// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
+/// needing to have 1 ingredient type per unit type
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum UnitType {
+    /// Represents a count or physical quantity of an `Ingredient`:
+    /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.
+    Quantity(f64),
+    /// Mass of an `Ingredient`, specified in grams
+    Mass(f64),
+    /// Volume of an `Ingredent`, specified in m^3
+    Volume(f64),
+}
+
+impl Default for UnitType {
+    fn default() -> Self {
+        Self::Quantity(0.0_f64)
+    }
+}
 /// `Step` represents a discrete step within a recipe
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Step {
@@ -72,8 +91,10 @@ pub struct Step {
     /// time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
+    /// Specified in seconds
     pub time_needed: Option<f64>,
     /// cook temperature. Optional for steps that don't involve temperature or cooking
+    /// Specified in K
     pub temperature: Option<f64>,
     /// instructions for step
     pub instructions: String,

@@ -1,3 +1,5 @@
+use super::filetypes;
+
 use ratatui::{style::Stylize, widgets::Widget};
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
@@ -37,4 +39,15 @@ pub struct Equipment {
 pub struct EquipmentState {
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
+}
+
+impl From<filetypes::Equipment> for Equipment {
+    fn from(input: filetypes::Equipment) -> Self {
+        Self {
+            id: input.id,
+            name: input.name,
+            description: input.description,
+            is_owned: input.is_owned,
+        }
+    }
 }

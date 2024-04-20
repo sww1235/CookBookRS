@@ -1,5 +1,6 @@
 use super::{
     equipment::Equipment,
+    filetypes,
     ingredient::Ingredient,
     step::{Step, StepType},
     tag::Tag,
@@ -188,5 +189,25 @@ fn add(lhs: &mut Option<ucum::Second<f64>>, rhs: Option<ucum::Second<f64>>) -> O
         (Some(l), None) => Some(*l),
         (None, Some(r)) => Some(r),
         (None, None) => None,
+    }
+}
+
+impl From<filetypes::Recipe> for Recipe {
+    fn from(input: filetypes::Recipe) -> Self {
+        Self {
+            id: input.id,
+            name: input.name,
+            description: input.description,
+            comments: input.comments,
+            source: input.source,
+            author: input.author,
+            amount_made: AmountMade {
+                quantity: input.amount_made,
+                units: input.amount_made_units,
+            },
+            steps: input.steps.into_iter().map(Into::into).collect(),
+            tags: input.tags,
+            saved: false,
+        }
     }
 }

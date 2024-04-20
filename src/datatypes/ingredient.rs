@@ -1,3 +1,5 @@
+use super::filetypes;
+
 use dimensioned::ucum;
 use ratatui::{style::Stylize, widgets::Widget};
 
@@ -83,5 +85,26 @@ impl AddAssign for UnitType {
 impl Default for UnitType {
     fn default() -> Self {
         Self::Quantity(0.0_f64)
+    }
+}
+
+impl From<filetypes::Ingredient> for Ingredient {
+    fn from(input: filetypes::Ingredient) -> Self {
+        Self {
+            id: input.id,
+            name: input.name,
+            description: input.description,
+            unit_quantity: input.unit_quantity.into(),
+        }
+    }
+}
+
+impl From<filetypes::UnitType> for UnitType {
+    fn from(input: filetypes::UnitType) -> Self {
+        match input {
+            filetypes::UnitType::Quantity(q) => Self::Quantity(q),
+            filetypes::UnitType::Mass(m) => Self::Mass(m * ucum::G),
+            filetypes::UnitType::Volume(v) => Self::Volume(v * ucum::M3),
+        }
     }
 }
