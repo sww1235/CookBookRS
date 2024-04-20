@@ -1,5 +1,6 @@
 use crate::datatypes::{
     equipment::EquipmentState,
+    filetypes,
     ingredient::IngredientState,
     recipe::{Recipe, RecipeState},
     step::StepState,
@@ -13,6 +14,10 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget, WidgetRef},
 };
+
+use std::fs;
+use std::io;
+use std::path;
 
 /// main application struct
 #[derive(Debug, Default, PartialEq)]
@@ -78,6 +83,65 @@ impl App {
             editing: None,
             tags: Vec::new(),
         }
+    }
+    /// [`load_recipes_from_directory`] recursively parses the provided directory path to parse all
+    /// `*.toml` files found and load them into the cookbook.
+    ///
+    /// # Errors
+    ///
+    /// Will error if:
+    /// - reading any of the individual recipes fails
+    /// - the specified path is not a directory
+    /// - [`os_str`] failed to parse to UTF-8
+    pub fn load_recipes_from_directory(&mut self, dir: path::PathBuf) -> Result<(), io::Error> {
+        if dir.as_path().is_dir() {
+            Self::load_recipes_from_directory_inner(dir, &mut self.recipes)?;
+            Ok(())
+        } else {
+            Err(io::Error::new(io::ErrorKind::InvalidInput, format! {"Provided filepath not a directory {}", dir.display()}))
+            //TODO: return is not directory error
+        }
+    }
+
+    fn load_recipes_from_directory_inner(inner_dir: path::PathBuf, recipes: &mut Vec<Recipe>) -> Result<(), io::Error> {
+        let ext = match inner_dir.extension() {
+            Some(ext) => match ext.to_str() {
+                Some(ext) => ext,
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "os_str failed to parse to valid utf-8")),
+            },
+            None => "",
+        };
+        if inner_dir.is_file() && ext == "toml" {
+            let recipe = match Self::parse_recipe(inner_dir.clone()) {
+                Ok(r) => r,
+                Err(error) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format! {"Parsing TOML file {} failed: {}", &inner_dir.display(), error},
+                    ))
+                }
+            };
+            recipes.push(recipe);
+            Ok(())
+        } else if inner_dir.is_dir() {
+            for entry in fs::read_dir(&inner_dir)? {
+                let entry = entry?; // read_dir returns result
+                let path = entry.path();
+                Self::load_recipes_from_directory_inner(path, recipes)?;
+            }
+            Ok(())
+        } else {
+            // not a directory or file (maybe a symlink or something?
+            Ok(())
+        }
+    }
+
+    pub fn parse_recipe(recipe_file: path::PathBuf) -> Result<Recipe, io::Error> {
+        let contents = fs::read_to_string(recipe_file)?;
+        let output: Result<filetypes::Recipe, toml::de::Error> = toml::from_str(contents.as_str());
+        output
+            .map(Into::into)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format! {"Inner TOML parsing error: {}", err}))
     }
 
     /// [`compile_tag_list`] scans through all tags on all recipes, compiles them into the main app
