@@ -167,9 +167,7 @@ impl Recipe {
     #[must_use]
     pub fn all_equipment_owned(&self) -> bool {
         // iterate through all equipment in all steps, short circuiting if e.is_owned is false
-        self.steps
-            .iter()
-            .all(|s| s.equipment.iter().all(|e| e.is_owned))
+        self.steps.iter().all(|s| s.equipment.iter().all(|e| e.is_owned))
     }
 }
 
@@ -190,10 +188,7 @@ pub struct RecipeState {
 
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/
 /// helper function for `step_time_totals` to allow adding an option and an option togther
-fn add(
-    lhs: &mut Option<ucum::Second<f64>>,
-    rhs: Option<ucum::Second<f64>>,
-) -> Option<ucum::Second<f64>> {
+fn add(lhs: &mut Option<ucum::Second<f64>>, rhs: Option<ucum::Second<f64>>) -> Option<ucum::Second<f64>> {
     #[allow(clippy::arithmetic_side_effects)] //TODO: change this to saturating
     match (lhs, rhs) {
         (Some(l), Some(r)) => Some(*l + r),

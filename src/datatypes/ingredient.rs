@@ -99,32 +99,15 @@ impl StatefulWidgetRef for Ingredient {
 
         // last constraint for step/equipment block
         ingredient_edit_constraints.push(Constraint::Length(3));
-        let edit_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(ingredient_edit_constraints)
-            .split(area);
+        let edit_layout = Layout::default().direction(Direction::Vertical).constraints(ingredient_edit_constraints).split(area);
 
-        let name_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Name");
-        let name_paragraph = Paragraph::new(Text::styled(
-            self.name.clone(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(name_block);
+        let name_block = Block::default().borders(Borders::ALL).style(Style::default()).title("Name");
+        let name_paragraph = Paragraph::new(Text::styled(self.name.clone(), Style::default().fg(Color::Red))).block(name_block);
         //TODO: update state here
         name_paragraph.render(edit_layout[0], buf);
 
-        let description_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("description");
-        let description_paragraph = Paragraph::new(Text::styled(
-            self.description.clone().unwrap_or_default(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(description_block);
+        let description_block = Block::default().borders(Borders::ALL).style(Style::default()).title("description");
+        let description_paragraph = Paragraph::new(Text::styled(self.description.clone().unwrap_or_default(), Style::default().fg(Color::Red))).block(description_block);
         //TODO: update state here
         description_paragraph.render(edit_layout[1], buf);
 
@@ -151,14 +134,10 @@ impl StatefulWidgetRef for Ingredient {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .areas(*edit_layout.last().expect("No edit areas defined"));
 
-        let step_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Step Number");
+        let step_block = Block::default().borders(Borders::ALL).style(Style::default()).title("Step Number");
 
         //FIXME: figure out how to display step_id or something else
-        let step_id = Paragraph::new(Text::styled("fixme", Style::default().fg(Color::Green)))
-            .block(step_block);
+        let step_id = Paragraph::new(Text::styled("fixme", Style::default().fg(Color::Green))).block(step_block);
         step_id.render(left_info_area, buf);
         // render an empty block with borders on the right
         Widget::render(Block::default().borders(Borders::ALL), right_info_area, buf);
@@ -174,9 +153,7 @@ impl Add for UnitType {
             (Self::Quantity(l), Self::Quantity(r)) => Self::Quantity(l + r),
             (Self::Mass(l), Self::Mass(r)) => Self::Mass(l + r),
             (Self::Volume(l), Self::Volume(r)) => Self::Volume(l + r),
-            _ => panic!(
-                "Attempted to add different unit types together. This should not have happened"
-            ),
+            _ => panic!("Attempted to add different unit types together. This should not have happened"),
         }
     }
 }

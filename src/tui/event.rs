@@ -47,9 +47,7 @@ impl EventHandler {
             thread::spawn(move || {
                 let mut last_tick = Instant::now();
                 loop {
-                    let timeout = tick_rate
-                        .checked_sub(last_tick.elapsed())
-                        .unwrap_or(tick_rate);
+                    let timeout = tick_rate.checked_sub(last_tick.elapsed()).unwrap_or(tick_rate);
 
                     if event::poll(timeout).expect("failed to poll new events") {
                         #[allow(clippy::match_same_arms)] //TODO: remove this eventually
@@ -70,11 +68,7 @@ impl EventHandler {
                 }
             })
         };
-        Self {
-            sender,
-            receiver,
-            handler,
-        }
+        Self { sender, receiver, handler }
     }
     /// Receive the next event from the handler thread.
     ///

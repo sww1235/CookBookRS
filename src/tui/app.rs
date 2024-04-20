@@ -11,10 +11,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{
-        Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget,
-        StatefulWidgetRef, Widget,
-    },
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget},
 };
 
 /// main application struct
@@ -148,11 +145,7 @@ impl StatefulWidgetRef for App {
         // use [`Layout.areas()'] rather than [`Layout.split()`] for better API
         let [recipe_list_area, main_area, tag_list_area] = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![
-                Constraint::Percentage(25),
-                Constraint::Percentage(50),
-                Constraint::Percentage(25),
-            ])
+            .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(50), Constraint::Percentage(25)])
             .areas(area);
 
         // This should split the middle box into 3 areas, one on the bottom that will hold the menu and
@@ -160,53 +153,33 @@ impl StatefulWidgetRef for App {
         // units tall, and the middle will take up the remaining space
         let [title_area, recipe_area, menu_area] = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Min(5),
-                Constraint::Percentage(100),
-                Constraint::Min(3),
-            ])
+            .constraints(vec![Constraint::Min(5), Constraint::Percentage(100), Constraint::Min(3)])
             .areas(main_area);
 
         //TODO: fix this styling
         //Block is a box around the title
-        let title_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default());
+        let title_block = Block::default().borders(Borders::ALL).style(Style::default());
 
         let mut recipe_list_items = Vec::<ListItem>::new();
 
         if recipe_list_items.is_empty() {
-            recipe_list_items.push(ListItem::new(Line::from(Span::styled(
-                "No Recipes",
-                Style::default().fg(Color::Red),
-            ))));
+            recipe_list_items.push(ListItem::new(Line::from(Span::styled("No Recipes", Style::default().fg(Color::Red)))));
         } else {
             for recipe in &self.recipes {
-                recipe_list_items.push(ListItem::new(Line::from(Span::styled(
-                    recipe.name.clone(),
-                    Style::default().fg(Color::Green),
-                ))));
+                recipe_list_items.push(ListItem::new(Line::from(Span::styled(recipe.name.clone(), Style::default().fg(Color::Green)))));
             }
         }
 
-        let recipe_list = List::new(recipe_list_items)
-            .block(Block::default().borders(Borders::ALL).title("Recipe List"));
+        let recipe_list = List::new(recipe_list_items).block(Block::default().borders(Borders::ALL).title("Recipe List"));
         state.recipe_list_len = recipe_list.len();
 
-        StatefulWidget::render(
-            recipe_list,
-            recipe_list_area,
-            buf,
-            &mut state.recipe_list_state,
-        );
+        StatefulWidget::render(recipe_list, recipe_list_area, buf, &mut state.recipe_list_state);
 
         let mut current_nav_text = Vec::new();
 
         match self.current_screen {
             CurrentScreen::RecipeBrowser => {
-                let title =
-                    Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue)))
-                        .block(title_block);
+                let title = Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue))).block(title_block);
 
                 title.render(title_area, buf);
 
@@ -214,21 +187,14 @@ impl StatefulWidgetRef for App {
                 //the tag list of the edited recipe
                 let mut tag_list_items = Vec::<ListItem>::new();
                 if self.tags.is_empty() {
-                    tag_list_items.push(ListItem::new(Line::from(Span::styled(
-                        "No Tags",
-                        Style::default().fg(Color::Red),
-                    ))));
+                    tag_list_items.push(ListItem::new(Line::from(Span::styled("No Tags", Style::default().fg(Color::Red)))));
                 } else {
                     for tag in &self.tags {
-                        tag_list_items.push(ListItem::new(Line::from(Span::styled(
-                            tag,
-                            Style::default().fg(Color::White),
-                        ))));
+                        tag_list_items.push(ListItem::new(Line::from(Span::styled(tag, Style::default().fg(Color::White)))));
                     }
                 }
 
-                let tag_list = List::new(tag_list_items)
-                    .block(Block::default().borders(Borders::ALL).title("Tag List"));
+                let tag_list = List::new(tag_list_items).block(Block::default().borders(Borders::ALL).title("Tag List"));
                 state.tag_list_len = tag_list.len();
                 StatefulWidget::render(tag_list, tag_list_area, buf, &mut state.tag_list_state);
                 //TODO: render recipe
@@ -236,85 +202,42 @@ impl StatefulWidgetRef for App {
                 //TODO: store this text, and the keyboard shortcuts somewhere centralized
                 current_nav_text.push(Span::styled("Browsing", Style::default().fg(Color::Green)));
                 current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
-                current_nav_text.push(Span::styled(
-                    "q:quit, n:new, \u{2195}: scroll",
-                    Style::default().fg(Color::White),
-                ));
+                current_nav_text.push(Span::styled("q:quit, n:new, \u{2195}: scroll", Style::default().fg(Color::White)));
             }
             CurrentScreen::RecipeViewer => {
                 // only show tags associated with recipe
                 //TODO: implement
                 current_nav_text.push(Span::styled("Viewing", Style::default().fg(Color::Blue)));
                 current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
-                current_nav_text.push(Span::styled(
-                    "ESC: return to browsing",
-                    Style::default().fg(Color::White),
-                ));
+                current_nav_text.push(Span::styled("ESC: return to browsing", Style::default().fg(Color::White)));
             }
             CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor => {
                 #[allow(clippy::expect_used)] //TODO: confirm this
-                let recipe = &self
-                    .edit_recipe
-                    .as_ref()
-                    .expect("No recipe currently being edited while in edit screen");
+                let recipe = &self.edit_recipe.as_ref().expect("No recipe currently being edited while in edit screen");
 
                 if recipe.name.is_empty() && self.current_screen == CurrentScreen::RecipeCreator {
-                    let title = Paragraph::new(Text::styled(
-                        "New Recipe",
-                        Style::default().fg(Color::Green),
-                    ))
-                    .block(title_block);
+                    let title = Paragraph::new(Text::styled("New Recipe", Style::default().fg(Color::Green))).block(title_block);
                     title.render(title_area, buf);
                 } else {
-                    let title = Paragraph::new(Text::styled(
-                        recipe.name.clone(),
-                        Style::default().fg(Color::Blue),
-                    ))
-                    .block(title_block);
+                    let title = Paragraph::new(Text::styled(recipe.name.clone(), Style::default().fg(Color::Blue))).block(title_block);
                     title.render(title_area, buf);
                 }
 
                 match state.editing_state {
-                    EditingState::Recipe => StatefulWidgetRef::render_ref(
-                        *recipe,
-                        recipe_area,
-                        buf,
-                        &mut state.recipe_state,
-                    ),
+                    EditingState::Recipe => StatefulWidgetRef::render_ref(*recipe, recipe_area, buf, &mut state.recipe_state),
                     EditingState::Step(step_num) => {
-                        StatefulWidgetRef::render_ref(
-                            &recipe.steps[step_num],
-                            recipe_area,
-                            buf,
-                            &mut state.step_state,
-                        );
+                        StatefulWidgetRef::render_ref(&recipe.steps[step_num], recipe_area, buf, &mut state.step_state);
                     }
                     EditingState::Ingredient(step_num, ingredient_num) => {
-                        StatefulWidgetRef::render_ref(
-                            &recipe.steps[step_num].ingredients[ingredient_num],
-                            recipe_area,
-                            buf,
-                            &mut state.ingredient_state,
-                        );
+                        StatefulWidgetRef::render_ref(&recipe.steps[step_num].ingredients[ingredient_num], recipe_area, buf, &mut state.ingredient_state);
                     }
                     EditingState::Equipment(step_num, equipment_num) => {
-                        StatefulWidgetRef::render_ref(
-                            &recipe.steps[step_num].equipment[equipment_num],
-                            recipe_area,
-                            buf,
-                            &mut state.equipment_state,
-                        );
+                        StatefulWidgetRef::render_ref(&recipe.steps[step_num].equipment[equipment_num], recipe_area, buf, &mut state.equipment_state);
                     }
                     EditingState::Idle => {
                         if self.current_screen == CurrentScreen::RecipeCreator {
-                            let instruction_block = Block::default()
-                                .borders(Borders::ALL)
-                                .style(Style::default());
-                            let instructions = Paragraph::new(Text::styled(
-                                "Press e to start editing new recipe",
-                                Style::default().fg(Color::Red),
-                            ))
-                            .block(instruction_block);
+                            let instruction_block = Block::default().borders(Borders::ALL).style(Style::default());
+                            let instructions = Paragraph::new(Text::styled("Press e to start editing new recipe", Style::default().fg(Color::Red))).block(instruction_block);
                             instructions.render(recipe_area, buf);
                         } else {
                             // if existing recipe, display same fields as editingstate::recipe, but don't
@@ -328,14 +251,10 @@ impl StatefulWidgetRef for App {
                 // TODO: only show tags associated with recipe
 
                 if self.current_screen == CurrentScreen::RecipeCreator {
-                    current_nav_text.push(Span::styled(
-                        "Creating",
-                        Style::default().fg(Color::Magenta),
-                    ));
+                    current_nav_text.push(Span::styled("Creating", Style::default().fg(Color::Magenta)));
                 }
                 if self.current_screen == CurrentScreen::RecipeEditor {
-                    current_nav_text
-                        .push(Span::styled("Editing", Style::default().fg(Color::Yellow)));
+                    current_nav_text.push(Span::styled("Editing", Style::default().fg(Color::Yellow)));
                 }
                 current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
                 let mut keybinds = String::new();
@@ -352,8 +271,7 @@ impl StatefulWidgetRef for App {
                 current_nav_text.push(Span::styled(keybinds, Style::default().fg(Color::White)));
             }
         }
-        let footer = Paragraph::new(Line::from(current_nav_text))
-            .block(Block::default().borders(Borders::ALL));
+        let footer = Paragraph::new(Line::from(current_nav_text)).block(Block::default().borders(Borders::ALL));
         footer.render(menu_area, buf);
     }
 }

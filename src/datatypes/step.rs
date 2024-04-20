@@ -94,60 +94,29 @@ impl StatefulWidgetRef for Step {
         }
         // last constraint for step/equipment block
         step_edit_constraints.push(Constraint::Length(3));
-        let edit_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(step_edit_constraints)
-            .split(area);
+        let edit_layout = Layout::default().direction(Direction::Vertical).constraints(step_edit_constraints).split(area);
 
-        let time_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Time Needed");
+        let time_block = Block::default().borders(Borders::ALL).style(Style::default()).title("Time Needed");
         //TODO: fix this input, and allow for proper unit/numeric entry and parsing
-        let time_paragraph = Paragraph::new(Text::styled(
-            self.time_needed.unwrap_or_default().to_string(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(time_block);
+        let time_paragraph = Paragraph::new(Text::styled(self.time_needed.unwrap_or_default().to_string(), Style::default().fg(Color::Red))).block(time_block);
         //TODO: update state here
         time_paragraph.render(edit_layout[0], buf);
 
-        let temp_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title(format!("{} temp", self.step_type));
+        let temp_block = Block::default().borders(Borders::ALL).style(Style::default()).title(format!("{} temp", self.step_type));
         //TODO: fix this input, and allow for proper unit/numeric entry and parsing
-        let temp_paragraph = Paragraph::new(Text::styled(
-            self.temperature.unwrap_or_default().to_string(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(temp_block);
+        let temp_paragraph = Paragraph::new(Text::styled(self.temperature.unwrap_or_default().to_string(), Style::default().fg(Color::Red))).block(temp_block);
         //TODO: update state here
         temp_paragraph.render(edit_layout[1], buf);
 
         //time_needed, temperature, instructions, step_type
-        let instruction_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Instructions");
-        let instruction_paragraph = Paragraph::new(Text::styled(
-            self.instructions.clone(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(instruction_block);
+        let instruction_block = Block::default().borders(Borders::ALL).style(Style::default()).title("Instructions");
+        let instruction_paragraph = Paragraph::new(Text::styled(self.instructions.clone(), Style::default().fg(Color::Red))).block(instruction_block);
         //TODO: update state here
         instruction_paragraph.render(edit_layout[2], buf);
 
-        let step_type_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Step Type");
+        let step_type_block = Block::default().borders(Borders::ALL).style(Style::default()).title("Step Type");
         //TODO: fix this input, and allow for proper enum parsing/entry
-        let step_type_paragraph = Paragraph::new(Text::styled(
-            self.step_type.to_string(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(step_type_block);
+        let step_type_paragraph = Paragraph::new(Text::styled(self.step_type.to_string(), Style::default().fg(Color::Red))).block(step_type_block);
         //TODO: update state here
         step_type_paragraph.render(edit_layout[3], buf);
 
@@ -159,28 +128,14 @@ impl StatefulWidgetRef for Step {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .areas(*edit_layout.last().expect("No edit areas defined"));
 
-        let equipment_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Equipment Count for Step"); //TODO: add step number?
+        let equipment_block = Block::default().borders(Borders::ALL).style(Style::default()).title("Equipment Count for Step"); //TODO: add step number?
 
-        let equipment_count = Paragraph::new(Text::styled(
-            self.equipment.len().to_string(),
-            Style::default().fg(Color::Green),
-        ))
-        .block(equipment_block);
+        let equipment_count = Paragraph::new(Text::styled(self.equipment.len().to_string(), Style::default().fg(Color::Green))).block(equipment_block);
         equipment_count.render(left_info_area, buf);
 
-        let ingredient_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Ingredient Count for Step"); //TODO: add step number?
+        let ingredient_block = Block::default().borders(Borders::ALL).style(Style::default()).title("Ingredient Count for Step"); //TODO: add step number?
 
-        let ingredient_count = Paragraph::new(Text::styled(
-            self.ingredients.len().to_string(),
-            Style::default().fg(Color::Green),
-        ))
-        .block(ingredient_block);
+        let ingredient_count = Paragraph::new(Text::styled(self.ingredients.len().to_string(), Style::default().fg(Color::Green))).block(ingredient_block);
 
         ingredient_count.render(right_info_area, buf);
     }
