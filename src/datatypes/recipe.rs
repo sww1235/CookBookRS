@@ -11,40 +11,58 @@ use std::num::Wrapping;
 use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
-use ratatui::{
-    buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::Text,
-    widgets::{Block, Borders, Paragraph, StatefulWidgetRef, Widget, WidgetRef},
-};
+use ratatui::widgets::{Widget, WidgetRef};
 
 /// `Recipe` represents one recipe from start to finish
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef)]
+#[cookbook(state_struct = "RecipeState")]
 pub struct Recipe {
     /// database ID
+    #[cookbook(skip)]
     pub id: u64,
     /// short name of recipe
+    #[cookbook(display_order = 0)]
+    #[cookbook(constraint_type = "Length")]
+    #[cookbook(constraint_value = 3)]
     pub name: String,
     /// optional description
+    #[cookbook(display_order = 1)]
+    #[cookbook(constraint_type = "Min")]
+    #[cookbook(constraint_value = 7)]
     pub description: Option<String>,
     //TODO: maybe make comments a bit more formal, want to be able to record when recipe was last
     //made
     /// recipe comments
+    #[cookbook(display_order = 2)]
+    #[cookbook(constraint_type = "Min")]
+    #[cookbook(constraint_value = 7)]
     pub comments: Option<String>,
     /// recipe source
+    #[cookbook(display_order = 3)]
+    #[cookbook(constraint_type = "Length")]
+    #[cookbook(constraint_value = 3)]
     pub source: String,
     /// recipe author
+    #[cookbook(display_order = 4)]
+    #[cookbook(constraint_type = "Length")]
+    #[cookbook(constraint_value = 3)]
     pub author: String,
     /// amount made
+    #[cookbook(display_order = 5)]
+    #[cookbook(constraint_type = "Length")]
+    #[cookbook(constraint_value = 3)]
     pub amount_made: AmountMade,
     /// list of steps in recipe
+    #[cookbook(left_field)]
+    #[cookbook(field_title = "Number Of Steps")]
     pub steps: Vec<Step>,
     /// list of tags on recipe
+    #[cookbook(skip)]
     pub tags: Vec<Tag>,
     //TODO: versions
     /// if the recipe has unsaved changes or not
     //TODO: figure out a save system
+    #[cookbook(skip)]
     pub saved: bool,
 }
 
@@ -164,173 +182,11 @@ pub struct RecipeState {
 }
 
 // display version of recipe
-impl WidgetRef for Recipe {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        //TODO: implement
-    }
-}
-// edit version of recipe
-#[allow(
-    non_upper_case_globals,
-    clippy::missing_docs_in_private_items,
-    clippy::items_after_statements
-)] //TODO: remove after derive implementation
-impl StatefulWidgetRef for Recipe {
-    type State = RecipeState;
-    fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        // Use split here, since we don't care about naming the fields specifically
-
-        //TODO: fix this ratio calc to not squeeze fields on display. Implement scroll
-        //function if too many fields
-        //
-        //Want
-        //- comment field to be at least 5 lines high plus borders
-        //- description field to be at least 5 lines high plus borders
-        //- want other fields to be 1 line high plus borders
-        //- need 3 rows for space for blocks at bottom
-
-        let mut recipe_edit_constraints = Vec::new();
-
-        // name, description, comments, source, author, amount_made
-        const num_fields: usize = 6;
-        const num_special_fields: usize = 2;
-        // subtract 2 for comment/description fields
-        // multiply by 3 for other field total height
-        // add 7 for comment field
-        // add 7 for description field
-        // add 3 for bottom blocks
-        // add 2 for border? //TODO: fix borders
-        const required_field_height: usize =
-            ((num_fields - num_special_fields) * 3) + 7 + 7 + 3 + 2;
-        if usize::from(area.height) >= required_field_height {
-            // recipe_area.height is greater than minimum required
-
-            // need 2 for border and 1 for text.
-            // name
-            recipe_edit_constraints.push(Constraint::Length(3));
-            // description
-            recipe_edit_constraints.push(Constraint::Min(7));
-            //for now, just a bigger area.
-            //TODO: special case this for additional comment functionality
-            // comments
-            recipe_edit_constraints.push(Constraint::Min(7));
-            // source
-            recipe_edit_constraints.push(Constraint::Length(3));
-            // author
-            recipe_edit_constraints.push(Constraint::Length(3));
-            // amount_made
-            recipe_edit_constraints.push(Constraint::Length(3));
-        } else {
-            //TODO: implement scrolling
-            todo!()
-        }
-        // last constraint for step/equipment block
-        recipe_edit_constraints.push(Constraint::Length(3));
-        let edit_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(recipe_edit_constraints)
-            .split(area);
-
-        let name_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Name");
-        let mut name_style = Style::default();
-
-        //TODO: repeat this for other fields
-        if state.selected_field.0 == 0 {
-            // this is edit style. //TODO: standardize this
-            name_style = name_style.fg(Color::Red);
-        }
-        let name_paragraph =
-            Paragraph::new(Text::styled(self.name.clone(), name_style)).block(name_block);
-        //TODO: update state here
-        name_paragraph.render(edit_layout[0], buf);
-
-        let description_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("description");
-        let description_paragraph = Paragraph::new(Text::styled(
-            self.description.clone().unwrap_or_default(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(description_block);
-        //TODO: update state here
-        description_paragraph.render(edit_layout[1], buf);
-
-        let comment_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("comments");
-        let comment_paragraph = Paragraph::new(Text::styled(
-            //TODO: remove this clone in the future
-            self.comments.clone().unwrap_or_default(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(comment_block);
-        //TODO: update state here
-        comment_paragraph.render(edit_layout[2], buf);
-
-        let source_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("source");
-        let source_paragraph = Paragraph::new(Text::styled(
-            self.source.clone(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(source_block);
-        //TODO: update state here
-        source_paragraph.render(edit_layout[3], buf);
-
-        let author_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("source");
-        let author_paragraph = Paragraph::new(Text::styled(
-            self.author.clone(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(author_block);
-        //TODO: update state here
-        author_paragraph.render(edit_layout[4], buf);
-
-        let amount_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("amount");
-        let amount_paragraph = Paragraph::new(Text::styled(
-            self.amount_made.to_string(),
-            Style::default().fg(Color::Red),
-        ))
-        .block(amount_block);
-        //TODO: update state here
-        amount_paragraph.render(edit_layout[5], buf);
-
-        // recipe_edit_layout should always have something in it.
-        // This is a valid place to panic
-        #[allow(clippy::expect_used)]
-        let [left_info_area, right_info_area] = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .areas(*edit_layout.last().expect("No edit areas defined"));
-
-        let step_block = Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default())
-            .title("Number of Steps");
-
-        let step_count = Paragraph::new(Text::styled(
-            self.steps.len().to_string(),
-            Style::default().fg(Color::Green),
-        ))
-        .block(step_block);
-        step_count.render(left_info_area, buf);
-        // render an empty block with borders on the right
-        Widget::render(Block::default().borders(Borders::ALL), right_info_area, buf);
-    }
-}
+//impl WidgetRef for Recipe {
+//    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+//        //TODO: implement
+//    }
+//}
 
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/
 /// helper function for `step_time_totals` to allow adding an option and an option togther

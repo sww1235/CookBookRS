@@ -3,7 +3,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token};
+use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token, Type};
 
 use std::collections::BTreeMap;
 
@@ -101,28 +101,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
         let mut bottom_field = false;
 
         if let Some(field_name) = f.ident.clone() {
-            // checking these right away before setting them in the next iteration of the loop
-            if left_field.is_some() {
-                return Err(syn::Error::new_spanned(
-                    f,
-                    "The `cookbooK(left_field)` attribute was specified more than once. It must only be specified on one field",
-                ));
-            }
-            if right_field.is_some() {
-                return Err(syn::Error::new_spanned(
-                    f,
-                    "The `cookbook(right_field)` attribute was specified more than once. It must only be specified on one field",
-                ));
-            }
             let block_name = format_ident!("{}_block", field_name);
             let paragraph_name = format_ident!("{}_paragraph", field_name);
             let style_name = format_ident!("{}_style", field_name);
-            let field_title = format_ident!("{}_style", to_ascii_titlecase(stringify!(field_name)));
-            let mut display_order: Option<u16> = None;
+            let field_title = to_ascii_titlecase(field_name.to_string().as_str());
+            let mut display_order: Option<usize> = None;
             let mut constraint_type: Option<String> = None;
             let mut constraint_value: Option<u16> = None;
             //this is the default widget for displaying text
-            let mut widget_type = "Paragraph".to_string();
+            let mut widget_type = format_ident!("Paragraph");
 
             // handle remaining attributes
             for attr in &f.attrs {
@@ -151,7 +138,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                                             return Err(inner_meta.error("The `cookbook(display_order)` attribute must be set equal to an integer"));
                                         };
 
-                                        display_order = Some(lit_int.base10_parse::<u16>()?);
+                                        display_order = Some(lit_int.base10_parse::<usize>()?);
                                         Ok(())
                                     }
                                     Err(_) => Err(inner_meta.error("The `cookbook(display_order)` attribute must be called as a NameValue attribute type")),
@@ -230,7 +217,7 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                                             return Err(inner_meta.error("The `cookbook(display_widget)` attribute must be set equal to an string"));
                                         };
                                         //TODO: perform validation here
-                                        widget_type = lit_str.value();
+                                        widget_type = format_ident!("{}", lit_str.value());
                                         Ok(())
                                     }
 
@@ -241,6 +228,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                                 // associated with it
                                 // checking to make sure parsing the value errors.
                                 // TODO: see if this same approach works for Meta::List
+                                //
+                                // check if left_field is already set. Have to check here, rather
+                                // at the beginning as it interferes with other attribute checks
+                                if left_field.is_some() {
+                                    return Err(syn::Error::new_spanned(
+                                        f,
+                                        "The `cookbooK(left_field)` attribute was specified more than once. It must only be specified on one field",
+                                    ));
+                                }
                                 if inner_meta.value().is_err() {
                                     left_field = Some(field_name.clone());
 
@@ -256,6 +252,15 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                                 // associated with it
                                 // checking to make sure parsing the value errors.
                                 // TODO: see if this same approach works for Meta::List
+                                //
+                                // check if left_field is already set. Have to check here, rather
+                                // at the beginning as it interferes with other attribute checks
+                                if right_field.is_some() {
+                                    return Err(syn::Error::new_spanned(
+                                        f,
+                                        "The `cookbook(right_field)` attribute was specified more than once. It must only be specified on one field",
+                                    ));
+                                }
                                 if inner_meta.value().is_err() {
                                     right_field = Some(field_name.clone());
                                     bottom_field = true;
@@ -315,68 +320,83 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
             if constraint_value.is_none() && !bottom_field && !skip {
                 return Err(syn::Error::new_spanned(f, "`the `cookbook(constraint_value)` attribute is not specified"));
             }
+            if !bottom_field {
+                // unwrap_or_default() here is ok as these are all checked for None above here
+                total_field_height += constraint_value.unwrap_or_default();
+                let mut funct_args = syn::punctuated::Punctuated::new();
+                let constraint_value_inner = constraint_value.unwrap_or_default();
+                funct_args.push(syn::Type::Verbatim(quote!(#constraint_value_inner)));
 
-            // unwrap_or_default() here is ok as these are all checked for None above here
-            total_field_height += constraint_value.unwrap_or_default();
-            let mut funct_args = syn::punctuated::Punctuated::new();
-            let constraint_value_inner = constraint_value.unwrap_or_default();
-            funct_args.push(syn::Type::Verbatim(quote!(#constraint_value_inner)));
+                let mut constraint_path = syn::punctuated::Punctuated::new();
+                constraint_path.push(syn::PathSegment {
+                    ident: format_ident!("ratatui"),
+                    arguments: syn::PathArguments::None,
+                });
+                constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+                constraint_path.push(syn::PathSegment {
+                    ident: format_ident!("layout"),
+                    arguments: syn::PathArguments::None,
+                });
+                constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+                constraint_path.push(syn::PathSegment {
+                    ident: format_ident!("Constraint"),
+                    arguments: syn::PathArguments::None,
+                });
+                constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
+                constraint_path.push(syn::PathSegment {
+                    // this was where the empty ident was coming from, on bottom_field fields
+                    ident: format_ident!("{}", constraint_type.unwrap_or_default()),
 
-            let mut constraint_path = syn::punctuated::Punctuated::new();
-            constraint_path.push(syn::PathSegment {
-                ident: format_ident!("ratatui"),
-                arguments: syn::PathArguments::None,
-            });
-            constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
-            constraint_path.push(syn::PathSegment {
-                ident: format_ident!("layout"),
-                arguments: syn::PathArguments::None,
-            });
-            constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
-            constraint_path.push(syn::PathSegment {
-                ident: format_ident!("Constraint"),
-                arguments: syn::PathArguments::None,
-            });
-            constraint_path.push_punct(Token![::](proc_macro2::Span::mixed_site()));
-            constraint_path.push(syn::PathSegment {
-                ident: format_ident!("{}", constraint_type.unwrap_or_default()),
+                    arguments: syn::PathArguments::Parenthesized(syn::ParenthesizedGenericArguments {
+                        paren_token: syn::token::Paren::default(),
+                        inputs: funct_args,
+                        output: syn::ReturnType::Default,
+                    }),
+                });
+                let constraint = syn::Path {
+                    leading_colon: None,
+                    segments: constraint_path,
+                };
 
-                arguments: syn::PathArguments::Parenthesized(syn::ParenthesizedGenericArguments {
-                    paren_token: syn::token::Paren::default(),
-                    inputs: funct_args,
-                    output: syn::ReturnType::Default,
-                }),
-            });
-            let constraint = syn::Path {
-                leading_colon: None,
-                segments: constraint_path,
-            };
+                constraints_code.insert(
+                    display_order,
+                    quote! {
+                       constraints.push(#constraint);
+                    },
+                );
 
-            constraints_code.insert(
-                display_order,
-                quote! {
-                   constraints.push(#constraint);
-                },
-            );
-
-            field_display_code.insert(
-                display_order,
-                quote! {
-                    let #block_name = ratatui::widgets::block::Block::default()
-                       .borders(ratatui::widgets::Borders::ALL)
-                       .style(ratatui::style::Style::default())
-                       .title(#field_title);
-                    let mut #style_name = ratatui::style::Style::default();
-                    // field is selected
-                    if state.selected_field.0 == #display_order {
-                        #style_name = #style_name.fg(ratatui::style::Color::Red);
+                let paragraph_name_code = if is_option(&f.ty) {
+                    quote! {
+                        let field_value = self.#field_name.to_owned().unwrap_or_default().to_string();
+                        let #paragraph_name = ratatui::widgets::#widget_type::new(
+                            ratatui::text::Text::styled(
+                                field_value, #style_name)).block(#block_name);
                     }
-                    let #paragraph_name = ratatui::widgets::#widget_type::new(
-                        ratatui::text::Text::styled(
-                            self.#field_name.clone(), #style_name)).block(#block_name);
-                    #paragraph_name.render(constraints[#display_order], buf);
-                },
-            );
+                } else {
+                    quote! {
+                        let field_value = self.#field_name.to_owned().to_string();
+                        let #paragraph_name = ratatui::widgets::#widget_type::new(
+                            ratatui::text::Text::styled(
+                                field_value, #style_name)).block(#block_name);
+                    }
+                };
+                field_display_code.insert(
+                    display_order,
+                    quote! {
+                        let #block_name = ratatui::widgets::block::Block::default()
+                           .borders(ratatui::widgets::Borders::ALL)
+                           .style(ratatui::style::Style::default())
+                           .title(#field_title);
+                        let mut #style_name = ratatui::style::Style::default();
+                        // field is selected
+                        if state.selected_field.0 == #display_order {
+                            #style_name = #style_name.fg(ratatui::style::Color::Red);
+                        }
+                        #paragraph_name_code
+                        #paragraph_name.render(layout[#display_order], buf);
+                    },
+                );
+            }
         } else {
             return Err(syn::Error::new_spanned(f, "fieldname is None"));
         }
@@ -390,32 +410,31 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
                 ));
             }
+            quote! {
+               let left_block = ratatui::widgets::block::Block::default()
+                    .borders(ratatui::widgets::Borders::ALL)
+                    .style(ratatui::style::Style::default())
+                    .title(#lower_field_title);
+
+                let left_paragraph = ratatui::widgets::Paragraph::new(
+                    ratatui::text::Text::styled(
+                        self.#field_name.len().to_string(),
+                        ratatui::style::Style::default().fg(ratatui::style::Color::Green),
+                ))
+                .block(left_block);
+                left_paragraph.render(left_info_area, buf);
+            }
         } else {
             return Err(syn::Error::new_spanned(
                 left_field,
                 "`field_title` attribute needs to be specified on field with `left_field` attribute",
             ));
         }
-        quote! {
-           let left_block = ratatui::widgets::block::Block::default()
-                .borders(ratatui::widgets::Borders::ALL)
-                .style(ratatui::style::Style::default())
-                .title(stringify!(lower_field_title));
-
-            let left_paragraph = ratatui::widgets::Paragraph::new(
-                ratatui::text::Text::styled(
-                    self.#field_name.len().to_string(),
-                    ratatui::style::Style::default().fg(ratatui::style::Color::Green),
-            ))
-            .block(left_block);
-            left_paragraph.render(left_info_area, buf);
-        }
     } else {
         quote! {
             // render an empty block with borders on the left
-            ratatui::widgets::Widget::render(
-                ratatui::widgets::block::Block::default().borders(
-                    ratatui::widgets::Borders::ALL), left_info_area, buf);
+            let left_empty_block = ratatui::widgets::block::Block::default().borders(ratatui::widgets::Borders::ALL);
+            left_empty_block.render(left_info_area, buf);
         }
     };
     let right_field_content = if let Some(field_name) = &right_field {
@@ -426,33 +445,32 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
                     "`field_title` attribute specified on field with `left_field` attribute cannot be empty",
                 ));
             }
+            quote! {
+               let right_block = ratatui::widgets::block::Block::default()
+                    .borders(ratatui::widgets::Borders::ALL)
+                    .style(ratatui::style::Style::default())
+                    .title(#lower_field_title);
+
+                let right_paragraph = ratatui::widgets::Paragraph::new(
+                    ratatui::text::Text::styled(
+                        self.#field_name.len().to_string(),
+                        ratatui::style::Style::default().fg(
+                            ratatui::style::Color::Green),
+                ))
+                .block(right_block);
+                right_paragraph.render(right_info_area, buf);
+            }
         } else {
             return Err(syn::Error::new_spanned(
                 right_field,
                 "`field_title` attribute needs to be specified on field with `left_field` attribute",
             ));
         }
-        quote! {
-           let right_block = ratatui::widgets::block::Block::default()
-                .borders(ratatui::widgets::Borders::ALL)
-                .style(ratatui::style::Style::default())
-                .title(stringify!(lower_field_title));
-
-            let right_paragraph = ratatui::widgets::Paragraph::new(
-                ratatui::text::Text::styled(
-                    self.#field_name.len().to_string(),
-                    ratatui::style::Style::default().fg(
-                        ratatui::style::Color::Green),
-            ))
-            .block(right_block);
-            right_paragraph.render(right_info_area, buf);
-        }
     } else {
         quote! {
             // render an empty block with borders on the right
-            ratatui::widgets::Widget::render(
-                ratatui::widgets::block::Block::default().borders(
-                    ratatui::widgets::Borders::ALL), right_info_area, buf);
+            let right_empty_block = ratatui::widgets::block::Block::default().borders(ratatui::widgets::Borders::ALL);
+            right_empty_block.render(right_info_area, buf);
         }
     };
     // add 2 for borders and 3 for bottom blocks
@@ -460,11 +478,12 @@ fn expand_stateful_widget(input: DeriveInput) -> syn::Result<TokenStream2> {
     let constraint_code_values: Vec<TokenStream2> = constraints_code.values().cloned().collect();
 
     let field_display_code_values: Vec<TokenStream2> = field_display_code.values().cloned().collect();
+    let state_struct_ident = format_ident!("{}", state_struct);
     Ok(
         quote! {
             #[automatically_derived]
             impl ratatui::widgets::StatefulWidgetRef for #st_name {
-                type State = #state_struct;
+                type State = #state_struct_ident;
                 fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer, state: &mut Self::State){
 
                     #len_check_fn_code
@@ -526,4 +545,15 @@ fn to_ascii_titlecase(s: &str) -> String {
         r.make_ascii_uppercase();
     }
     out
+}
+//https://stackoverflow.com/a/56264023/3342767
+/// `is_option` checks if a [`syn::Type`] is `Option<T>` rather than `T`. It checks for the
+/// following variants of Option. It is not exhaustive and may fail with unusual `Option`s or
+/// methods of specifiying them. Stick to the standards and it will work.
+fn is_option(ty: &syn::Type) -> bool {
+    match ty {
+        // type_path.qself is Some() if this is a self path which we do not want
+        Type::Path(ref type_path) if type_path.qself.is_none() => type_path.path.segments.iter().any(|test_str| test_str.ident.to_string().as_str() == "Option"),
+        _ => false,
+    }
 }
