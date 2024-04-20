@@ -11,7 +11,7 @@ use std::num::Wrapping;
 use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
-use ratatui::widgets::Widget;
+use ratatui::{style::Stylize, widgets::Widget};
 
 /// `Recipe` represents one recipe from start to finish
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]

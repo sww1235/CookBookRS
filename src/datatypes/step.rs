@@ -4,13 +4,7 @@ use std::fmt;
 use std::num::Wrapping;
 
 use dimensioned::ucum;
-use ratatui::{
-    buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::Text,
-    widgets::{Block, Borders, Paragraph, StatefulWidgetRef, Widget, WidgetRef},
-};
+use ratatui::{style::Stylize, widgets::Widget};
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 

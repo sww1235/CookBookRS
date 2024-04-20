@@ -1,5 +1,5 @@
 use dimensioned::ucum;
-use ratatui::widgets::Widget;
+use ratatui::{style::Stylize, widgets::Widget};
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 

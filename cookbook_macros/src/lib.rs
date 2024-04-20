@@ -122,7 +122,9 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
         if let Some(field_name) = f.ident.clone() {
             let block_name = format_ident!("{}_block", field_name);
             let paragraph_name = format_ident!("{}_paragraph", field_name);
-            let field_text_style_name = format_ident!("{}_style", field_name);
+            let field_text_style_name = format_ident!("{}_text_style", field_name);
+            let field_block_style_name = format_ident!("{}_block_style", field_name);
+            let field_block_border_style_name = format_ident!("{}_block_border_style", field_name);
             let field_title = to_ascii_titlecase(field_name.to_string().as_str());
             let mut display_order: Option<usize> = None;
             let mut constraint_type: Option<String> = None;
@@ -406,19 +408,22 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                     state_styling_code = quote! {
                         // field is selected
                         if state.selected_field.0 == #display_order {
-                            #field_text_style_name = #field_text_style_name.fg(ratatui::style::Color::Red);
+                            #field_block_border_style_name = #field_block_border_style_name.red();
                         }
                     }
                 }
                 field_display_code.insert(
                     display_order,
                     quote! {
+                        let mut #field_block_style_name = ratatui::style::Style::default();
+                        let mut #field_block_border_style_name = ratatui::style::Style::default();
+                        #state_styling_code
                         let #block_name = ratatui::widgets::block::Block::default()
                            .borders(ratatui::widgets::Borders::ALL)
-                           .style(ratatui::style::Style::default())
+                           .border_style(#field_block_border_style_name)
+                           .style(#field_block_style_name)
                            .title(#field_title);
                         let mut #field_text_style_name = ratatui::style::Style::default();
-                        #state_styling_code
                         #paragraph_name_code
                         #paragraph_name.render(layout[#display_order], buf);
                     },
