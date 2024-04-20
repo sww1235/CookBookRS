@@ -37,4 +37,5 @@ pub struct Equipment {
 pub struct EquipmentState {
     //TODO: selected field, etc
     pub selected_field: Wrapping<usize>,
+    pub num_fields: usize,
 }

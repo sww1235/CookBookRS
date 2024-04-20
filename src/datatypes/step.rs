@@ -53,6 +53,7 @@ pub struct Step {
 pub struct StepState {
     //TODO: selected field, which ingredient/equipment is selected, etc
     pub selected_field: Wrapping<usize>,
+    pub num_fields: usize,
 }
 
 /// `StepType` represents what type of step each step is in a recipe. It is used to bucket times

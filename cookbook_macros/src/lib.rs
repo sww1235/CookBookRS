@@ -554,6 +554,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
     };
     if stateful {
         let state_struct_ident = format_ident!("{}", state_struct);
+        let num_visible_fields = constraints_code.len();
         Ok(
             quote! {
                 #[automatically_derived]
@@ -561,6 +562,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                     type State = #state_struct_ident;
                     fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer, state: &mut Self::State){
                         #inner_fn_code
+                        state.num_fields = #num_visible_fields;
                     }
                 }
 

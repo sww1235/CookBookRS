@@ -33,13 +33,17 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             KeyCode::Down => {
                 // selected is the integer index of the selected item in the list
                 if let Some(selected) = app_state.recipe_list_state.selected() {
-                    app_state.recipe_list_state.select(Some((Wrapping(selected) + Wrapping(1_usize)).0));
+                    app_state
+                        .recipe_list_state
+                        .select(Some(((Wrapping(selected) + Wrapping(1_usize)).0) % (app_state.recipe_list_len)));
                 }
             }
             KeyCode::Up => {
                 if let Some(selected) = app_state.recipe_list_state.selected() {
                     // not at top of list, so move up
-                    app_state.recipe_list_state.select(Some((Wrapping(selected) - Wrapping(1_usize)).0));
+                    app_state
+                        .recipe_list_state
+                        .select(Some(((Wrapping(selected) - Wrapping(1_usize)).0) % (app_state.recipe_list_len)));
                 }
             }
             _ => {}
@@ -78,30 +82,38 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             KeyCode::Left => match app_state.editing_state {
                 EditingState::Recipe => {
                     app_state.recipe_state.selected_field -= Wrapping(1);
+                    app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
                 }
                 EditingState::Step(_) => {
                     app_state.step_state.selected_field -= Wrapping(1);
+                    app_state.step_state.selected_field %= app_state.step_state.num_fields;
                 }
                 EditingState::Ingredient(_, _) => {
                     app_state.ingredient_state.selected_field -= Wrapping(1);
+                    app_state.ingredient_state.selected_field %= app_state.ingredient_state.num_fields;
                 }
                 EditingState::Equipment(_, _) => {
                     app_state.equipment_state.selected_field -= Wrapping(1);
+                    app_state.equipment_state.selected_field %= app_state.equipment_state.num_fields;
                 }
                 _ => {}
             },
             KeyCode::Right => match app_state.editing_state {
                 EditingState::Recipe => {
                     app_state.recipe_state.selected_field += Wrapping(1);
+                    app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
                 }
                 EditingState::Step(_) => {
                     app_state.step_state.selected_field += Wrapping(1);
+                    app_state.step_state.selected_field %= app_state.step_state.num_fields;
                 }
                 EditingState::Ingredient(_, _) => {
                     app_state.ingredient_state.selected_field += Wrapping(1);
+                    app_state.ingredient_state.selected_field %= app_state.ingredient_state.num_fields;
                 }
                 EditingState::Equipment(_, _) => {
                     app_state.equipment_state.selected_field += Wrapping(1);
+                    app_state.equipment_state.selected_field %= app_state.equipment_state.num_fields;
                 }
                 _ => {}
             },
@@ -109,13 +121,31 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                 //toggle between editing recipe, steps, or ingredients
                 match app_state.editing_state {
                     EditingState::Recipe => {
-                        app_state.editing_state = EditingState::Step(0);
+                        if let Some(recipe) = &app.edit_recipe {
+                            if !recipe.steps.is_empty() {
+                                app_state.editing_state = EditingState::Step(0);
+                                app_state.step_state.selected_field = Wrapping(0);
+                            }
+                            //TODO: display an error if there are no steps defined
+                        }
                     }
                     EditingState::Step(step) => {
-                        app_state.editing_state = EditingState::Ingredient(step, 0);
+                        //TODO: check if step is even an index of the vector
+                        if let Some(recipe) = &app.edit_recipe {
+                            if !recipe.steps.is_empty() && !recipe.steps[step].ingredients.is_empty() {
+                                app_state.editing_state = EditingState::Ingredient(step, 0);
+                                app_state.ingredient_state.selected_field = Wrapping(0);
+                            }
+                        }
                     }
                     EditingState::Ingredient(step, _) => {
-                        app_state.editing_state = EditingState::Equipment(step, 0);
+                        //TODO: check if step is even an index of the vector
+                        if let Some(recipe) = &app.edit_recipe {
+                            if !recipe.steps.is_empty() && !recipe.steps[step].equipment.is_empty() {
+                                app_state.editing_state = EditingState::Equipment(step, 0);
+                                app_state.equipment_state.selected_field = Wrapping(0);
+                            }
+                        }
                     }
                     EditingState::Equipment(_, _) => {
                         app_state.editing_state = EditingState::Recipe;
@@ -128,8 +158,9 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                 app.exit();
             }
             //TODO: maybe change this to r for recpe?
-            KeyCode::Char('e') if app_state.editing_state == EditingState::Idle => {
+            KeyCode::Char('e') if app_state.editing_state == EditingState::Idle && app.edit_recipe.is_some() => {
                 app_state.editing_state = EditingState::Recipe;
+                app_state.recipe_state.selected_field = Wrapping(0);
             }
             //KeyCode
             _ => {}

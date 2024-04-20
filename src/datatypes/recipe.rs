@@ -177,6 +177,7 @@ impl Recipe {
 pub struct RecipeState {
     //TODO: selected field, which step is selected, etc
     pub selected_field: Wrapping<usize>,
+    pub num_fields: usize,
 }
 
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/

@@ -59,6 +59,7 @@ pub enum UnitType {
 pub struct IngredientState {
     //TODO: selected field, etc
     pub selected_field: Wrapping<usize>,
+    pub num_fields: usize,
 }
 
 impl Add for UnitType {
