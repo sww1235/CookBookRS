@@ -175,7 +175,6 @@ impl Recipe {
 #[derive(Default, Debug)]
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct RecipeState {
-    //TODO: selected field, which step is selected, etc
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
 }

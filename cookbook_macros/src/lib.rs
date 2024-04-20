@@ -538,8 +538,6 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
 
         #(#field_display_code_values)*
 
-        //TODO: add remaining 2 blocks with attributes
-
         // recipe_edit_layout should always have something in it.
         // This is a valid place to panic
         #[allow(clippy::expect_used)]

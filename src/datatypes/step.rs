@@ -51,7 +51,6 @@ pub struct Step {
 #[derive(Default, Debug)]
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct StepState {
-    //TODO: selected field, which ingredient/equipment is selected, etc
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
 }

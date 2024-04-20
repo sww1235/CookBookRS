@@ -17,7 +17,7 @@ pub enum Event {
     /// Mouse click/scroll
     Mouse(MouseEvent),
     ///Terminal Resize
-    Resize(u16, u16), //TODO: is u16 enough?
+    Resize(u16, u16),
 }
 
 ///Terminal Event Handler

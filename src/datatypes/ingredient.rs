@@ -57,7 +57,6 @@ pub enum UnitType {
 #[derive(Debug, Default)]
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct IngredientState {
-    //TODO: selected field, etc
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
 }
