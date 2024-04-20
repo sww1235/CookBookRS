@@ -428,7 +428,8 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
             return Err(syn::Error::new_spanned(f, "fieldname is None"));
         }
     }
-
+    //TODO: allow an alternate method of specifing left/right field values so you can do things like
+    //display `step_id`
     let left_field_content = if let Some(field_name) = &left_field {
         if let Some(lower_field_title) = &lower_field_title {
             if lower_field_title.is_empty() {
