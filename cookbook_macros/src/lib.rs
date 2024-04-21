@@ -8,7 +8,7 @@
 //!
 //! The layout renders each field as a widget not marked with the `#[cookbook(skip)]` attribute or
 //! either `#[cookbook(left_field)]` or `#[cookbook(right_field)]` as the last two are special
-//! cased. The field widgets are then laid out in a vertical [`Layout`].
+//! cased. The field widgets are then laid out in a vertical [`Layout`](ratatui::layout::Layout).
 //!
 //! # Struct Attributes
 //! - `state_struct` is the name of the struct that holds the state information for the struct that
@@ -18,7 +18,8 @@
 //! # Field Attributes
 //! - `display_order` is an integer that determines the order the field will be displayed. It is
 //! used as follows: `display_order = 2`.
-//! - `constraint_type` is matched against the values of [`ratatui::layout::Constraint`] and
+//! - `constraint_type` is matched against the values of
+//! [`Constraint`](ratatui::layout::Constraint) and
 //! determines the type of constraint for each field. It supports all values except `Ratio`. It is
 //! used as follows: `constraint_type = min`. The first character is not case sensitive.
 //! - `constraint_value` is an integer that is used as the value inside the `Constraint`. It is

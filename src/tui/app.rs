@@ -75,7 +75,7 @@ pub enum EditingState {
 }
 
 impl App {
-    /// [`new`] creates a new [`App`]
+    /// `new` creates a new [`App`]
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -87,7 +87,7 @@ impl App {
             tags: Vec::new(),
         }
     }
-    /// [`load_recipes_from_directory`] recursively parses the provided directory path to parse all
+    /// `load_recipes_from_directory` recursively parses the provided directory path to parse all
     /// `*.toml` files found and load them into the cookbook.
     ///
     /// # Errors
@@ -95,7 +95,7 @@ impl App {
     /// Will error if:
     /// - reading any of the individual recipes fails
     /// - the specified path is not a directory
-    /// - [`os_str`] failed to parse to UTF-8
+    /// - [`OsStr`](std::ffi::OsStr) failed to parse to UTF-8
     pub fn load_recipes_from_directory(&mut self, dir: path::PathBuf) -> Result<(), io::Error> {
         if dir.as_path().is_dir() {
             Self::load_recipes_from_directory_inner(dir, &mut self.recipes)?;
@@ -155,7 +155,7 @@ impl App {
             .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format! {"Inner TOML parsing error: {}", err}))
     }
 
-    /// [`compile_tag_list`] scans through all tags on all recipes, compiles them into the main app
+    /// `compile_tag_list` scans through all tags on all recipes, compiles them into the main app
     /// tag list, then sorts and deduplicates the list
     pub fn compile_tag_list(&mut self) {
         for recipe in &self.recipes {
@@ -169,13 +169,13 @@ impl App {
         self.tags.shrink_to_fit();
     }
 
-    /// [`tick`] handles the tick event of the app
+    /// `tick` handles the tick event of the app
     pub fn tick(&self) {
         //TODO: investigate this further
         //https://github.com/ratatui-org/templates/blob/966cf2e2b5808de8c905eacd1f4209fe82f804fe/simple/src/app.rs#L31
     }
 
-    /// [`exit`] exits App
+    /// `exit` exits App
     pub fn exit(&mut self) {
         self.running = false;
     }

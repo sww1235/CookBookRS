@@ -60,9 +60,9 @@ struct Cli {
     // PostGres DSN (optional)
     //#[arg(short, long)]
     //post_gres_dsn: Option<String>,
-    /// Only shows log messages with <Error> level. Use twice to completely eliminate output. Takes precidence over verbose
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    quiet: u8,
+    // Only shows log messages with <Error> level. Use twice to completely eliminate output. Takes precidence over verbose
+    //#[arg(short, long, action = clap::ArgAction::Count)]
+    //quiet: u8,
     // Do not use default libraries included with program
     //#[arg(short, long)]
     //no_default_libs: bool,
