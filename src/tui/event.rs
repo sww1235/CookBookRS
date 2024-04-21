@@ -68,7 +68,11 @@ impl EventHandler {
                 }
             })
         };
-        Self { sender, receiver, handler }
+        Self {
+            sender,
+            receiver,
+            handler,
+        }
     }
     /// Receive the next event from the handler thread.
     ///

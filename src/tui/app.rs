@@ -12,7 +12,10 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget, WidgetRef},
+    widgets::{
+        Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget,
+        WidgetRef,
+    },
 };
 
 use std::fs;
@@ -98,7 +101,10 @@ impl App {
             Self::load_recipes_from_directory_inner(dir, &mut self.recipes)?;
             Ok(())
         } else {
-            Err(io::Error::new(io::ErrorKind::InvalidInput, format! {"Provided filepath not a directory {}", dir.display()}))
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format! {"Provided filepath not a directory {}", dir.display()},
+            ))
             //TODO: return is not directory error
         }
     }
@@ -107,7 +113,12 @@ impl App {
         let ext = match inner_dir.extension() {
             Some(ext) => match ext.to_str() {
                 Some(ext) => ext,
-                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "os_str failed to parse to valid utf-8")),
+                None => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "os_str failed to parse to valid utf-8",
+                    ))
+                }
             },
             None => "",
         };
@@ -209,7 +220,11 @@ impl StatefulWidgetRef for App {
         // use [`Layout.areas()'] rather than [`Layout.split()`] for better API
         let [recipe_list_area, main_area, tag_list_area] = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(50), Constraint::Percentage(25)])
+            .constraints(vec![
+                Constraint::Percentage(25),
+                Constraint::Percentage(50),
+                Constraint::Percentage(25),
+            ])
             .areas(area);
 
         // This should split the middle box into 3 areas, one on the bottom that will hold the menu and
@@ -227,10 +242,16 @@ impl StatefulWidgetRef for App {
         let mut recipe_list_items = Vec::<ListItem>::new();
 
         if recipe_list_items.is_empty() {
-            recipe_list_items.push(ListItem::new(Line::from(Span::styled("No Recipes", Style::default().fg(Color::Red)))));
+            recipe_list_items.push(ListItem::new(Line::from(Span::styled(
+                "No Recipes",
+                Style::default().fg(Color::Red),
+            ))));
         } else {
             for recipe in &self.recipes {
-                recipe_list_items.push(ListItem::new(Line::from(Span::styled(recipe.name.clone(), Style::default().fg(Color::Green)))));
+                recipe_list_items.push(ListItem::new(Line::from(Span::styled(
+                    recipe.name.clone(),
+                    Style::default().fg(Color::Green),
+                ))));
             }
         }
 
@@ -251,10 +272,16 @@ impl StatefulWidgetRef for App {
                 //the tag list of the edited recipe
                 let mut tag_list_items = Vec::<ListItem>::new();
                 if self.tags.is_empty() {
-                    tag_list_items.push(ListItem::new(Line::from(Span::styled("No Tags", Style::default().fg(Color::Red)))));
+                    tag_list_items.push(ListItem::new(Line::from(Span::styled(
+                        "No Tags",
+                        Style::default().fg(Color::Red),
+                    ))));
                 } else {
                     for tag in &self.tags {
-                        tag_list_items.push(ListItem::new(Line::from(Span::styled(tag, Style::default().fg(Color::White)))));
+                        tag_list_items.push(ListItem::new(Line::from(Span::styled(
+                            tag,
+                            Style::default().fg(Color::White),
+                        ))));
                     }
                 }
 
@@ -262,12 +289,19 @@ impl StatefulWidgetRef for App {
                 state.tag_list_len = tag_list.len();
                 StatefulWidget::render(tag_list, tag_list_area, buf, &mut state.tag_list_state);
                 if !self.recipes.is_empty() {
-                    WidgetRef::render_ref(&self.recipes[state.recipe_list_state.selected().unwrap_or_default()], recipe_area, buf);
+                    WidgetRef::render_ref(
+                        &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
+                        recipe_area,
+                        buf,
+                    );
                 }
                 //TODO: store this text, and the keyboard shortcuts somewhere centralized
                 current_nav_text.push(Span::styled("Browsing", Style::default().fg(Color::Green)));
                 current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
-                current_nav_text.push(Span::styled("q:quit, n:new, \u{2195}: scroll", Style::default().fg(Color::White)));
+                current_nav_text.push(Span::styled(
+                    "q:quit, n:new, \u{2195}: scroll",
+                    Style::default().fg(Color::White),
+                ));
             }
             CurrentScreen::RecipeViewer => {
                 // only show tags associated with recipe
@@ -278,13 +312,17 @@ impl StatefulWidgetRef for App {
             }
             CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor => {
                 #[allow(clippy::expect_used)] //TODO: confirm this
-                let recipe = &self.edit_recipe.as_ref().expect("No recipe currently being edited while in edit screen");
+                let recipe = &self
+                    .edit_recipe
+                    .as_ref()
+                    .expect("No recipe currently being edited while in edit screen");
 
                 if recipe.name.is_empty() && self.current_screen == CurrentScreen::RecipeCreator {
                     let title = Paragraph::new(Text::styled("New Recipe", Style::default().fg(Color::Green))).block(title_block);
                     title.render(title_area, buf);
                 } else {
-                    let title = Paragraph::new(Text::styled(recipe.name.clone(), Style::default().fg(Color::Blue))).block(title_block);
+                    let title =
+                        Paragraph::new(Text::styled(recipe.name.clone(), Style::default().fg(Color::Blue))).block(title_block);
                     title.render(title_area, buf);
                 }
 
@@ -294,15 +332,29 @@ impl StatefulWidgetRef for App {
                         StatefulWidgetRef::render_ref(&recipe.steps[step_num], recipe_area, buf, &mut state.step_state);
                     }
                     EditingState::Ingredient(step_num, ingredient_num) => {
-                        StatefulWidgetRef::render_ref(&recipe.steps[step_num].ingredients[ingredient_num], recipe_area, buf, &mut state.ingredient_state);
+                        StatefulWidgetRef::render_ref(
+                            &recipe.steps[step_num].ingredients[ingredient_num],
+                            recipe_area,
+                            buf,
+                            &mut state.ingredient_state,
+                        );
                     }
                     EditingState::Equipment(step_num, equipment_num) => {
-                        StatefulWidgetRef::render_ref(&recipe.steps[step_num].equipment[equipment_num], recipe_area, buf, &mut state.equipment_state);
+                        StatefulWidgetRef::render_ref(
+                            &recipe.steps[step_num].equipment[equipment_num],
+                            recipe_area,
+                            buf,
+                            &mut state.equipment_state,
+                        );
                     }
                     EditingState::Idle => {
                         if self.current_screen == CurrentScreen::RecipeCreator {
                             let instruction_block = Block::default().borders(Borders::ALL).style(Style::default());
-                            let instructions = Paragraph::new(Text::styled("Press e to start editing new recipe", Style::default().fg(Color::Red))).block(instruction_block);
+                            let instructions = Paragraph::new(Text::styled(
+                                "Press e to start editing new recipe",
+                                Style::default().fg(Color::Red),
+                            ))
+                            .block(instruction_block);
                             instructions.render(recipe_area, buf);
                         } else {
                             // if existing recipe, display same fields as editingstate::recipe, but don't

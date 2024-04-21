@@ -62,7 +62,12 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
             fields: Fields::Named(ref fields),
             ..
         }) => &fields.named,
-        _ => return Err(syn::Error::new_spanned(input, "This derive macro only works on structs with named fields.")),
+        _ => {
+            return Err(syn::Error::new_spanned(
+                input,
+                "This derive macro only works on structs with named fields.",
+            ))
+        }
     };
 
     let struct_name = &input.ident;
@@ -95,15 +100,19 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                     //TODO: refactor to use if-let chains once they are
                                     //stablized
                                     let Expr::Lit(ref lit) = value.parse()? else {
-                                        return Err(inner_meta.error("The `cookbook(state_struct)` attribute must be set equal to a literal value"));
+                                        return Err(inner_meta.error(
+                                            "The `cookbook(state_struct)` attribute must be set equal to a literal value",
+                                        ));
                                     };
                                     let Lit::Str(ref lit_str) = lit.lit else {
-                                        return Err(inner_meta.error("The `cookbook(state_struct)` attribute must be set equal to a string"));
+                                        return Err(inner_meta
+                                            .error("The `cookbook(state_struct)` attribute must be set equal to a string"));
                                     };
                                     state_struct_value = Some(lit_str.value());
                                     Ok(())
                                 }
-                                Err(_) => Err(inner_meta.error("The `cookbook(state_struct) attribute must be called as a NameValue attribute type")),
+                                Err(_) => Err(inner_meta
+                                    .error("The `cookbook(state_struct) attribute must be called as a NameValue attribute type")),
                             }
                         } else {
                             Ok(())
@@ -112,7 +121,10 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                     _ => continue,
                 }
             }
-            state_struct_value.ok_or(syn::Error::new_spanned(&input, "No `cookbook(state_struct)` specified during `StatefulWidgetRef` derive."))
+            state_struct_value.ok_or(syn::Error::new_spanned(
+                &input,
+                "No `cookbook(state_struct)` specified during `StatefulWidgetRef` derive.",
+            ))
         }?;
     }
     //TODO: need to fix styling here
@@ -337,14 +349,23 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
             }
             //only require these fields on fields that are not skip and not bottom fields
             if display_order.is_none() && !bottom_field && !skip {
-                return Err(syn::Error::new_spanned(f, "`the `cookbook(display_order)` attribute is not specified"));
+                return Err(syn::Error::new_spanned(
+                    f,
+                    "`the `cookbook(display_order)` attribute is not specified",
+                ));
             }
             if constraint_type.is_none() && !bottom_field && !skip {
-                return Err(syn::Error::new_spanned(f, "`the `cookbook(constraint_type)` attribute is not specified"));
+                return Err(syn::Error::new_spanned(
+                    f,
+                    "`the `cookbook(constraint_type)` attribute is not specified",
+                ));
             }
 
             if constraint_value.is_none() && !bottom_field && !skip {
-                return Err(syn::Error::new_spanned(f, "`the `cookbook(constraint_value)` attribute is not specified"));
+                return Err(syn::Error::new_spanned(
+                    f,
+                    "`the `cookbook(constraint_value)` attribute is not specified",
+                ));
             }
             if !bottom_field {
                 // unwrap_or_default() here is ok as these are all checked for None above here

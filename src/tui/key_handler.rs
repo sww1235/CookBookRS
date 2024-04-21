@@ -39,17 +39,17 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             KeyCode::Down => {
                 // selected is the integer index of the selected item in the list
                 if let Some(selected) = app_state.recipe_list_state.selected() {
-                    app_state
-                        .recipe_list_state
-                        .select(Some(((Wrapping(selected) + Wrapping(1_usize)).0) % (app_state.recipe_list_len)));
+                    app_state.recipe_list_state.select(Some(
+                        ((Wrapping(selected) + Wrapping(1_usize)).0) % (app_state.recipe_list_len),
+                    ));
                 }
             }
             KeyCode::Up => {
                 if let Some(selected) = app_state.recipe_list_state.selected() {
                     // not at top of list, so move up
-                    app_state
-                        .recipe_list_state
-                        .select(Some(((Wrapping(selected) - Wrapping(1_usize)).0) % (app_state.recipe_list_len)));
+                    app_state.recipe_list_state.select(Some(
+                        ((Wrapping(selected) - Wrapping(1_usize)).0) % (app_state.recipe_list_len),
+                    ));
                 }
             }
             _ => {}
