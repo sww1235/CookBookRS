@@ -1,8 +1,9 @@
 use super::filetypes;
 
-use ratatui::{style::Stylize, widgets::Widget};
-
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
+
+use num_derive::{FromPrimitive, ToPrimitive};
+use ratatui::{style::Stylize, widgets::Widget};
 
 use std::num::Wrapping;
 
@@ -39,6 +40,7 @@ pub struct Equipment {
 pub struct EquipmentState {
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
+    pub editing_selected_field: Option<EquipmentFields>,
 }
 
 impl From<filetypes::Equipment> for Equipment {

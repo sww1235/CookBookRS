@@ -65,11 +65,13 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
         _ => return Err(syn::Error::new_spanned(input, "This derive macro only works on structs with named fields.")),
     };
 
-    let st_name = &input.ident;
+    let struct_name = &input.ident;
 
     let mut constraints_code = BTreeMap::new();
     let mut field_display_code = BTreeMap::new();
+    let mut field_enum_mapping_code = BTreeMap::new();
     let mut len_check_fn_code = TokenStream2::new();
+    let field_enum_name = format_ident!("{}Fields", struct_name);
 
     let mut total_field_height: u16 = 0;
     let mut left_field = None;
@@ -125,7 +127,9 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
             let field_text_style_name = format_ident!("{}_text_style", field_name);
             let field_block_style_name = format_ident!("{}_block_style", field_name);
             let field_block_border_style_name = format_ident!("{}_block_border_style", field_name);
-            let field_title = to_ascii_titlecase(field_name.to_string().as_str());
+            #[allow(clippy::single_char_pattern)]
+            let field_title = to_ascii_titlecase(field_name.to_string().replace("_", " ").as_str());
+            let field_enum_variant = format_ident!("{}", to_camelcase_from_snake_case(field_name.to_string().as_str()));
             let mut display_order: Option<usize> = None;
             let mut constraint_type: Option<String> = None;
             let mut constraint_value: Option<u16> = None;
@@ -407,7 +411,10 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                 if stateful {
                     state_styling_code = quote! {
                         // field is selected
-                        if state.selected_field.0 == #display_order {
+                        if state.selected_field.0 == #display_order && state.editing_selected_field.is_some(){
+                            #field_block_border_style_name = #field_block_border_style_name.cyan();
+                        } else if state.selected_field.0 == #display_order && state.editing_selected_field.is_none() {
+
                             #field_block_border_style_name = #field_block_border_style_name.red();
                         }
                     }
@@ -428,6 +435,15 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                         #paragraph_name.render(layout[#display_order], buf);
                     },
                 );
+                // don't need this mapping if not stateful
+                if stateful && !skip && !bottom_field {
+                    field_enum_mapping_code.insert(
+                        display_order,
+                        quote! {
+                             #field_enum_variant = #display_order,
+                        },
+                    );
+                }
             }
         } else {
             return Err(syn::Error::new_spanned(f, "fieldname is None"));
@@ -512,6 +528,8 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
 
     let field_display_code_values: Vec<TokenStream2> = field_display_code.values().cloned().collect();
 
+    let field_enum_mapping_code_values: Vec<TokenStream2> = field_enum_mapping_code.values().cloned().collect();
+
     let inner_fn_code = quote! {
 
         #len_check_fn_code
@@ -555,8 +573,15 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
         let num_visible_fields = constraints_code.len();
         Ok(
             quote! {
+                #[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, ToPrimitive)]
                 #[automatically_derived]
-                impl ratatui::widgets::StatefulWidgetRef for #st_name {
+                #[repr(usize)]
+                pub enum #field_enum_name {
+                    #(#field_enum_mapping_code_values)*
+                }
+
+                #[automatically_derived]
+                impl ratatui::widgets::StatefulWidgetRef for #struct_name {
                     type State = #state_struct_ident;
                     fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer, state: &mut Self::State){
                         #inner_fn_code
@@ -570,7 +595,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
         Ok(
             quote! {
                 #[automatically_derived]
-                impl ratatui::widgets::WidgetRef for #st_name {
+                impl ratatui::widgets::WidgetRef for #struct_name {
                     fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer){
                         #inner_fn_code
                     }
@@ -589,7 +614,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
 //}
 
 //https://stackoverflow.com/a/53571882/3342767
-/// `to_ascii_titlecase` outputs the input &str as titlecase
+/// [`to_ascii_titlecase`] outputs the input &str as titlecase
 fn to_ascii_titlecase(s: &str) -> String {
     let mut out = s.to_string();
     if let Some(r) = out.get_mut(0..1) {
@@ -597,14 +622,25 @@ fn to_ascii_titlecase(s: &str) -> String {
     }
     out
 }
+
+/// [`to_camelcase_from_snake_case`] converts a string from `snake_case` into `UpperCamelCase` for
+/// use in naming enum variants. Assumes its input is `snake_case` and ASCII. Does almost no
+/// validation as it is intended to be used within this derive macro only.
+fn to_camelcase_from_snake_case(s: &str) -> String {
+    s.split('_').map(to_ascii_titlecase).collect::<String>()
+}
 //https://stackoverflow.com/a/56264023/3342767
-/// `is_option` checks if a [`syn::Type`] is `Option<T>` rather than `T`. It checks for the
+/// [`is_option`] checks if a [`syn::Type`] is `Option<T>` rather than `T`. It checks for the
 /// following variants of Option. It is not exhaustive and may fail with unusual `Option`s or
 /// methods of specifiying them. Stick to the standards and it will work.
 fn is_option(ty: &syn::Type) -> bool {
     match ty {
         // type_path.qself is Some() if this is a self path which we do not want
-        Type::Path(ref type_path) if type_path.qself.is_none() => type_path.path.segments.iter().any(|test_str| test_str.ident.to_string().as_str() == "Option"),
+        Type::Path(ref type_path) if type_path.qself.is_none() => type_path
+            .path
+            .segments
+            .iter()
+            .any(|test_str| test_str.ident.to_string().as_str() == "Option"),
         _ => false,
     }
 }

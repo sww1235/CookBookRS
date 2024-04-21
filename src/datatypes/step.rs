@@ -1,12 +1,13 @@
 use super::{equipment::Equipment, filetypes, ingredient::Ingredient};
 
+use cookbook_macros::{StatefulWidgetRef, WidgetRef};
+
 use std::fmt;
 use std::num::Wrapping;
 
 use dimensioned::ucum;
+use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
-
-use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
 /// `Step` represents a discrete step within a recipe
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
@@ -53,6 +54,7 @@ pub struct Step {
 pub struct StepState {
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
+    pub editing_selected_field: Option<StepFields>,
 }
 
 /// `StepType` represents what type of step each step is in a recipe. It is used to bucket times

@@ -1,6 +1,7 @@
 use super::filetypes;
 
 use dimensioned::ucum;
+use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
@@ -61,6 +62,7 @@ pub enum UnitType {
 pub struct IngredientState {
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
+    pub editing_selected_field: Option<IngredientFields>,
 }
 
 impl Add for UnitType {

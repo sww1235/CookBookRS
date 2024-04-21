@@ -12,6 +12,7 @@ use std::num::Wrapping;
 use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
+use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
 
 /// `Recipe` represents one recipe from start to finish
@@ -178,6 +179,7 @@ impl Recipe {
 pub struct RecipeState {
     pub selected_field: Wrapping<usize>,
     pub num_fields: usize,
+    pub editing_selected_field: Option<RecipeFields>,
 }
 
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/
