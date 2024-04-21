@@ -6,6 +6,7 @@ use cookbook_core::tui::{
     key_handler, Error, Tui,
 };
 
+use std::path::PathBuf;
 use std::time::Duration;
 
 use clap::Parser;
@@ -13,10 +14,13 @@ use clap::Parser;
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
 
 fn main() -> Result<(), Error> {
-    let _cli = Cli::parse();
+    let cli = Cli::parse();
     let events = EventHandler::new(Duration::from_millis(250));
     let mut tui = Tui::init(events)?;
     let mut app = App::new();
+    if let Some(input_dir) = cli.input_directory {
+        app.load_recipes_from_directory(input_dir)?;
+    }
     let mut app_state = AppState::default();
     app.running = true;
     while app.running {
@@ -46,7 +50,7 @@ fn main() -> Result<(), Error> {
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Directory that project lives in
-    //project_directory: PathBuf,
+    input_directory: Option<PathBuf>,
     /// Increase verbosity of program by adding more v
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
