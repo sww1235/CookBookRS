@@ -15,6 +15,10 @@ use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
 
+//TODO: associate equipment with recipe and steps, so you don't have to re-enter info for equipment
+//that is used on multiple steps. Maybe do this with ingredients as well? May have to use ref_cell
+//for this
+
 /// `Recipe` represents one recipe from start to finish
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
 #[cookbook(state_struct = "RecipeState")]

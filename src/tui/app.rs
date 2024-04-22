@@ -9,12 +9,12 @@ use crate::datatypes::{
 
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Style, Stylize},
     text::{Line, Span, Text},
     widgets::{
-        Block, Borders, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget,
-        WidgetRef,
+        Block, Borders, Clear, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget,
+        WidgetRef, Wrap,
     },
 };
 
@@ -64,14 +64,15 @@ pub enum EditingState {
     Idle,
     /// Editing recipe
     Recipe,
-    /// Editing step, first index is step index
+    /// Editing step, first value is step index
     Step(usize),
-    /// Editing ingredient, first index is step index, second index is ingredient index within step
+    /// Editing ingredient, first value is step index, second value is ingredient index within step
     Ingredient(usize, usize),
-    /// Editing equipment, first index is step index, second index is equipment index within step
+    /// Editing equipment, first value is step index, second value is equipment index within step
     Equipment(usize, usize),
-    ///Save Prompt
-    SavePrompt,
+    ///Save Prompt, first value is index to insert into recipes, second value is if the recipe was
+    ///found or not
+    SavePrompt(usize, bool),
 }
 
 impl App {
@@ -210,6 +211,16 @@ pub struct AppState {
     pub ingredient_state: IngredientState,
     /// equipment state
     pub equipment_state: EquipmentState,
+    /// save_response
+    pub save_response: SaveResponse,
+}
+/// [`SaveResponse`] is the return value from the save recipe prompt
+#[derive(Debug, Default)]
+pub enum SaveResponse {
+    #[default]
+    Yes,
+    No,
+    Cancel,
 }
 
 impl StatefulWidgetRef for App {
@@ -231,9 +242,10 @@ impl StatefulWidgetRef for App {
         // This should split the middle box into 3 areas, one on the bottom that will hold the menu and
         // be 3 unit tall, one on the top that will show the title of the current recipe and be 5
         // units tall, and the middle will take up the remaining space
+        // TODO: automatically resize the menu_area based on number of lines
         let [title_area, recipe_area, menu_area] = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Min(5), Constraint::Percentage(100), Constraint::Min(3)])
+            .constraints(vec![Constraint::Min(3), Constraint::Percentage(100), Constraint::Min(9)])
             .areas(main_area);
 
         //TODO: fix this styling
@@ -242,7 +254,7 @@ impl StatefulWidgetRef for App {
 
         let mut recipe_list_items = Vec::<ListItem>::new();
 
-        if recipe_list_items.is_empty() {
+        if self.recipes.is_empty() {
             recipe_list_items.push(ListItem::new(Line::from(Span::styled(
                 "No Recipes",
                 Style::default().fg(Color::Red),
@@ -261,11 +273,13 @@ impl StatefulWidgetRef for App {
 
         StatefulWidget::render(recipe_list, recipe_list_area, buf, &mut state.recipe_list_state);
 
-        let mut current_nav_text = Vec::new();
+        let mut current_nav_text: Vec<Line> = Vec::new();
 
         match self.current_screen {
             CurrentScreen::RecipeBrowser => {
                 let title = Paragraph::new(Text::styled("Cookbook", Style::default().fg(Color::Blue))).block(title_block);
+
+                let clear = Clear;
 
                 title.render(title_area, buf);
 
@@ -295,21 +309,29 @@ impl StatefulWidgetRef for App {
                         recipe_area,
                         buf,
                     );
+                } else {
+                    clear.render(recipe_area, buf);
                 }
                 //TODO: store this text, and the keyboard shortcuts somewhere centralized
-                current_nav_text.push(Span::styled("Browsing", Style::default().fg(Color::Green)));
-                current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
-                current_nav_text.push(Span::styled(
-                    "q:quit, n:new, \u{2195}: scroll",
-                    Style::default().fg(Color::White),
-                ));
+                let browser_nav_text = vec![
+                    Span::styled("Browsing", Style::default().fg(Color::Green)),
+                    Span::styled(" | ", Style::default().fg(Color::White)),
+                    Span::styled(
+                        "q:quit, n:new, \u{2195}: scroll to select recipe",
+                        Style::default().fg(Color::White),
+                    ),
+                ];
+                current_nav_text.push(Line::from_iter(browser_nav_text));
             }
             CurrentScreen::RecipeViewer => {
                 // only show tags associated with recipe
                 //TODO: implement
-                current_nav_text.push(Span::styled("Viewing", Style::default().fg(Color::Blue)));
-                current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
-                current_nav_text.push(Span::styled("ESC: return to browsing", Style::default().fg(Color::White)));
+                let viewer_nav_text = vec![
+                    Span::styled("Viewing", Style::default().fg(Color::Blue)),
+                    Span::styled(" | ", Style::default().fg(Color::White)),
+                    Span::styled("ESC: return to browsing", Style::default().fg(Color::White)),
+                ];
+                current_nav_text.push(Line::from_iter(viewer_nav_text));
             }
             CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor => {
                 #[allow(clippy::expect_used)] //TODO: confirm this
@@ -352,7 +374,7 @@ impl StatefulWidgetRef for App {
                         if self.current_screen == CurrentScreen::RecipeCreator {
                             let instruction_block = Block::default().borders(Borders::ALL).style(Style::default());
                             let instructions = Paragraph::new(Text::styled(
-                                "Press e to start editing new recipe",
+                                "Press e or i to start editing new recipe",
                                 Style::default().fg(Color::Red),
                             ))
                             .block(instruction_block);
@@ -363,33 +385,209 @@ impl StatefulWidgetRef for App {
                             todo!()
                         }
                     }
-                    EditingState::SavePrompt => {}
+                    EditingState::SavePrompt(_, _) => {
+                        let save_prompt_area = centered_rect(recipe_area, 75, 10);
+                        //TODO: display recipe name
+                        let clear = Clear;
+                        let popup_block = Block::default()
+                            .borders(Borders::ALL)
+                            .style(Style::default())
+                            .title("Save Recipe?");
+                        let [_, inner_layout_area, _] = Layout::default()
+                            .direction(Direction::Vertical)
+                            .constraints([Constraint::Fill(1), Constraint::Length(1), Constraint::Fill(1)])
+                            .areas(save_prompt_area);
+                        let [yes_area, no_area, cancel_area] = Layout::default()
+                            .direction(Direction::Horizontal)
+                            .constraints([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
+                            .areas(inner_layout_area);
+                        let mut yes_style = Style::new().on_green().white();
+                        let mut no_style = Style::new().on_red().white();
+                        let mut cancel_style = Style::new().on_blue().white();
+
+                        // if selected
+                        match state.save_response {
+                            SaveResponse::Yes => {
+                                yes_style = yes_style.black();
+                            }
+                            SaveResponse::No => {
+                                no_style = no_style.black();
+                            }
+                            SaveResponse::Cancel => {
+                                cancel_style = cancel_style.black();
+                            }
+                        }
+                        let yes_paragraph = Paragraph::new("Yes")
+                            .block(Block::new().borders(Borders::NONE))
+                            .alignment(Alignment::Center)
+                            .style(yes_style);
+                        let no_paragraph = Paragraph::new("No")
+                            .block(Block::new().borders(Borders::NONE))
+                            .alignment(Alignment::Center)
+                            .style(no_style);
+                        let cancel_paragraph = Paragraph::new("Cancel")
+                            .block(Block::new().borders(Borders::NONE))
+                            .alignment(Alignment::Center)
+                            .style(cancel_style);
+
+                        clear.clone().render(save_prompt_area, buf);
+                        //TODO: does this need to happen?
+                        popup_block.render(save_prompt_area, buf);
+                        clear.clone().render(inner_layout_area, buf);
+                        yes_paragraph.render(yes_area, buf);
+                        no_paragraph.render(no_area, buf);
+                        cancel_paragraph.render(cancel_area, buf);
+                    }
                 }
 
                 // TODO: only show tags associated with recipe
 
-                if self.current_screen == CurrentScreen::RecipeCreator {
-                    current_nav_text.push(Span::styled("Creating", Style::default().fg(Color::Magenta)));
+                let mut editor_nav_lines: Vec<Line> = Vec::new();
+                let mut line_contents: Vec<Span> = Vec::new();
+                match self.current_screen {
+                    //TODO: provide better indication for editing state
+                    CurrentScreen::RecipeCreator => {
+                        line_contents.push(Span::styled("Creating", Style::default().magenta()));
+                    }
+                    CurrentScreen::RecipeEditor => {
+                        line_contents.push(Span::styled("Editing", Style::default().yellow()));
+                    }
+                    _ => {}
                 }
-                if self.current_screen == CurrentScreen::RecipeEditor {
-                    current_nav_text.push(Span::styled("Editing", Style::default().fg(Color::Yellow)));
+                line_contents.push(Span::styled(" | ", Style::default().white()));
+                match state.editing_state {
+                    EditingState::Idle => {
+                        line_contents.push(Span::styled("ESC: return to browsing", Style::default().white()));
+                        editor_nav_lines.push(Line::from_iter(line_contents));
+                    }
+                    EditingState::Recipe => {
+                        line_contents.push(Span::styled("ESC: exit text editing", Style::default().white()));
+                        editor_nav_lines.push(Line::from_iter(line_contents.clone()));
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "e || i: edit selected field",
+                            Style::default().white(),
+                        )));
+                        // left/right arrows
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "\u{2195}: cycle between fields",
+                            Style::default().white(),
+                        )));
+                        // tab
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "TAB: cycle between Recipes/Steps/Equipment/Ingredients",
+                            Style::default().white(),
+                        )));
+                        // up/down arrows
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "\u{2194}: cycle between steps/equipment entries",
+                            Style::default().white(),
+                        )));
+                        editor_nav_lines.push(Line::from(Span::styled("s: insert new step", Style::default().white())));
+                        current_nav_text.extend(editor_nav_lines);
+                    }
+                    EditingState::Step(_) => {
+                        line_contents.push(Span::styled("ESC: exit text editing", Style::default().white()));
+                        editor_nav_lines.push(Line::from_iter(line_contents.clone()));
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "e || i: edit selected field",
+                            Style::default().white(),
+                        )));
+                        // left/right arrows
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "\u{2195}: cycle between fields",
+                            Style::default().white(),
+                        )));
+                        // tab
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "TAB: cycle between Recipes/Steps/Equipment/Ingredients",
+                            Style::default().white(),
+                        )));
+                        // up/down arrows
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "\u{2194}: Select recipe step",
+                            Style::default().white(),
+                        )));
+                        editor_nav_lines.push(Line::from(Span::styled("g: insert new inGredient", Style::default().white())));
+                        editor_nav_lines.push(Line::from(Span::styled("q: insert new eQuipment", Style::default().white())));
+                        current_nav_text.extend(editor_nav_lines);
+                    }
+                    EditingState::Equipment(_, _) | EditingState::Ingredient(_, _) => {
+                        line_contents.push(Span::styled("ESC: exit text editing", Style::default().white()));
+                        editor_nav_lines.push(Line::from_iter(line_contents.clone()));
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "e || i: edit selected field",
+                            Style::default().white(),
+                        )));
+                        // left/right arrows
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "\u{2195}: cycle between fields",
+                            Style::default().white(),
+                        )));
+                        // tab
+                        editor_nav_lines.push(Line::from(Span::styled(
+                            "TAB: cycle between Recipes/Steps/Equipment/Ingredients",
+                            Style::default().white(),
+                        )));
+                        // up/down arrows
+                        match state.editing_state {
+                            EditingState::Equipment(_, _) => {
+                                editor_nav_lines.push(Line::from(Span::styled(
+                                    "\u{2194}: cycle between Equipment",
+                                    Style::default().white(),
+                                )));
+                            }
+                            EditingState::Ingredient(_, _) => {
+                                editor_nav_lines.push(Line::from(Span::styled(
+                                    "\u{2194}: cycle between Ingredients",
+                                    Style::default().white(),
+                                )));
+                            }
+                            _ => {}
+                        }
+                        editor_nav_lines.push(Line::from(Span::styled("g: insert new inGredient", Style::default().white())));
+                        editor_nav_lines.push(Line::from(Span::styled("q: insert new eQuipment", Style::default().white())));
+                        current_nav_text.extend(editor_nav_lines);
+                    }
+
+                    EditingState::SavePrompt(_, _) => {
+                        current_nav_text.clear();
+                        current_nav_text.push(Line::from(Span::styled("Save Recipe?", Style::default().white())));
+                    }
                 }
-                current_nav_text.push(Span::styled(" | ", Style::default().fg(Color::White)));
-                let mut keybinds = String::new();
-                if state.editing_state == EditingState::Idle {
-                    keybinds += "ESC: return to browsing ";
-                } else {
-                    keybinds += "ESC: exit text editing ";
-                }
-                keybinds += "TAB: switch focus between recipe parts ";
-                // left/right arrows
-                keybinds += "\u{2194}: cycle between fields ";
-                // up/down arrows
-                keybinds += "\u{2195}: cycle between steps/equipment entries";
-                current_nav_text.push(Span::styled(keybinds, Style::default().fg(Color::White)));
             }
         }
-        let footer = Paragraph::new(Line::from(current_nav_text)).block(Block::default().borders(Borders::ALL));
+        let footer = Paragraph::new(Text::from_iter(current_nav_text))
+            .block(Block::default().borders(Borders::ALL))
+            .wrap(Wrap { trim: true });
         footer.render(menu_area, buf);
     }
+}
+/// `centered_rect` generates a centered [`Rect`](ratatui::layout::Rect) for your application
+///
+/// Commonly used for generating popup dialog boxes, etc
+///
+/// Copied from [Ratatui's How To page](https://ratatui.rs/how-to/layout/center-a-rect/)
+/// # Usage
+///
+/// ```rust
+/// let rect = centered_rect(f.size(), 50, 50);
+/// ```
+fn centered_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
 }

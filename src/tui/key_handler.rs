@@ -1,11 +1,11 @@
 use crate::{
     datatypes::{
-        equipment::EquipmentFields,
-        ingredient::IngredientFields,
+        equipment::{Equipment, EquipmentFields},
+        ingredient::{Ingredient, IngredientFields},
         recipe::{Recipe, RecipeFields},
-        step::StepFields,
+        step::{Step, StepFields},
     },
-    tui::app::{App, AppState, CurrentScreen, EditingState},
+    tui::app::{App, AppState, CurrentScreen, EditingState, SaveResponse},
 };
 
 use std::num::Wrapping;
@@ -137,7 +137,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     EditingState::SavePrompt(_, _) => {}
                 }
             }
-            KeyCode::Left => match app_state.editing_state {
+            //TODO: use shift to select different steps/ingredients/equipment
+            KeyCode::Up => match app_state.editing_state {
                 EditingState::Recipe if app_state.recipe_state.editing_selected_field.is_none() => {
                     app_state.recipe_state.selected_field -= Wrapping(1);
                     app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
@@ -156,7 +157,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                 }
                 _ => {}
             },
-            KeyCode::Right => match app_state.editing_state {
+            KeyCode::Down => match app_state.editing_state {
                 EditingState::Recipe if app_state.recipe_state.editing_selected_field.is_none() => {
                     app_state.recipe_state.selected_field += Wrapping(1);
                     app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
@@ -173,6 +174,26 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     app_state.equipment_state.selected_field += Wrapping(1);
                     app_state.equipment_state.selected_field %= app_state.equipment_state.num_fields;
                 }
+                _ => {}
+            },
+            //TODO: want to be able to scroll through text during text entry, need to make sure
+            //backspace and insert character are handled correctly
+            #[allow(clippy::single_match)]
+            KeyCode::Left => match app_state.editing_state {
+                EditingState::SavePrompt(_, _) => match app_state.save_response {
+                    SaveResponse::Yes => app_state.save_response = SaveResponse::Cancel,
+                    SaveResponse::No => app_state.save_response = SaveResponse::Yes,
+                    SaveResponse::Cancel => app_state.save_response = SaveResponse::No,
+                },
+                _ => {}
+            },
+            #[allow(clippy::single_match)]
+            KeyCode::Right => match app_state.editing_state {
+                EditingState::SavePrompt(_, _) => match app_state.save_response {
+                    SaveResponse::Yes => app_state.save_response = SaveResponse::No,
+                    SaveResponse::No => app_state.save_response = SaveResponse::Cancel,
+                    SaveResponse::Cancel => app_state.save_response = SaveResponse::Yes,
+                },
                 _ => {}
             },
             KeyCode::Tab => {
@@ -193,6 +214,10 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                             if !recipe.steps.is_empty() && !recipe.steps[step].ingredients.is_empty() {
                                 app_state.editing_state = EditingState::Ingredient(step, 0);
                                 app_state.ingredient_state.selected_field = Wrapping(0);
+                            } else {
+                                //already in step, but ingredient is None
+                                app_state.editing_state = EditingState::Recipe;
+                                app_state.recipe_state.selected_field = Wrapping(0);
                             }
                         }
                     }
@@ -202,12 +227,22 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                             if !recipe.steps.is_empty() && !recipe.steps[step].equipment.is_empty() {
                                 app_state.editing_state = EditingState::Equipment(step, 0);
                                 app_state.equipment_state.selected_field = Wrapping(0);
+                            } else {
+                                //already in ingredient, but equipment is None
+                                app_state.editing_state = EditingState::Recipe;
+                                app_state.recipe_state.selected_field = Wrapping(0);
                             }
                         }
                     }
                     EditingState::Equipment(_, _) if app_state.equipment_state.editing_selected_field.is_none() => {
                         app_state.editing_state = EditingState::Recipe;
+                        app_state.recipe_state.selected_field = Wrapping(0);
                     }
+                    EditingState::SavePrompt(_, _) => match app_state.save_response {
+                        SaveResponse::Yes => app_state.save_response = SaveResponse::Cancel,
+                        SaveResponse::No => app_state.save_response = SaveResponse::Yes,
+                        SaveResponse::Cancel => app_state.save_response = SaveResponse::No,
+                    },
                     _ => {}
                 }
             }
@@ -215,70 +250,14 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                 //TODO: prompt for save
                 app.exit();
             }
-            //TODO: maybe change this to r for recpe?
-            KeyCode::Char('e') => {
-                if app.edit_recipe.is_some() {
-                    match app_state.editing_state {
-                        EditingState::Idle => {
-                            app_state.editing_state = EditingState::Recipe;
-                            app_state.recipe_state.selected_field = Wrapping(0);
-                        }
-                        EditingState::Recipe => {
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            app_state.recipe_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.recipe_state.selected_field.0).unwrap() {
-                                    RecipeFields::Name => Some(RecipeFields::Name),
-                                    RecipeFields::Description => Some(RecipeFields::Description),
-                                    RecipeFields::Comments => Some(RecipeFields::Comments),
-                                    RecipeFields::Source => Some(RecipeFields::Source),
-                                    RecipeFields::Author => Some(RecipeFields::Author),
-                                    RecipeFields::AmountMade => Some(RecipeFields::AmountMade),
-                                };
-                        }
-                        EditingState::Step(_) => {
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            app_state.step_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.step_state.selected_field.0).unwrap() {
-                                    StepFields::TimeNeeded => Some(StepFields::TimeNeeded),
-                                    StepFields::Temperature => Some(StepFields::Temperature),
-                                    StepFields::Instructions => Some(StepFields::Instructions),
-                                    StepFields::StepType => Some(StepFields::StepType),
-                                }
-                        }
-                        EditingState::Ingredient(_, _) => {
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            app_state.ingredient_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.ingredient_state.selected_field.0).unwrap() {
-                                    IngredientFields::Name => Some(IngredientFields::Name),
-                                    IngredientFields::Description => Some(IngredientFields::Description),
-                                }
-                        }
-                        EditingState::Equipment(_, _) => {
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            app_state.equipment_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.equipment_state.selected_field.0).unwrap() {
-                                    EquipmentFields::Name => Some(EquipmentFields::Name),
-                                    EquipmentFields::Description => Some(EquipmentFields::Description),
-                                    EquipmentFields::IsOwned => Some(EquipmentFields::IsOwned),
-                                }
-                        }
-                        EditingState::SavePrompt => {}
-                    }
-                }
-            }
             //KeyCode
             KeyCode::Char(chr) => {
                 if app.edit_recipe.is_some() {
                     match app_state.editing_state {
-                        EditingState::Idle => {}
+                        EditingState::Idle if chr == 'e' || chr == 'i' => {
+                            app_state.editing_state = EditingState::Recipe;
+                            app_state.recipe_state.selected_field = Wrapping(0);
+                        }
                         EditingState::Recipe => {
                             #[allow(clippy::unwrap_used)] // already checking for is_some above
                             match app_state.recipe_state.editing_selected_field {
@@ -305,7 +284,25 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                 Some(RecipeFields::AmountMade) => {
                                     todo!()
                                 }
-                                None => {}
+                                None if chr == 'e' || chr == 'i' => {
+                                    // the use of unwrap should be fine, since the FromPrimitive
+                                    // is being derived automatically on an enum of
+                                    // known size
+                                    app_state.recipe_state.editing_selected_field =
+                                        match FromPrimitive::from_usize(app_state.recipe_state.selected_field.0).unwrap() {
+                                            RecipeFields::Name => Some(RecipeFields::Name),
+                                            RecipeFields::Description => Some(RecipeFields::Description),
+                                            RecipeFields::Comments => Some(RecipeFields::Comments),
+                                            RecipeFields::Source => Some(RecipeFields::Source),
+                                            RecipeFields::Author => Some(RecipeFields::Author),
+                                            RecipeFields::AmountMade => Some(RecipeFields::AmountMade),
+                                        }
+                                }
+                                None if chr == 's' => {
+                                    app.edit_recipe.as_mut().unwrap().steps.push(Step::default());
+                                    //TODO: should the editing state change automatically here?
+                                }
+                                _ => {}
                             };
                         }
                         EditingState::Step(step) => {
@@ -320,7 +317,33 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                     app.edit_recipe.as_mut().unwrap().steps[step].instructions.push(chr)
                                 }
                                 Some(StepFields::StepType) => {} //TODO,
-                                None => {}
+                                None if chr == 'e' || chr == 'i' => {
+                                    // the use of unwrap should be fine, since the FromPrimitive
+                                    // is being derived automatically on an enum of
+                                    // known size
+                                    app_state.step_state.editing_selected_field =
+                                        match FromPrimitive::from_usize(app_state.step_state.selected_field.0).unwrap() {
+                                            StepFields::TimeNeeded => Some(StepFields::TimeNeeded),
+                                            StepFields::Temperature => Some(StepFields::Temperature),
+                                            StepFields::Instructions => Some(StepFields::Instructions),
+                                            StepFields::StepType => Some(StepFields::StepType),
+                                        }
+                                }
+                                //q for eQuipment
+                                None if chr == 'q' => {
+                                    app.edit_recipe.as_mut().unwrap().steps[step]
+                                        .equipment
+                                        .push(Equipment::default());
+                                    //TODO: should the editing state change automatically here?
+                                }
+                                //g for inGredient
+                                None if chr == 'g' => {
+                                    app.edit_recipe.as_mut().unwrap().steps[step]
+                                        .ingredients
+                                        .push(Ingredient::default());
+                                    //TODO: should the editing state change automatically here?
+                                }
+                                _ => {}
                             }
                         }
                         EditingState::Ingredient(step, ingredient) => {
@@ -338,7 +361,17 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                     .as_mut()
                                     .unwrap_or(&mut String::new())
                                     .push(chr),
-                                None => {}
+                                None if chr == 'e' || chr == 'i' => {
+                                    // the use of unwrap should be fine, since the FromPrimitive
+                                    // is being derived automatically on an enum of
+                                    // known size
+                                    app_state.ingredient_state.editing_selected_field =
+                                        match FromPrimitive::from_usize(app_state.ingredient_state.selected_field.0).unwrap() {
+                                            IngredientFields::Name => Some(IngredientFields::Name),
+                                            IngredientFields::Description => Some(IngredientFields::Description),
+                                        }
+                                }
+                                _ => {}
                             }
                         }
                         EditingState::Equipment(step, equip) => {
@@ -356,15 +389,156 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                     .unwrap_or(&mut String::new())
                                     .push(chr),
                                 Some(EquipmentFields::IsOwned) => {} //TODO:
-                                None => {}
+                                None if chr == 'e' || chr == 'i' => {
+                                    // the use of unwrap should be fine, since the FromPrimitive
+                                    // is being derived automatically on an enum of
+                                    // known size
+                                    app_state.equipment_state.editing_selected_field =
+                                        match FromPrimitive::from_usize(app_state.equipment_state.selected_field.0).unwrap() {
+                                            EquipmentFields::Name => Some(EquipmentFields::Name),
+                                            EquipmentFields::Description => Some(EquipmentFields::Description),
+                                            EquipmentFields::IsOwned => Some(EquipmentFields::IsOwned),
+                                        }
+                                }
+                                _ => {}
                             }
                         }
-                        EditingState::SavePrompt => {}
+                        _ => {}
                     }
                 }
             }
-            KeyCode::Backspace => {} //TODO
-            KeyCode::Delete => {}    //TODO
+            KeyCode::Backspace => {
+                if app.edit_recipe.is_some() {
+                    match app_state.editing_state {
+                        EditingState::Recipe => {
+                            #[allow(clippy::unwrap_used)] // already checking for is_some above
+                            match app_state.recipe_state.editing_selected_field {
+                                Some(RecipeFields::Name) => _ = app.edit_recipe.as_mut().unwrap().name.pop(),
+                                //TODO: fix comment and description text entry
+                                Some(RecipeFields::Description) => {
+                                    _ = app
+                                        .edit_recipe
+                                        .as_mut()
+                                        .unwrap()
+                                        .description
+                                        .as_mut()
+                                        .unwrap_or(&mut String::new())
+                                        .pop()
+                                }
+                                Some(RecipeFields::Comments) => {
+                                    _ = app
+                                        .edit_recipe
+                                        .as_mut()
+                                        .unwrap()
+                                        .comments
+                                        .as_mut()
+                                        .unwrap_or(&mut String::new())
+                                        .pop()
+                                }
+                                Some(RecipeFields::Source) => _ = app.edit_recipe.as_mut().unwrap().source.pop(),
+                                Some(RecipeFields::Author) => _ = app.edit_recipe.as_mut().unwrap().author.pop(),
+                                Some(RecipeFields::AmountMade) => {
+                                    todo!()
+                                }
+                                _ => {}
+                            };
+                        }
+                        EditingState::Step(step) => {
+                            #[allow(clippy::unwrap_used)] // already checking for is_some above
+                            match app_state.step_state.editing_selected_field {
+                                //TODO: need to create temp strings then parse numbers from them.
+                                //Also step type
+                                Some(StepFields::TimeNeeded) => {} //TODO: app.edit_recipe.as_mut().steps[step].time_needed,
+                                Some(StepFields::Temperature) => {} //TODO:
+                                //app.edit_recipe.as_mut().steps,
+                                Some(StepFields::Instructions) => {
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].instructions.pop()
+                                }
+                                Some(StepFields::StepType) => {} //TODO,
+                                _ => {}
+                            }
+                        }
+                        EditingState::Ingredient(step, ingredient) => {
+                            // the use of unwrap should be fine, since the FromPrimitive
+                            // is being derived automatically on an enum of
+                            // known size
+                            match app_state.ingredient_state.editing_selected_field {
+                                Some(IngredientFields::Name) => {
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].ingredients[ingredient]
+                                        .name
+                                        .pop()
+                                }
+                                Some(IngredientFields::Description) => {
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].ingredients[ingredient]
+                                        .description
+                                        .as_mut()
+                                        .unwrap_or(&mut String::new())
+                                        .pop()
+                                }
+                                _ => {}
+                            }
+                        }
+                        EditingState::Equipment(step, equip) => {
+                            // the use of unwrap should be fine, since the FromPrimitive
+                            // is being derived automatically on an enum of
+                            // known size
+                            match app_state.equipment_state.editing_selected_field {
+                                Some(EquipmentFields::Name) => {
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].equipment[equip].name.pop()
+                                }
+                                Some(EquipmentFields::Description) => {
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].equipment[equip]
+                                        .description
+                                        .as_mut()
+                                        .unwrap_or(&mut String::new())
+                                        .pop()
+                                }
+                                Some(EquipmentFields::IsOwned) => {} //TODO:
+                                _ => {}
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            } //TODO
+            KeyCode::Delete => {} //TODO
+            KeyCode::Enter => {
+                if app.edit_recipe.is_some() {
+                    #[allow(clippy::single_match)]
+                    match app_state.editing_state {
+                        EditingState::SavePrompt(_, _) => {
+                            match app_state.save_response {
+                                SaveResponse::Yes => {
+                                    app.recipes.sort_unstable_by_key(|k| k.id);
+                                    if app.edit_recipe.is_some() {
+                                        match app
+                                            .recipes
+                                            .binary_search_by_key(&app.edit_recipe.as_ref().unwrap().id, |k| k.id)
+                                        {
+                                            Ok(index) => {
+                                                app.recipes[index] = app.edit_recipe.clone().unwrap();
+                                                app.edit_recipe = None;
+                                            }
+                                            Err(index) => {
+                                                app.recipes.insert(index, app.edit_recipe.clone().unwrap());
+                                                app.edit_recipe = None;
+                                            }
+                                        }
+                                    }
+                                }
+                                SaveResponse::No => {
+                                    app.edit_recipe = None;
+                                }
+                                SaveResponse::Cancel => app_state.editing_state = EditingState::Recipe,
+                            }
+                            app_state.editing_state = EditingState::Idle;
+                            app_state.save_response = SaveResponse::Yes;
+                            app.current_screen = CurrentScreen::RecipeBrowser;
+                        }
+                        _ => {}
+                    }
+                }
+            } //TODO: complete prompt on saveprompt
             _ => {}
         },
     }
