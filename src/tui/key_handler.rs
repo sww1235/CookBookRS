@@ -84,34 +84,57 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         app.current_screen = CurrentScreen::RecipeBrowser;
                     }
                     EditingState::Recipe => {
-                        if app_state.recipe_state.editing_selected_field.is_some() {
-                            app_state.recipe_state.editing_selected_field = None;
-                        } else {
-                            app_state.editing_state = EditingState::Idle;
+                        if app.edit_recipe.is_some() {
+                            if app_state.recipe_state.editing_selected_field.is_some() {
+                                app_state.recipe_state.editing_selected_field = None;
+                            } else {
+                                // recipe is empty
+                                if app.edit_recipe == Some(Recipe::new()) {
+                                    app_state.editing_state = EditingState::Idle;
+                                    app.current_screen = CurrentScreen::RecipeBrowser;
+                                } else {
+                                    app.recipes.sort_unstable_by_key(|r| r.id);
+                                    match app
+                                        .recipes
+                                        .binary_search_by_key(&app.edit_recipe.as_ref().unwrap().id, |r| r.id)
+                                    {
+                                        Ok(index) => {
+                                            // editing_recipe id matches the id of a recipe in recipes
+                                            // Prompt to save
+                                            app_state.editing_state = EditingState::SavePrompt(index, true);
+                                        }
+                                        Err(index) => {
+                                            // editing_recipe id not found in recipes
+                                            // Prompt to save
+                                            app_state.editing_state = EditingState::SavePrompt(index, false);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     EditingState::Step(_) => {
                         if app_state.step_state.editing_selected_field.is_some() {
                             app_state.step_state.editing_selected_field = None;
                         } else {
-                            app_state.editing_state = EditingState::Idle;
+                            app_state.editing_state = EditingState::Recipe;
                         }
                     }
                     EditingState::Ingredient(_, _) => {
                         if app_state.ingredient_state.editing_selected_field.is_some() {
                             app_state.ingredient_state.editing_selected_field = None;
                         } else {
-                            app_state.editing_state = EditingState::Idle;
+                            app_state.editing_state = EditingState::Recipe;
                         }
                     }
                     EditingState::Equipment(_, _) => {
                         if app_state.equipment_state.editing_selected_field.is_some() {
                             app_state.equipment_state.editing_selected_field = None;
                         } else {
-                            app_state.editing_state = EditingState::Idle;
+                            app_state.editing_state = EditingState::Recipe;
                         }
                     }
-                    EditingState::SavePrompt => {}
+                    EditingState::SavePrompt(_, _) => {}
                 }
             }
             KeyCode::Left => match app_state.editing_state {

@@ -99,6 +99,7 @@ impl App {
     pub fn load_recipes_from_directory(&mut self, dir: path::PathBuf) -> Result<(), io::Error> {
         if dir.as_path().is_dir() {
             Self::load_recipes_from_directory_inner(dir, &mut self.recipes)?;
+            self.recipes.sort_unstable_by_key(|r| r.id);
             Ok(())
         } else {
             Err(io::Error::new(

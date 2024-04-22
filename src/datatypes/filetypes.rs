@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Recipe {
     /// database ID
-    pub id: u64,
+    pub id: Option<u64>,
     /// short name of recipe
     pub name: String,
     /// optional description

@@ -21,7 +21,7 @@ use ratatui::{style::Stylize, widgets::Widget};
 pub struct Recipe {
     /// database ID
     #[cookbook(skip)]
-    pub id: u64,
+    pub id: Option<u64>,
     /// short name of recipe
     #[cookbook(display_order = 0)]
     #[cookbook(constraint_type = "Length")]
@@ -94,7 +94,7 @@ impl Recipe {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            id: u64::MIN,
+            id: None,
             name: String::default(),
             description: None,
             comments: None,
