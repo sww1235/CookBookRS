@@ -114,7 +114,6 @@ impl Recipe {
 
     /// `step_time_totals` provides the time required for each type of step as a `HashMap`
     #[must_use]
-    #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
     pub fn step_time_totals(&self) -> HashMap<StepType, Option<ucum::Second<f64>>> {
         let mut out_map: HashMap<StepType, Option<ucum::Second<f64>>> = HashMap::new();
         for step in &self.steps {
@@ -129,7 +128,6 @@ impl Recipe {
     }
     /// `total_time` returns the total time required for a recipe
     #[must_use]
-    #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
     pub fn total_time(&self) -> ucum::Second<f64> {
         let mut time = 0.0_f64 * ucum::S;
         for step in &self.steps {
@@ -141,7 +139,6 @@ impl Recipe {
     #[must_use]
     pub fn ingredient_list(&self) -> HashMap<String, Ingredient> {
         let mut out: HashMap<String, Ingredient> = HashMap::new();
-        #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
         for step in &self.steps {
             for ingredient in &step.ingredients {
                 if let Some(i) = out.get_mut(&ingredient.name) {
