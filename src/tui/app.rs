@@ -304,6 +304,8 @@ impl StatefulWidgetRef for App {
                 let tag_list = List::new(tag_list_items).block(Block::default().borders(Borders::ALL).title("Tag List"));
                 state.tag_list_len = tag_list.len();
                 StatefulWidget::render(tag_list, tag_list_area, buf, &mut state.tag_list_state);
+                //TODO: change this rendering to print list of steps with ingredients/equipment at
+                //the top
                 if !self.recipes.is_empty() {
                     WidgetRef::render_ref(
                         &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
@@ -479,11 +481,11 @@ impl StatefulWidgetRef for App {
                             Style::default().white(),
                         )));
                         // up/down arrows
-                        editor_nav_lines.push(Line::from(Span::styled(
-                            "\u{2194}: cycle between steps/equipment entries",
-                            Style::default().white(),
-                        )));
-                        editor_nav_lines.push(Line::from(Span::styled("s: insert new step", Style::default().white())));
+                        //editor_nav_lines.push(Line::from(Span::styled(
+                        //    "\u{2194}: cycle between steps/equipment entries",
+                        //    Style::default().white(),
+                        //)));
+                        editor_nav_lines.push(Line::from(Span::styled("s: insert new Step", Style::default().white())));
                         current_nav_text.extend(editor_nav_lines);
                     }
                     EditingState::Step(_) => {

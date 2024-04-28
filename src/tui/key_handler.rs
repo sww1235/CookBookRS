@@ -23,10 +23,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
         //TODO: show/hide tag browser
         CurrentScreen::RecipeBrowser => match key_event.code {
             KeyCode::Char('q') => app.exit(),
-            KeyCode::Char('c' | 'C') => {
-                if key_event.modifiers == KeyModifiers::CONTROL {
-                    app.exit();
-                }
+            KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => {
+                app.exit();
             }
             KeyCode::Char('n') => {
                 // create new recipe and start editing it
@@ -56,11 +54,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
         },
         CurrentScreen::RecipeViewer => match key_event.code {
             KeyCode::Esc => app.current_screen = CurrentScreen::RecipeBrowser,
-            KeyCode::Char('c' | 'C') => {
-                if key_event.modifiers == KeyModifiers::CONTROL {
-                    //TODO: prompt for save
-                    app.exit();
-                }
+            KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => {
+                app.exit();
             }
             _ => {}
         },
@@ -80,7 +75,6 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             KeyCode::Esc => {
                 match app_state.editing_state {
                     EditingState::Idle => {
-                        //TODO: prompt for save
                         app.current_screen = CurrentScreen::RecipeBrowser;
                     }
                     EditingState::Recipe => {

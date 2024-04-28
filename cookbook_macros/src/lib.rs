@@ -318,7 +318,6 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                         let Lit::Str(ref lit_str) = lit.lit else {
                                             return Err(inner_meta.error("The `cookbook(left_field_title)` attribute must be set equal to an string"));
                                         };
-                                        //TODO: perform validation here
                                         left_lower_field_title = Some(lit_str.value());
                                         Ok(())
                                     }
@@ -336,7 +335,6 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                         let Lit::Str(ref lit_str) = lit.lit else {
                                             return Err(inner_meta.error("The `cookbook(right_field_title)` attribute must be set equal to an string"));
                                         };
-                                        //TODO: perform validation here
                                         right_lower_field_title = Some(lit_str.value());
                                         Ok(())
                                     }
