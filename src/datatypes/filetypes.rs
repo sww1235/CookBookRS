@@ -1,3 +1,6 @@
+use super::{equipment, ingredient, recipe, step};
+
+use dimensioned::{ucum, Dimensionless};
 use serde::{Deserialize, Serialize};
 
 /// `Recipe` represents one recipe from start to finish
@@ -57,9 +60,6 @@ pub struct Ingredient {
     /// optional description
     pub description: Option<String>,
     /// quantity of ingredient
-    pub quantity: f64,
-    //TODO: maybe change this to an enum?
-    /// unit of ingredient as a text string
     pub unit_quantity: UnitType,
     //TODO: inventory reference
 }
@@ -121,4 +121,78 @@ pub enum StepType {
     /// Other steps
     #[default]
     Other,
+}
+
+impl From<recipe::Recipe> for Recipe {
+    fn from(input: recipe::Recipe) -> Self {
+        Self {
+            id: input.id,
+            name: input.name,
+            description: input.description,
+            comments: input.comments,
+            source: input.source,
+            author: input.author,
+            amount_made: input.amount_made.quantity,
+            amount_made_units: input.amount_made.units,
+            steps: input.steps.into_iter().map(Into::into).collect(),
+            tags: input.tags,
+        }
+    }
+}
+
+impl From<step::Step> for Step {
+    fn from(input: step::Step) -> Self {
+        Self {
+            id: input.id,
+            time_needed: input.time_needed.map(|tn| *(tn / ucum::S).value()),
+            temperature: input.temperature.map(|t| *(t / ucum::K).value()),
+            instructions: input.instructions,
+            ingredients: input.ingredients.into_iter().map(Into::into).collect(),
+            equipment: input.equipment.into_iter().map(Into::into).collect(),
+            step_type: input.step_type.into(),
+        }
+    }
+}
+
+impl From<step::StepType> for StepType {
+    fn from(input: step::StepType) -> Self {
+        match input {
+            step::StepType::Prep => Self::Prep,
+            step::StepType::Cook => Self::Cook,
+            step::StepType::Wait => Self::Wait,
+            step::StepType::Other => Self::Other,
+        }
+    }
+}
+
+impl From<equipment::Equipment> for Equipment {
+    fn from(input: equipment::Equipment) -> Self {
+        Self {
+            id: input.id,
+            name: input.name,
+            description: input.description,
+            is_owned: input.is_owned,
+        }
+    }
+}
+
+impl From<ingredient::Ingredient> for Ingredient {
+    fn from(input: ingredient::Ingredient) -> Self {
+        Self {
+            id: input.id,
+            name: input.name,
+            description: input.description,
+            unit_quantity: input.unit_quantity.into(),
+        }
+    }
+}
+
+impl From<ingredient::UnitType> for UnitType {
+    fn from(input: ingredient::UnitType) -> Self {
+        match input {
+            ingredient::UnitType::Quantity(q) => Self::Quantity(q),
+            ingredient::UnitType::Mass(m) => Self::Mass(*(m / ucum::G).value()),
+            ingredient::UnitType::Volume(v) => Self::Volume(*(v / ucum::M3).value()),
+        }
+    }
 }
