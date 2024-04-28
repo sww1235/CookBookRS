@@ -38,6 +38,7 @@ use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token, Type};
 
 use std::collections::BTreeMap;
+use std::num::Saturating;
 
 ///[`stateful_widget_ref_derive`] is the outer derive function for the [`StatefulWidgetRef`]
 ///trait on structs with named fields.
@@ -54,9 +55,8 @@ pub fn widget_ref_derive(input: TokenStream) -> TokenStream {
     expand(input, false).unwrap_or_else(syn::Error::into_compile_error).into()
 }
 
-// TODO: maybe fix this
 /// Implementation of [`StatefulWidget`] derive
-#[allow(clippy::arithmetic_side_effects, clippy::too_many_lines)]
+#[allow(clippy::too_many_lines)]
 fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
     let fields = match input.data {
         Data::Struct(DataStruct {
@@ -79,7 +79,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
     let mut len_check_fn_code = TokenStream2::new();
     let field_enum_name = format_ident!("{}Fields", struct_name);
 
-    let mut total_field_height: u16 = 0;
+    let mut total_field_height: Saturating<u16> = Saturating(0);
     let mut left_field = None;
     let mut right_field = None;
     let mut left_lower_field_title: Option<String> = None;
@@ -571,6 +571,8 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
 
     let field_enum_mapping_code_values: Vec<TokenStream2> = field_enum_mapping_code.values().cloned().collect();
 
+    let total_field_height_value = total_field_height.0;
+
     let inner_fn_code = quote! {
 
         #len_check_fn_code
@@ -580,7 +582,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
         //function if too many fields
 
         let mut constraints = Vec::new();
-        if area.height >= #total_field_height {
+        if area.height >= #total_field_height_value {
             // output constraint vector pushes
            #(#constraint_code_values)*
         } else {

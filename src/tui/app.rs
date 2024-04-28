@@ -20,6 +20,7 @@ use ratatui::{
 
 use std::fs;
 use std::io;
+use std::num::Saturating;
 use std::path;
 
 /// main application struct
@@ -65,11 +66,11 @@ pub enum EditingState {
     /// Editing recipe
     Recipe,
     /// Editing step, first value is step index
-    Step(usize),
+    Step(Saturating<usize>),
     /// Editing ingredient, first value is step index, second value is ingredient index within step
-    Ingredient(usize, usize),
+    Ingredient(Saturating<usize>, Saturating<usize>),
     /// Editing equipment, first value is step index, second value is equipment index within step
-    Equipment(usize, usize),
+    Equipment(Saturating<usize>, Saturating<usize>),
     ///Save Prompt, first value is index to insert into recipes, second value is if the recipe was
     ///found or not
     SavePrompt(usize, bool),
@@ -352,11 +353,11 @@ impl StatefulWidgetRef for App {
                 match state.editing_state {
                     EditingState::Recipe => StatefulWidgetRef::render_ref(*recipe, recipe_area, buf, &mut state.recipe_state),
                     EditingState::Step(step_num) => {
-                        StatefulWidgetRef::render_ref(&recipe.steps[step_num], recipe_area, buf, &mut state.step_state);
+                        StatefulWidgetRef::render_ref(&recipe.steps[step_num.0], recipe_area, buf, &mut state.step_state);
                     }
                     EditingState::Ingredient(step_num, ingredient_num) => {
                         StatefulWidgetRef::render_ref(
-                            &recipe.steps[step_num].ingredients[ingredient_num],
+                            &recipe.steps[step_num.0].ingredients[ingredient_num.0],
                             recipe_area,
                             buf,
                             &mut state.ingredient_state,
@@ -364,7 +365,7 @@ impl StatefulWidgetRef for App {
                     }
                     EditingState::Equipment(step_num, equipment_num) => {
                         StatefulWidgetRef::render_ref(
-                            &recipe.steps[step_num].equipment[equipment_num],
+                            &recipe.steps[step_num.0].equipment[equipment_num.0],
                             recipe_area,
                             buf,
                             &mut state.equipment_state,

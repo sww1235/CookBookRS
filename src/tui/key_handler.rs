@@ -8,7 +8,7 @@ use crate::{
     tui::app::{App, AppState, CurrentScreen, EditingState, SaveResponse},
 };
 
-use std::num::Wrapping;
+use std::num::{Saturating, Wrapping};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use num_traits::FromPrimitive;
@@ -137,23 +137,62 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     EditingState::SavePrompt(_, _) => {}
                 }
             }
-            //TODO: use shift to select different steps/ingredients/equipment
+            // only scroll fields if a field is not selected
             KeyCode::Up => match app_state.editing_state {
+                // editing main recipe part
                 EditingState::Recipe if app_state.recipe_state.editing_selected_field.is_none() => {
                     app_state.recipe_state.selected_field -= Wrapping(1);
                     app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
                 }
-                EditingState::Step(_) if app_state.step_state.editing_selected_field.is_none() => {
+                // select field in current step
+                EditingState::Step(_)
+                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::NONE =>
+                {
                     app_state.step_state.selected_field -= Wrapping(1);
                     app_state.step_state.selected_field %= app_state.step_state.num_fields;
                 }
-                EditingState::Ingredient(_, _) if app_state.ingredient_state.editing_selected_field.is_none() => {
+                // change selected step
+                EditingState::Step(step_num)
+                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::SHIFT =>
+                {
+                    app_state.step_state.selected_field = Wrapping(0);
+                    let selected_step = (step_num - Saturating(1)) % Saturating(app_state.step_state.num_fields);
+                    app_state.editing_state = EditingState::Step(selected_step);
+                }
+                // select field in current ingredient
+                EditingState::Ingredient(_, _)
+                    if app_state.ingredient_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::NONE =>
+                {
                     app_state.ingredient_state.selected_field -= Wrapping(1);
                     app_state.ingredient_state.selected_field %= app_state.ingredient_state.num_fields;
                 }
-                EditingState::Equipment(_, _) if app_state.equipment_state.editing_selected_field.is_none() => {
+                // change selected ingredient
+                EditingState::Ingredient(step_num, ingredient_num)
+                    if app_state.ingredient_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::SHIFT =>
+                {
+                    app_state.ingredient_state.selected_field = Wrapping(0);
+                    let selected_ingredient =
+                        (ingredient_num - Saturating(1)) % Saturating(app_state.ingredient_state.num_fields);
+                    app_state.editing_state = EditingState::Ingredient(step_num, selected_ingredient);
+                }
+                // select field in current equipment
+                EditingState::Equipment(_, _)
+                    if app_state.equipment_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::NONE =>
+                {
                     app_state.equipment_state.selected_field -= Wrapping(1);
                     app_state.equipment_state.selected_field %= app_state.equipment_state.num_fields;
+                }
+                // change selected equipment
+                EditingState::Equipment(step_num, equipment_num)
+                    if app_state.equipment_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::SHIFT =>
+                {
+                    app_state.equipment_state.selected_field = Wrapping(0);
+                    let selected_equipment = (equipment_num - Saturating(1)) & Saturating(app_state.equipment_state.num_fields);
+                    app_state.editing_state = EditingState::Equipment(step_num, selected_equipment);
                 }
                 _ => {}
             },
@@ -162,17 +201,65 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     app_state.recipe_state.selected_field += Wrapping(1);
                     app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
                 }
-                EditingState::Step(_) if app_state.step_state.editing_selected_field.is_none() => {
+                // select field in current step
+                EditingState::Step(_)
+                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::NONE =>
+                {
                     app_state.step_state.selected_field += Wrapping(1);
                     app_state.step_state.selected_field %= app_state.step_state.num_fields;
                 }
-                EditingState::Ingredient(_, _) if app_state.ingredient_state.editing_selected_field.is_none() => {
+                // change selected step
+                EditingState::Step(step_num)
+                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::SHIFT =>
+                {
+                    app_state.step_state.selected_field = Wrapping(0);
+                    let mut selected_step = (step_num + Saturating(1)) % Saturating(app_state.step_state.num_fields);
+                    if selected_step > Saturating(app_state.step_state.num_fields) {
+                        selected_step = Saturating(app_state.step_state.num_fields);
+                    }
+                    app_state.editing_state = EditingState::Step(selected_step);
+                }
+                // select field in current ingredient
+                EditingState::Ingredient(_, _)
+                    if app_state.ingredient_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::NONE =>
+                {
                     app_state.ingredient_state.selected_field += Wrapping(1);
                     app_state.ingredient_state.selected_field %= app_state.ingredient_state.num_fields;
                 }
-                EditingState::Equipment(_, _) if app_state.equipment_state.editing_selected_field.is_none() => {
+                // change selected ingredient
+                EditingState::Ingredient(step_num, ingredient_num)
+                    if app_state.ingredient_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::SHIFT =>
+                {
+                    app_state.ingredient_state.selected_field = Wrapping(0);
+                    let mut selected_ingredient =
+                        (ingredient_num + Saturating(1)) % Saturating(app_state.ingredient_state.num_fields);
+                    if selected_ingredient > Saturating(app_state.ingredient_state.num_fields) {
+                        selected_ingredient = Saturating(app_state.ingredient_state.num_fields);
+                    }
+                    app_state.editing_state = EditingState::Ingredient(step_num, selected_ingredient);
+                }
+                // select field in current equipment
+                EditingState::Equipment(_, _)
+                    if app_state.equipment_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::NONE =>
+                {
                     app_state.equipment_state.selected_field += Wrapping(1);
                     app_state.equipment_state.selected_field %= app_state.equipment_state.num_fields;
+                }
+                // change selected equipment
+                EditingState::Equipment(step_num, equipment_num)
+                    if app_state.equipment_state.editing_selected_field.is_none()
+                        && key_event.modifiers == KeyModifiers::SHIFT =>
+                {
+                    app_state.equipment_state.selected_field = Wrapping(0);
+                    let mut selected_equipment =
+                        (equipment_num + Saturating(1)) % Saturating(app_state.equipment_state.num_fields);
+                    if selected_equipment > Saturating(app_state.equipment_state.num_fields) {
+                        selected_equipment = Saturating(app_state.equipment_state.num_fields);
+                    }
+                    app_state.editing_state = EditingState::Equipment(step_num, selected_equipment);
                 }
                 _ => {}
             },
@@ -202,7 +289,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     EditingState::Recipe if app_state.recipe_state.editing_selected_field.is_none() => {
                         if let Some(recipe) = &app.edit_recipe {
                             if !recipe.steps.is_empty() {
-                                app_state.editing_state = EditingState::Step(0);
+                                app_state.editing_state = EditingState::Step(Saturating(0));
                                 app_state.step_state.selected_field = Wrapping(0);
                             }
                             //TODO: display an error if there are no steps defined
@@ -211,8 +298,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     EditingState::Step(step) if app_state.step_state.editing_selected_field.is_none() => {
                         //TODO: check if step is even an index of the vector
                         if let Some(recipe) = &app.edit_recipe {
-                            if !recipe.steps.is_empty() && !recipe.steps[step].ingredients.is_empty() {
-                                app_state.editing_state = EditingState::Ingredient(step, 0);
+                            if !recipe.steps.is_empty() && !recipe.steps[step.0].ingredients.is_empty() {
+                                app_state.editing_state = EditingState::Ingredient(step, Saturating(0));
                                 app_state.ingredient_state.selected_field = Wrapping(0);
                             } else {
                                 //already in step, but ingredient is None
@@ -224,8 +311,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     EditingState::Ingredient(step, _) if app_state.ingredient_state.editing_selected_field.is_none() => {
                         //TODO: check if step is even an index of the vector
                         if let Some(recipe) = &app.edit_recipe {
-                            if !recipe.steps.is_empty() && !recipe.steps[step].equipment.is_empty() {
-                                app_state.editing_state = EditingState::Equipment(step, 0);
+                            if !recipe.steps.is_empty() && !recipe.steps[step.0].equipment.is_empty() {
+                                app_state.editing_state = EditingState::Equipment(step, Saturating(0));
                                 app_state.equipment_state.selected_field = Wrapping(0);
                             } else {
                                 //already in ingredient, but equipment is None
@@ -314,7 +401,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                 Some(StepFields::Temperature) => {} //TODO:
                                 //app.edit_recipe.as_mut().steps,
                                 Some(StepFields::Instructions) => {
-                                    app.edit_recipe.as_mut().unwrap().steps[step].instructions.push(chr)
+                                    app.edit_recipe.as_mut().unwrap().steps[step.0].instructions.push(chr)
                                 }
                                 Some(StepFields::StepType) => {} //TODO,
                                 None if chr == 'e' || chr == 'i' => {
@@ -331,14 +418,14 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                 }
                                 //q for eQuipment
                                 None if chr == 'q' => {
-                                    app.edit_recipe.as_mut().unwrap().steps[step]
+                                    app.edit_recipe.as_mut().unwrap().steps[step.0]
                                         .equipment
                                         .push(Equipment::default());
                                     //TODO: should the editing state change automatically here?
                                 }
                                 //g for inGredient
                                 None if chr == 'g' => {
-                                    app.edit_recipe.as_mut().unwrap().steps[step]
+                                    app.edit_recipe.as_mut().unwrap().steps[step.0]
                                         .ingredients
                                         .push(Ingredient::default());
                                     //TODO: should the editing state change automatically here?
@@ -351,12 +438,12 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                             // is being derived automatically on an enum of
                             // known size
                             match app_state.ingredient_state.editing_selected_field {
-                                Some(IngredientFields::Name) => app.edit_recipe.as_mut().unwrap().steps[step].ingredients
-                                    [ingredient]
+                                Some(IngredientFields::Name) => app.edit_recipe.as_mut().unwrap().steps[step.0].ingredients
+                                    [ingredient.0]
                                     .name
                                     .push(chr),
-                                Some(IngredientFields::Description) => app.edit_recipe.as_mut().unwrap().steps[step].ingredients
-                                    [ingredient]
+                                Some(IngredientFields::Description) => app.edit_recipe.as_mut().unwrap().steps[step.0]
+                                    .ingredients[ingredient.0]
                                     .description
                                     .as_mut()
                                     .unwrap_or(&mut String::new())
@@ -379,11 +466,11 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                             // is being derived automatically on an enum of
                             // known size
                             match app_state.equipment_state.editing_selected_field {
-                                Some(EquipmentFields::Name) => {
-                                    app.edit_recipe.as_mut().unwrap().steps[step].equipment[equip].name.push(chr)
-                                }
-                                Some(EquipmentFields::Description) => app.edit_recipe.as_mut().unwrap().steps[step].equipment
-                                    [equip]
+                                Some(EquipmentFields::Name) => app.edit_recipe.as_mut().unwrap().steps[step.0].equipment[equip.0]
+                                    .name
+                                    .push(chr),
+                                Some(EquipmentFields::Description) => app.edit_recipe.as_mut().unwrap().steps[step.0].equipment
+                                    [equip.0]
                                     .description
                                     .as_mut()
                                     .unwrap_or(&mut String::new())
@@ -452,7 +539,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                 Some(StepFields::Temperature) => {} //TODO:
                                 //app.edit_recipe.as_mut().steps,
                                 Some(StepFields::Instructions) => {
-                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].instructions.pop()
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step.0].instructions.pop()
                                 }
                                 Some(StepFields::StepType) => {} //TODO,
                                 _ => {}
@@ -464,12 +551,12 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                             // known size
                             match app_state.ingredient_state.editing_selected_field {
                                 Some(IngredientFields::Name) => {
-                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].ingredients[ingredient]
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step.0].ingredients[ingredient.0]
                                         .name
                                         .pop()
                                 }
                                 Some(IngredientFields::Description) => {
-                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].ingredients[ingredient]
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step.0].ingredients[ingredient.0]
                                         .description
                                         .as_mut()
                                         .unwrap_or(&mut String::new())
@@ -484,10 +571,10 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                             // known size
                             match app_state.equipment_state.editing_selected_field {
                                 Some(EquipmentFields::Name) => {
-                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].equipment[equip].name.pop()
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step.0].equipment[equip.0].name.pop()
                                 }
                                 Some(EquipmentFields::Description) => {
-                                    _ = app.edit_recipe.as_mut().unwrap().steps[step].equipment[equip]
+                                    _ = app.edit_recipe.as_mut().unwrap().steps[step.0].equipment[equip.0]
                                         .description
                                         .as_mut()
                                         .unwrap_or(&mut String::new())
