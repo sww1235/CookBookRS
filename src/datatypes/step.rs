@@ -35,11 +35,11 @@ pub struct Step {
     pub instructions: String,
     /// ingredients used in this step
     #[cookbook(left_field)]
-    #[cookbook(field_title = "Number Of Ingredients")]
+    #[cookbook(left_field_title = "Number Of Ingredients")]
     pub ingredients: Vec<Ingredient>,
     /// equipment used in this step
     #[cookbook(right_field)]
-    #[cookbook(field_title = "Equipment count")]
+    #[cookbook(right_field_title = "Equipment count")]
     pub equipment: Vec<Equipment>,
     /// Step type
     #[cookbook(display_order = 3)]

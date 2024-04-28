@@ -60,7 +60,7 @@ pub struct Recipe {
     pub amount_made: AmountMade,
     /// list of steps in recipe
     #[cookbook(left_field)]
-    #[cookbook(field_title = "Number Of Steps")]
+    #[cookbook(left_field_title = "Number Of Steps")]
     pub steps: Vec<Step>,
     /// list of tags on recipe
     #[cookbook(skip)]

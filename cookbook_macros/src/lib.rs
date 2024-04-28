@@ -82,7 +82,8 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
     let mut total_field_height: u16 = 0;
     let mut left_field = None;
     let mut right_field = None;
-    let mut lower_field_title: Option<String> = None;
+    let mut left_lower_field_title: Option<String> = None;
+    let mut right_lower_field_title: Option<String> = None;
 
     let mut state_struct = String::new();
     //This is checking outer attributes on struct, not on fields
@@ -272,12 +273,12 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                 if left_field.is_some() {
                                     return Err(syn::Error::new_spanned(
                                         f,
-                                        "The `cookbooK(left_field)` attribute was specified more than once. It must only be specified on one field",
+                                        "The `cookbook(left_field)` attribute was specified more than once. It must only be specified on one field",
                                     ));
                                 }
                                 if inner_meta.value().is_err() {
                                     left_field = Some(field_name.clone());
-
+                                    left_lower_field_title = Some("no_field_title_specified".to_string());
                                     bottom_field = true;
                                     Ok(())
                                 } else {
@@ -304,25 +305,43 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                     bottom_field = true;
                                     Ok(())
                                 } else {
-                                    return Err(inner_meta.error("The `cookboo(right_field)` attribute must not be called with a value"));
+                                    return Err(inner_meta.error("The `cookbook(right_field)` attribute must not be called with a value"));
                                 }
-                            } else if inner_meta.path.is_ident("field_title") {
+                            } else if inner_meta.path.is_ident("left_field_title") {
                                 match inner_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
-                                            return Err(inner_meta.error("The `cookbook(field_title)` attribute must be set equal to a literal value"));
+                                            return Err(inner_meta.error("The `cookbook(left_field_title)` attribute must be set equal to a literal value"));
                                         };
                                         let Lit::Str(ref lit_str) = lit.lit else {
-                                            return Err(inner_meta.error("The `cookbook(field_title)` attribute must be set equal to an string"));
+                                            return Err(inner_meta.error("The `cookbook(left_field_title)` attribute must be set equal to an string"));
                                         };
                                         //TODO: perform validation here
-                                        lower_field_title = Some(lit_str.value());
+                                        left_lower_field_title = Some(lit_str.value());
                                         Ok(())
                                     }
 
-                                    Err(_) => Err(inner_meta.error("The `cookbook(field_title)` attribute must be called as a NameValue attribute type")),
+                                    Err(_) => Err(inner_meta.error("The `cookbook(left_field_title)` attribute must be called as a NameValue attribute type")),
+                                }
+                            } else if inner_meta.path.is_ident("right_field_title") {
+                                match inner_meta.value() {
+                                    Ok(value) => {
+                                        //TODO: refactor to use if-let chains once they are
+                                        //stablized
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(inner_meta.error("The `cookbook(right_field_title)` attribute must be set equal to a literal value"));
+                                        };
+                                        let Lit::Str(ref lit_str) = lit.lit else {
+                                            return Err(inner_meta.error("The `cookbook(right_field_title)` attribute must be set equal to an string"));
+                                        };
+                                        //TODO: perform validation here
+                                        right_lower_field_title = Some(lit_str.value());
+                                        Ok(())
+                                    }
+
+                                    Err(_) => Err(inner_meta.error("The `cookbook(right_field_title)` attribute must be called as a NameValue attribute type")),
                                 }
                             } else {
                                 //continue;
@@ -474,7 +493,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
     //TODO: allow an alternate method of specifing left/right field values so you can do things like
     //display `step_id`
     let left_field_content = if let Some(field_name) = &left_field {
-        if let Some(lower_field_title) = &lower_field_title {
+        if let Some(lower_field_title) = &left_lower_field_title {
             if lower_field_title.is_empty() {
                 return Err(syn::Error::new_spanned(
                     left_field,
@@ -509,7 +528,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
         }
     };
     let right_field_content = if let Some(field_name) = &right_field {
-        if let Some(lower_field_title) = &lower_field_title {
+        if let Some(lower_field_title) = &right_lower_field_title {
             if lower_field_title.is_empty() {
                 return Err(syn::Error::new_spanned(
                     right_field,
