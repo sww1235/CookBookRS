@@ -12,6 +12,8 @@ use std::time::Duration;
 use clap::Parser;
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
+//
+//TODO: maybe use libgit2 for version management?
 
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
