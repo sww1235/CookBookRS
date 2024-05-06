@@ -34,7 +34,7 @@ log = "~0"
 ratatui = {version = "~0.26", features = ["unstable-widget-ref"] }
 serde = { version = "~1", features = ["derive"] }
 toml = "~0"
-simple_logger = "~4"
+simple_logger = "~5"
 strum = {version = "~0.26", features = ["derive"] }
 cookbook_macros = {path="cookbook_macros"}
 num-derive = "~0.4"
