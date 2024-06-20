@@ -1,4 +1,5 @@
-use super::filetypes;
+use std::num::Wrapping;
+use std::ops::{Add, AddAssign};
 
 use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -6,8 +7,7 @@ use ratatui::{style::Stylize, widgets::Widget};
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
-use std::num::Wrapping;
-use std::ops::{Add, AddAssign};
+use super::filetypes;
 
 //let unit_block = Block::default()
 //    .borders(Borders::ALL)

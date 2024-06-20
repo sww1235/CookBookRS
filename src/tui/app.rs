@@ -1,11 +1,7 @@
-use crate::datatypes::{
-    equipment::EquipmentState,
-    filetypes,
-    ingredient::IngredientState,
-    recipe::{Recipe, RecipeState},
-    step::StepState,
-    tag::Tag,
-};
+use std::fs;
+use std::io;
+use std::num::Saturating;
+use std::path::PathBuf;
 
 use ratatui::{
     buffer::Buffer,
@@ -18,10 +14,14 @@ use ratatui::{
     },
 };
 
-use std::fs;
-use std::io;
-use std::num::Saturating;
-use std::path::PathBuf;
+use crate::datatypes::{
+    equipment::EquipmentState,
+    filetypes,
+    ingredient::IngredientState,
+    recipe::{Recipe, RecipeState},
+    step::StepState,
+    tag::Tag,
+};
 
 /// main application struct
 #[derive(Debug, Default, PartialEq)]

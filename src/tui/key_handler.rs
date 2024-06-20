@@ -1,3 +1,8 @@
+use std::num::{Saturating, Wrapping};
+
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use num_traits::FromPrimitive;
+
 use crate::{
     datatypes::{
         equipment::{Equipment, EquipmentFields},
@@ -7,11 +12,6 @@ use crate::{
     },
     tui::app::{App, AppState, CurrentScreen, EditingState, SaveResponse},
 };
-
-use std::num::{Saturating, Wrapping};
-
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use num_traits::FromPrimitive;
 
 /// `handle_key_event` handles all `KeyEvent`s
 pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: KeyEvent) {

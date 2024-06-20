@@ -1,11 +1,11 @@
-use super::filetypes;
-
-use cookbook_macros::{StatefulWidgetRef, WidgetRef};
+use std::num::Wrapping;
 
 use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
 
-use std::num::Wrapping;
+use cookbook_macros::{StatefulWidgetRef, WidgetRef};
+
+use super::filetypes;
 
 /// `Equipment` represents any implement you might use to prepare a recipe,
 /// from a stove, to a microwave, to a stand mixer, to a potato peeler

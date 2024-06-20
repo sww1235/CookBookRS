@@ -1,7 +1,7 @@
-use super::{equipment, ingredient, recipe, step};
-
 use dimensioned::{ucum, Dimensionless};
 use serde::{Deserialize, Serialize};
+
+use super::{equipment, ingredient, recipe, step};
 
 /// `Recipe` represents one recipe from start to finish
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

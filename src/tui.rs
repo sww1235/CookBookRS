@@ -15,7 +15,6 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-
 use ratatui::{backend::Backend, prelude::CrosstermBackend, widgets::StatefulWidgetRef, Terminal};
 
 // based on the ratatui [simple

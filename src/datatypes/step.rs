@@ -1,13 +1,13 @@
-use super::{equipment::Equipment, filetypes, ingredient::Ingredient};
-
-use cookbook_macros::{StatefulWidgetRef, WidgetRef};
-
 use std::fmt;
 use std::num::Wrapping;
 
 use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
+
+use cookbook_macros::{StatefulWidgetRef, WidgetRef};
+
+use super::{equipment::Equipment, filetypes, ingredient::Ingredient};
 
 /// `Step` represents a discrete step within a recipe
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]

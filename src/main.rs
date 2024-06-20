@@ -1,15 +1,15 @@
 //! cookbook TODO: add more documentation
 
+use std::path::PathBuf;
+use std::time::Duration;
+
+use clap::Parser;
+
 use cookbook_core::tui::{
     app::{App, AppState},
     event::{Event, EventHandler},
     key_handler, Error, Tui,
 };
-
-use std::path::PathBuf;
-use std::time::Duration;
-
-use clap::Parser;
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
 //
