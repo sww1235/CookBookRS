@@ -365,6 +365,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                 Some(RecipeFields::AmountMade) => {
                                     todo!()
                                 }
+                                // edit selected field
                                 None if chr == 'e' || chr == 'i' => {
                                     // the use of unwrap should be fine, since the FromPrimitive
                                     // is being derived automatically on an enum of
@@ -379,9 +380,11 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                             RecipeFields::AmountMade => Some(RecipeFields::AmountMade),
                                         }
                                 }
+                                // insert empty step into recipe
                                 None if chr == 's' => {
                                     app.edit_recipe.as_mut().unwrap().steps.push(Step::default());
-                                    //TODO: should the editing state change automatically here?
+                                    // do not change to display newly inserted step as multiple
+                                    // steps may be inserted at once.
                                 }
                                 _ => {}
                             };
@@ -398,6 +401,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                     app.edit_recipe.as_mut().unwrap().steps[step.0].instructions.push(chr)
                                 }
                                 Some(StepFields::StepType) => {} //TODO,
+
+                                // editing selected field
                                 None if chr == 'e' || chr == 'i' => {
                                     // the use of unwrap should be fine, since the FromPrimitive
                                     // is being derived automatically on an enum of
@@ -410,19 +415,23 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                             StepFields::StepType => Some(StepFields::StepType),
                                         }
                                 }
+                                // Insert new equipment into step
                                 //q for eQuipment
                                 None if chr == 'q' => {
                                     app.edit_recipe.as_mut().unwrap().steps[step.0]
                                         .equipment
                                         .push(Equipment::default());
-                                    //TODO: should the editing state change automatically here?
+                                    // do not change to display newly inserted equipment as
+                                    // multiple pieces of equipment may be inserted at once
                                 }
+                                // insert new ingredient into step
                                 //g for inGredient
                                 None if chr == 'g' => {
                                     app.edit_recipe.as_mut().unwrap().steps[step.0]
                                         .ingredients
                                         .push(Ingredient::default());
-                                    //TODO: should the editing state change automatically here?
+                                    // do not change to display newly inserted ingredient as
+                                    // multiple ingredients may be inserted at once
                                 }
                                 _ => {}
                             }

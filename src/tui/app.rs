@@ -422,21 +422,35 @@ impl StatefulWidgetRef for App {
                         }
                     }
                     EditingState::SavePrompt(_, _) => {
-                        let save_prompt_area = centered_rect(recipe_area, 75, 10);
-                        //TODO: display recipe name
+                        let save_popup_area = centered_rect(recipe_area, 75, 10);
                         let clear = Clear;
                         let popup_block = Block::default()
                             .borders(Borders::ALL)
                             .style(Style::default())
                             .title("Save Recipe?");
-                        let [_, inner_layout_area, _] = Layout::default()
+                        let [_, recipe_name_area, _, options_area, _] = Layout::default()
                             .direction(Direction::Vertical)
-                            .constraints([Constraint::Fill(1), Constraint::Length(1), Constraint::Fill(1)])
-                            .areas(save_prompt_area);
-                        let [yes_area, no_area, cancel_area] = Layout::default()
+                            .constraints([
+                                Constraint::Fill(1),
+                                Constraint::Length(1),
+                                Constraint::Fill(1),
+                                Constraint::Length(1),
+                                Constraint::Fill(1),
+                            ])
+                            .areas(save_popup_area);
+                        // Length constraints are for spacing between option blocks
+                        let [_, yes_area, _, no_area, _, cancel_area, _] = Layout::default()
                             .direction(Direction::Horizontal)
-                            .constraints([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
-                            .areas(inner_layout_area);
+                            .constraints([
+                                Constraint::Length(1),
+                                Constraint::Fill(1),
+                                Constraint::Length(1),
+                                Constraint::Fill(1),
+                                Constraint::Length(1),
+                                Constraint::Fill(1),
+                                Constraint::Length(1),
+                            ])
+                            .areas(options_area);
                         let mut yes_style = Style::new().on_green().white();
                         let mut no_style = Style::new().on_red().white();
                         let mut cancel_style = Style::new().on_blue().white();
@@ -453,6 +467,11 @@ impl StatefulWidgetRef for App {
                                 cancel_style = cancel_style.black();
                             }
                         }
+
+                        let recipe_name_paragraph = Paragraph::new(recipe.name.clone())
+                            .block(Block::new().borders(Borders::NONE))
+                            .alignment(Alignment::Center);
+
                         let yes_paragraph = Paragraph::new("Yes")
                             .block(Block::new().borders(Borders::NONE))
                             .alignment(Alignment::Center)
@@ -466,10 +485,10 @@ impl StatefulWidgetRef for App {
                             .alignment(Alignment::Center)
                             .style(cancel_style);
 
-                        clear.clone().render(save_prompt_area, buf);
-                        //TODO: does this need to happen?
-                        popup_block.render(save_prompt_area, buf);
-                        clear.clone().render(inner_layout_area, buf);
+                        clear.clone().render(save_popup_area, buf);
+                        popup_block.render(save_popup_area, buf);
+                        //clear.clone().render(options_area, buf);
+                        recipe_name_paragraph.render(recipe_name_area, buf);
                         yes_paragraph.render(yes_area, buf);
                         no_paragraph.render(no_area, buf);
                         cancel_paragraph.render(cancel_area, buf);
