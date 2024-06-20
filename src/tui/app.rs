@@ -39,8 +39,7 @@ pub struct App {
     pub running: bool,
     /// tag list
     pub tags: Vec<Tag>,
-    pub git_repo: Option<Repository>, // TODO: this should not be optional. Requires implementing
-                                      // default
+    pub git_repo: Option<Repository>,
 }
 
 /// `CurrentScreen` represents the screen the user is currently seeing

@@ -137,6 +137,21 @@ fn main() -> Result<(), Error> {
             },
         },
     };
+
+    //TODO: need to check and set committer/author
+    //
+    //TODO: use commit_as for automated commits (maybe provide an option for this)
+
+    //TODO: maybe change this load function to use gix::repo::dirwalk
+
+    // TODO: check for untracked files
+    // if let Some(git_repo) = app.git_repo {
+    //     match git_repo.status() {}
+    // } else {
+    //     return Err(Error::CookbookError(
+    //         "No Git Repo defined in app. This should not have happened.".to_owned(),
+    //     ));
+    // }
     app.load_recipes_from_directory(input_dir)?;
 
     let mut tui = Tui::init(events)?;
