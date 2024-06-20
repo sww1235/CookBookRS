@@ -17,14 +17,11 @@ use cookbook_core::tui::{
 };
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
-//
-//TODO: maybe use libgit2 for version management?
 
 #[allow(clippy::result_large_err)] //TODO: fix this
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     let events = EventHandler::new(Duration::from_millis(250));
-    let mut tui = Tui::init(events)?;
     let mut app = App::new();
 
     // either use directory passed in or current directory
@@ -70,7 +67,6 @@ fn main() -> Result<(), Error> {
                                 }
                                 "N" | "NO" => {
                                     println!("Exiting without creating git repo");
-                                    Tui::restore()?;
                                     // return always exits the function which in this case is main
                                     return Ok(());
                                 }
@@ -86,11 +82,11 @@ fn main() -> Result<(), Error> {
                                     }
                                 }
                             },
-                            Err(error) => return Err(error.into()),
+                            Err(e) => return Err(e.into()),
                         }
                     }
                 }
-                x => return Err(x.into()),
+                e => return Err(e.into()),
             },
             discover::Error::Open(e) => match e {
                 open::Error::NotARepository { .. } => {
@@ -118,7 +114,6 @@ fn main() -> Result<(), Error> {
 
                                 "N" | "NO" => {
                                     println!("Exiting without creating git repo");
-                                    Tui::restore()?;
                                     // return always exits the function which in this case is main
                                     return Ok(());
                                 }
@@ -134,16 +129,17 @@ fn main() -> Result<(), Error> {
                                     }
                                 }
                             },
-                            Err(error) => return Err(error.into()),
+                            Err(e) => return Err(e.into()),
                         }
                     }
                 }
-                x => return Err(x.into()),
+                e => return Err(e.into()),
             },
         },
     };
     app.load_recipes_from_directory(input_dir)?;
 
+    let mut tui = Tui::init(events)?;
     let mut app_state = AppState::default();
     app.running = true;
     while app.running {
