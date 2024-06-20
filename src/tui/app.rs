@@ -1,7 +1,7 @@
 use std::fs;
 use std::io;
 use std::num::Saturating;
-use std::path::PathBuf;
+use std::path::Path;
 
 use gix::Repository;
 use ratatui::{
@@ -96,13 +96,13 @@ impl App {
 
     /// `save_recipes_to_file` outputs all recipes contained in app to individual files in the
     /// specified directory
-    pub fn save_recipes_to_directory(&self, dir: PathBuf) -> Result<(), io::Error> {
-        if dir.as_path().is_dir() {
+    pub fn save_recipes_to_directory(&self, dir: &Path) -> Result<(), io::Error> {
+        if dir.is_dir() {
             if !self.recipes.is_empty() {
                 for recipe in &self.recipes {
                     let mut path = dir.join(recipe.name.replace(' ', "_"));
                     _ = path.set_extension("toml");
-                    Self::write_recipe(recipe.clone(), path)?
+                    Self::write_recipe(recipe.clone(), path.as_path())?
                 }
                 Ok(())
             } else {
@@ -118,7 +118,7 @@ impl App {
             //TODO: return is not directory error
         }
     }
-    fn write_recipe(recipe: Recipe, out_path: PathBuf) -> Result<(), io::Error> {
+    fn write_recipe(recipe: Recipe, out_path: &Path) -> Result<(), io::Error> {
         let output: Result<String, toml::ser::Error> = toml::to_string_pretty(&filetypes::Recipe::from(recipe));
         fs::write(
             out_path,
@@ -135,8 +135,8 @@ impl App {
     /// - reading any of the individual recipes fails
     /// - the specified path is not a directory
     /// - [`OsStr`](std::ffi::OsStr) failed to parse to UTF-8
-    pub fn load_recipes_from_directory(&mut self, dir: PathBuf) -> Result<(), io::Error> {
-        if dir.as_path().is_dir() {
+    pub fn load_recipes_from_directory(&mut self, dir: &Path) -> Result<(), io::Error> {
+        if dir.is_dir() {
             Self::load_recipes_from_directory_inner(dir, &mut self.recipes)?;
             self.recipes.sort_unstable_by_key(|r| r.id);
             Ok(())
@@ -149,7 +149,7 @@ impl App {
         }
     }
 
-    fn load_recipes_from_directory_inner(inner_dir: PathBuf, recipes: &mut Vec<Recipe>) -> Result<(), io::Error> {
+    fn load_recipes_from_directory_inner(inner_dir: &Path, recipes: &mut Vec<Recipe>) -> Result<(), io::Error> {
         let ext = match inner_dir.extension() {
             Some(ext) => match ext.to_str() {
                 Some(ext) => ext,
@@ -163,7 +163,7 @@ impl App {
             None => "",
         };
         if inner_dir.is_file() && ext == "toml" {
-            let recipe = match Self::parse_recipe(inner_dir.clone()) {
+            let recipe = match Self::parse_recipe(inner_dir) {
                 Ok(r) => r,
                 Err(error) => {
                     return Err(io::Error::new(
@@ -175,10 +175,10 @@ impl App {
             recipes.push(recipe);
             Ok(())
         } else if inner_dir.is_dir() {
-            for entry in fs::read_dir(&inner_dir)? {
+            for entry in fs::read_dir(inner_dir)? {
                 let entry = entry?; // read_dir returns result
                 let path = entry.path();
-                Self::load_recipes_from_directory_inner(path, recipes)?;
+                Self::load_recipes_from_directory_inner(&path, recipes)?;
             }
             Ok(())
         } else {
@@ -187,7 +187,7 @@ impl App {
         }
     }
 
-    fn parse_recipe(recipe_file: PathBuf) -> Result<Recipe, io::Error> {
+    fn parse_recipe(recipe_file: &Path) -> Result<Recipe, io::Error> {
         let contents = fs::read_to_string(recipe_file)?;
         let output: Result<filetypes::Recipe, toml::de::Error> = toml::from_str(contents.as_str());
         output
