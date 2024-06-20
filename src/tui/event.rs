@@ -82,6 +82,8 @@ impl EventHandler {
     /// # Errors
     /// - [`std::io::Error errors`]
     /// - [`std::sync::mpsc::RecvError`] errors
+    #[allow(clippy::result_large_err)] //TODO: fix this by splitting up the error types, create an
+                                       //app error type
     pub fn next(&self) -> Result<Event, Error> {
         Ok(self.receiver.recv()?)
     }

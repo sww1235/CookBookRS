@@ -99,9 +99,12 @@ impl Tui<CrosstermBackend<Stdout>> {
 #[non_exhaustive]
 pub enum Error {
     /// std::io::Error
-    IOError(io::Error),
+    IOError(std::io::Error),
     /// std::sync::mpsc::RecvError
-    RecvError(mpsc::RecvError),
+    RecvError(std::sync::mpsc::RecvError),
+    GixDiscoverError(gix::discover::Error),
+    GixInitError(gix::init::Error),
+    CookbookError(String),
 }
 
 impl std::error::Error for Error {}
@@ -111,6 +114,9 @@ impl std::fmt::Display for Error {
         match *self {
             Self::IOError(ref e) => write!(f, "{e}"),
             Self::RecvError(ref e) => write!(f, "{e}"),
+            Self::GixDiscoverError(ref e) => write!(f, "{e}"),
+            Self::GixInitError(ref e) => write!(f, "{e}"),
+            Self::CookbookError(ref s) => write!(f, "{s}"),
         }
     }
 }
@@ -124,5 +130,29 @@ impl From<io::Error> for Error {
 impl From<mpsc::RecvError> for Error {
     fn from(e: mpsc::RecvError) -> Self {
         Self::RecvError(e)
+    }
+}
+
+impl From<gix::discover::Error> for Error {
+    fn from(e: gix::discover::Error) -> Self {
+        Self::GixDiscoverError(e)
+    }
+}
+
+impl From<gix::discover::upwards::Error> for Error {
+    fn from(e: gix::discover::upwards::Error) -> Self {
+        Self::GixDiscoverError(e.into())
+    }
+}
+
+impl From<gix::open::Error> for Error {
+    fn from(e: gix::open::Error) -> Self {
+        Self::GixDiscoverError(e.into())
+    }
+}
+
+impl From<gix::init::Error> for Error {
+    fn from(e: gix::init::Error) -> Self {
+        Self::GixInitError(e)
     }
 }

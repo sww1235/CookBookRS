@@ -3,6 +3,7 @@ use std::io;
 use std::num::Saturating;
 use std::path::PathBuf;
 
+use gix::Repository;
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -38,6 +39,8 @@ pub struct App {
     pub running: bool,
     /// tag list
     pub tags: Vec<Tag>,
+    pub git_repo: Option<Repository>, // TODO: this should not be optional. Requires implementing
+                                      // default
 }
 
 /// `CurrentScreen` represents the screen the user is currently seeing
@@ -87,6 +90,7 @@ impl App {
             running: false,
             editing: None,
             tags: Vec::new(),
+            git_repo: None,
         }
     }
 
