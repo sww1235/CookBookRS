@@ -31,7 +31,7 @@ clap = { version = "~4", features = ["derive", "unicode", "wrap_help", "cargo"] 
 crossterm = "0.27.0"
 dimensioned = "~0"
 log = "~0"
-ratatui = {version = "~0.26", features = ["unstable-widget-ref"] }
+ratatui = {version = "~0.27", features = ["unstable-widget-ref"] }
 serde = { version = "~1", features = ["derive"] }
 toml = "~0"
 simple_logger = "~5"
