@@ -7,6 +7,9 @@ pub mod event;
 /// `key_handler` handles all keyboard input
 pub mod key_handler;
 
+/// `dropdown` is a dropdown menu widget
+pub mod dropdown;
+
 use std::io::{self, stdout, Stdout};
 use std::sync::mpsc;
 

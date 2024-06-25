@@ -93,7 +93,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
             for attr in &input.attrs {
                 match &attr.meta {
                     // Outer attribute will always be of form Meta::List as we are looking for
-                    // cookboo(__)
+                    // cookbook(__)
                     // this path is the cookbook in cookbook("display_order")
                     Meta::List(meta) if meta.path.is_ident("cookbook") => meta.parse_nested_meta(|inner_meta| {
                         if inner_meta.path.is_ident("state_struct") {
@@ -148,7 +148,8 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
             let mut constraint_type: Option<String> = None;
             let mut constraint_value: Option<u16> = None;
             //this is the default widget for displaying text
-            let mut widget_type = format_ident!("Paragraph");
+            let default_widget_type = format_ident!("Paragraph");
+            let mut widget_type = default_widget_type.clone();
 
             // handle remaining attributes
             for attr in &f.attrs {
@@ -255,6 +256,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                         let Lit::Str(ref lit_str) = lit.lit else {
                                             return Err(inner_meta.error("The `cookbook(display_widget)` attribute must be set equal to an string"));
                                         };
+                                        // set to Paragraph by default
                                         //TODO: perform validation here
                                         widget_type = format_ident!("{}", lit_str.value());
                                         Ok(())
@@ -429,22 +431,6 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                        constraints.push(#constraint);
                     },
                 );
-
-                let paragraph_name_code = if is_option(&f.ty) {
-                    quote! {
-                        let field_value = self.#field_name.to_owned().unwrap_or_default().to_string();
-                        let #paragraph_name = ratatui::widgets::#widget_type::new(
-                            ratatui::text::Text::styled(
-                                field_value, #field_text_style_name)).block(#block_name);
-                    }
-                } else {
-                    quote! {
-                        let field_value = self.#field_name.to_owned().to_string();
-                        let #paragraph_name = ratatui::widgets::#widget_type::new(
-                            ratatui::text::Text::styled(
-                                field_value, #field_text_style_name)).block(#block_name);
-                    }
-                };
                 //TODO: fix styling here
                 let mut state_styling_code = TokenStream2::new();
                 if stateful {
@@ -458,22 +444,53 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                         }
                     }
                 }
-                field_display_code.insert(
-                    display_order,
-                    quote! {
-                        let mut #field_block_style_name = ratatui::style::Style::default();
-                        let mut #field_block_border_style_name = ratatui::style::Style::default();
-                        #state_styling_code
-                        let #block_name = ratatui::widgets::block::Block::default()
-                           .borders(ratatui::widgets::Borders::ALL)
-                           .border_style(#field_block_border_style_name)
-                           .style(#field_block_style_name)
-                           .title(#field_title);
-                        let mut #field_text_style_name = ratatui::style::Style::default();
-                        #paragraph_name_code
-                        #paragraph_name.render(layout[#display_order], buf);
-                    },
-                );
+                if widget_type == default_widget_type {
+                    //TODO: this is where to fix the widget_type issues
+                    let paragraph_name_code = if is_option(&f.ty) {
+                        quote! {
+                            let field_value = self.#field_name.to_owned().unwrap_or_default().to_string();
+                            let #paragraph_name = ratatui::widgets::#widget_type::new(
+                                ratatui::text::Text::styled(
+                                    field_value, #field_text_style_name)).block(#block_name);
+                        }
+                    } else {
+                        quote! {
+                            let field_value = self.#field_name.to_owned().to_string();
+                            let #paragraph_name = ratatui::widgets::#widget_type::new(
+                                ratatui::text::Text::styled(
+                                    field_value, #field_text_style_name)).block(#block_name);
+                        }
+                    };
+
+                    field_display_code.insert(
+                        display_order,
+                        quote! {
+                            let mut #field_block_style_name = ratatui::style::Style::default();
+                            let mut #field_block_border_style_name = ratatui::style::Style::default();
+                            #state_styling_code
+                            let #block_name = ratatui::widgets::block::Block::default()
+                               .borders(ratatui::widgets::Borders::ALL)
+                               .border_style(#field_block_border_style_name)
+                               .style(#field_block_style_name)
+                               .title(#field_title);
+                            let mut #field_text_style_name = ratatui::style::Style::default();
+                            #paragraph_name_code
+                            #paragraph_name.render(layout[#display_order], buf);
+                        },
+                    );
+                } else {
+                    // special casing for other widgets
+                    if widget_type == format_ident!("Dropdown") {
+                        field_display_code.insert(
+                            display_order,
+                            quote! {
+                                let mut dropdown = Dropdown::new();
+
+
+                            },
+                        );
+                    }
+                }
                 // don't need this mapping if not stateful
                 if stateful && !skip && !bottom_field {
                     field_enum_mapping_code.insert(

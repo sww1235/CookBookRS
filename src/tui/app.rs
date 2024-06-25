@@ -39,6 +39,7 @@ pub struct App {
     pub running: bool,
     /// tag list
     pub tags: Vec<Tag>,
+    /// git repository reference
     pub git_repo: Option<Repository>,
 }
 
