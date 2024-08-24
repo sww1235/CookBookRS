@@ -12,30 +12,31 @@
 //!
 //! # Struct Attributes
 //! - `state_struct` is the name of the struct that holds the state information for the struct that
-//! [`StatefulWidgetRef`] is being derived on. this is case sensitive. It is only processed if
-//! deriving [`StatefulWidgetRef`] and ignored otherwise.
+//!     [`StatefulWidgetRef`] is being derived on. this is case sensitive. It is only processed if
+//!     deriving [`StatefulWidgetRef`] and ignored otherwise.
 //!
 //! # Field Attributes
 //! - `display_order` is an integer that determines the order the field will be displayed. It is
-//! used as follows: `display_order = 2`.
+//!     used as follows: `display_order = 2`.
 //! - `constraint_type` is matched against the values of
-//! [`Constraint`](ratatui::layout::Constraint) and
-//! determines the type of constraint for each field. It supports all values except `Ratio`. It is
-//! used as follows: `constraint_type = min`. The first character is not case sensitive.
+//!     [`Constraint`](ratatui::layout::Constraint) and
+//!     determines the type of constraint for each field. It supports all values except `Ratio`. It is
+//!     used as follows: `constraint_type = min`. The first character is not case sensitive.
 //! - `constraint_value` is an integer that is used as the value inside the `Constraint`. It is
-//! used as follows: `constraint_value = 5`
+//!     used as follows: `constraint_value = 5`
 //! - `display_widget` is used to select the type of widget to use to display the value of the
-//! field. If not specified, will default to `Paragraph`. TODO: finish this
+//!     field. If not specified, will default to `Paragraph`.
+//! - `display_widget_state`
 //! - `left_field` is used to select the field that will be displayed as a count in the left hand
-//! info box.
+//!     info box.
 //! - `right_field` is used to select the field that will be displayed as a count in the right hand
-//! info box.
+//!     info box.
 //! - `skip` will skip the field from being rendered.
 
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Lit, Meta, Token, Type};
+use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Ident, Lit, Meta, Token, Type};
 
 use std::collections::BTreeMap;
 use std::num::Saturating;
@@ -95,31 +96,34 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                     // Outer attribute will always be of form Meta::List as we are looking for
                     // cookbook(__)
                     // this path is the cookbook in cookbook("display_order")
-                    Meta::List(meta) if meta.path.is_ident("cookbook") => meta.parse_nested_meta(|inner_meta| {
-                        if inner_meta.path.is_ident("state_struct") {
-                            match inner_meta.value() {
-                                Ok(value) => {
-                                    //TODO: refactor to use if-let chains once they are
-                                    //stablized
-                                    let Expr::Lit(ref lit) = value.parse()? else {
-                                        return Err(inner_meta.error(
-                                            "The `cookbook(state_struct)` attribute must be set equal to a literal value",
-                                        ));
-                                    };
-                                    let Lit::Str(ref lit_str) = lit.lit else {
-                                        return Err(inner_meta
-                                            .error("The `cookbook(state_struct)` attribute must be set equal to a string"));
-                                    };
-                                    state_struct_value = Some(lit_str.value());
-                                    Ok(())
+                    Meta::List(primary_meta) if primary_meta.path.is_ident("cookbook") => {
+                        primary_meta.parse_nested_meta(|secondary_meta| {
+                            if secondary_meta.path.is_ident("state_struct") {
+                                match secondary_meta.value() {
+                                    Ok(value) => {
+                                        //TODO: refactor to use if-let chains once they are
+                                        //stablized
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(secondary_meta.error(
+                                                "The `cookbook(state_struct)` attribute must be set equal to a literal value",
+                                            ));
+                                        };
+                                        let Lit::Str(ref lit_str) = lit.lit else {
+                                            return Err(secondary_meta
+                                                .error("The `cookbook(state_struct)` attribute must be set equal to a string"));
+                                        };
+                                        state_struct_value = Some(lit_str.value());
+                                        Ok(())
+                                    }
+                                    Err(_) => Err(secondary_meta.error(
+                                        "The `cookbook(state_struct) attribute must be called as a NameValue attribute type",
+                                    )),
                                 }
-                                Err(_) => Err(inner_meta
-                                    .error("The `cookbook(state_struct) attribute must be called as a NameValue attribute type")),
+                            } else {
+                                Ok(())
                             }
-                        } else {
-                            Ok(())
-                        }
-                    })?,
+                        })?;
+                    }
                     _ => continue,
                 }
             }
@@ -150,49 +154,51 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
             //this is the default widget for displaying text
             let default_widget_type = format_ident!("Paragraph");
             let mut widget_type = default_widget_type.clone();
+            let mut widget_state: Option<Ident> = None;
+            let mut widget_options = Vec::new();
 
             // handle remaining attributes
             for attr in &f.attrs {
                 match &attr.meta {
                     // Want outer attribute to always be a Meta::List
                     // this path is the cookbook in cookbook("display_order")
-                    Meta::List(meta) if meta.path.is_ident("cookbook") => {
+                    Meta::List(primary_meta) if primary_meta.path.is_ident("cookbook") => {
                         // now parse the stuff inside the parenthesis
-                        meta.parse_nested_meta(|inner_meta| {
+                        primary_meta.parse_nested_meta(|secondary_meta| {
                             // #[cookbook(skip)]
-                            if inner_meta.path.is_ident("skip") {
+                            if secondary_meta.path.is_ident("skip") {
                                 skip = true;
                             }
 
-                            if inner_meta.path.is_ident("display_order") {
+                            if secondary_meta.path.is_ident("display_order") {
                                 // value() advances meta.input past the = in the input. Will error
                                 // if the = is not present.
-                                match inner_meta.value() {
+                                match secondary_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
-                                            return Err(inner_meta.error("The `cookbook(display_order)` attribute must be set equal to a literal value"));
+                                            return Err(secondary_meta.error("The `cookbook(display_order)` attribute must be set equal to a literal value"));
                                         };
                                         let Lit::Int(ref lit_int) = lit.lit else {
-                                            return Err(inner_meta.error("The `cookbook(display_order)` attribute must be set equal to an integer"));
+                                            return Err(secondary_meta.error("The `cookbook(display_order)` attribute must be set equal to an integer"));
                                         };
 
                                         display_order = Some(lit_int.base10_parse::<usize>()?);
                                         Ok(())
                                     }
-                                    Err(_) => Err(inner_meta.error("The `cookbook(display_order)` attribute must be called as a NameValue attribute type")),
+                                    Err(_) => Err(secondary_meta.error("The `cookbook(display_order)` attribute must be called as a NameValue attribute type")),
                                 }
-                            } else if inner_meta.path.is_ident("constraint_type") {
-                                match inner_meta.value() {
+                            } else if secondary_meta.path.is_ident("constraint_type") {
+                                match secondary_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
-                                            return Err(inner_meta.error("The `cookbook(constraint_type)` attribute must be set equal to a literal value"));
+                                            return Err(secondary_meta.error("The `cookbook(constraint_type)` attribute must be set equal to a literal value"));
                                         };
                                         let Lit::Str(ref lit_str) = lit.lit else {
-                                            return Err(inner_meta.error("The `cookbook(constraint_type)` attribute must be set equal to an string"));
+                                            return Err(secondary_meta.error("The `cookbook(constraint_type)` attribute must be set equal to an string"));
                                         };
                                         match lit_str.value().as_str() {
                                             "Min" | "min" => {
@@ -217,44 +223,44 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                             }
                                             "Ratio" | "ratio" => {
                                                 return Err(
-                                                    inner_meta.error("Ratio constraint type in attribute `cookbook(constraint_type)` is not supported by this derive macro")
+                                                    secondary_meta.error("Ratio constraint type in attribute `cookbook(constraint_type)` is not supported by this derive macro")
                                                 );
                                             }
                                             x => {
                                                 let err_string = format!("Constraint type `cookbook(constraint = {x})` is not recognized");
-                                                return Err(inner_meta.error(err_string));
+                                                return Err(secondary_meta.error(err_string));
                                             }
                                         }
                                     }
-                                    Err(_) => Err(inner_meta.error("The `cookbook(constraint_type)` attribute must be called as a NameValue attribute type")),
+                                    Err(_) => Err(secondary_meta.error("The `cookbook(constraint_type)` attribute must be called as a NameValue attribute type")),
                                 }
-                            } else if inner_meta.path.is_ident("constraint_value") {
-                                match inner_meta.value() {
+                            } else if secondary_meta.path.is_ident("constraint_value") {
+                                match secondary_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
-                                            return Err(inner_meta.error("The `cookbook(constraint_value)` attribute must be set equal to a literal value"));
+                                            return Err(secondary_meta.error("The `cookbook(constraint_value)` attribute must be set equal to a literal value"));
                                         };
                                         let Lit::Int(ref lit_int) = lit.lit else {
-                                            return Err(inner_meta.error("The `cookbook(constraint_value)` attribute must be set equal to an integer"));
+                                            return Err(secondary_meta.error("The `cookbook(constraint_value)` attribute must be set equal to an integer"));
                                         };
                                         constraint_value = Some(lit_int.base10_parse::<u16>()?);
                                         Ok(())
                                     }
 
-                                    Err(_) => Err(inner_meta.error("The `cookbook(constraint_value)` attribute must be called as a NameValue attribute type")),
+                                    Err(_) => Err(secondary_meta.error("The `cookbook(constraint_value)` attribute must be called as a NameValue attribute type")),
                                 }
-                            } else if inner_meta.path.is_ident("display_widget") {
-                                match inner_meta.value() {
+                            } else if secondary_meta.path.is_ident("display_widget") {
+                                match secondary_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
-                                            return Err(inner_meta.error("The `cookbook(display_widget)` attribute must be set equal to a literal value"));
+                                            return Err(secondary_meta.error("The `cookbook(display_widget)` attribute must be set equal to a literal value"));
                                         };
                                         let Lit::Str(ref lit_str) = lit.lit else {
-                                            return Err(inner_meta.error("The `cookbook(display_widget)` attribute must be set equal to an string"));
+                                            return Err(secondary_meta.error("The `cookbook(display_widget)` attribute must be set equal to an string"));
                                         };
                                         // set to Paragraph by default
                                         //TODO: perform validation here
@@ -262,9 +268,35 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                         Ok(())
                                     }
 
-                                    Err(_) => Err(inner_meta.error("The `cookbook(display_widget)` attribute must be called as a NameValue attribute type")),
+                                    Err(_) => Err(secondary_meta.error("The `cookbook(display_widget)` attribute must be called as a NameValue attribute type")),
                                 }
-                            } else if inner_meta.path.is_ident("left_field") {
+                            } else if secondary_meta.path.is_ident("display_widget_state"){
+                                match secondary_meta.value() {
+                                    Ok(value) => {
+                                        //TODO: refactor to use if-let chains once they are
+                                        //stablized
+                                        let Expr::Lit(ref lit) = value.parse()? else {
+                                            return Err(secondary_meta.error("The `cookbook(display_widget_state)` attribute must be set equal to a literal value"));
+                                        };
+                                        let Lit::Str(ref lit_str) = lit.lit else {
+                                            return Err(secondary_meta.error("The `cookbook(display_widget_state)` attribute must be set equal to an string"));
+                                        };
+                                        widget_state = Some(format_ident!("{}", lit_str.value()));
+                                        Ok(())
+                                    }
+
+                                    Err(_) => Err(secondary_meta.error("The `cookbook(display_widget_state)` attribute must be called as a NameValue attribute type")),
+                                }
+
+                                // called like #[cookbook(display_widget_options(A, B, C, D))]
+                                // where A, B, C, D will become the options in the widget
+                            } else if secondary_meta.path.is_ident("display_widget_options"){
+                                        secondary_meta.parse_nested_meta(|tertiary_meta|{
+                                                widget_options.push(tertiary_meta.path.clone());
+                                                Ok(())
+                                })
+
+                            } else if secondary_meta.path.is_ident("left_field") {
                                 // checking to make sure this attr is a path and doesn't have any values
                                 // associated with it
                                 // checking to make sure parsing the value errors.
@@ -278,17 +310,17 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                         "The `cookbook(left_field)` attribute was specified more than once. It must only be specified on one field",
                                     ));
                                 }
-                                if inner_meta.value().is_err() {
+                                if secondary_meta.value().is_err() {
                                     left_field = Some(field_name.clone());
                                     left_lower_field_title = Some("no_field_title_specified".to_string());
                                     bottom_field = true;
                                     Ok(())
                                 } else {
-                                    return Err(inner_meta.error("The `cookbook(left_field)` attribute must not be called with a value"));
+                                    return Err(secondary_meta.error("The `cookbook(left_field)` attribute must not be called with a value"));
                                 }
                                 // this is comparing the actual enum variant, and not the
                                 // values within
-                            } else if inner_meta.path.is_ident("right_field") {
+                            } else if secondary_meta.path.is_ident("right_field") {
                                 // checking to make sure this attr is a path and doesn't have any values
                                 // associated with it
                                 // checking to make sure parsing the value errors.
@@ -302,46 +334,46 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                                         "The `cookbook(right_field)` attribute was specified more than once. It must only be specified on one field",
                                     ));
                                 }
-                                if inner_meta.value().is_err() {
+                                if secondary_meta.value().is_err() {
                                     right_field = Some(field_name.clone());
                                     bottom_field = true;
                                     Ok(())
                                 } else {
-                                    return Err(inner_meta.error("The `cookbook(right_field)` attribute must not be called with a value"));
+                                    return Err(secondary_meta.error("The `cookbook(right_field)` attribute must not be called with a value"));
                                 }
-                            } else if inner_meta.path.is_ident("left_field_title") {
-                                match inner_meta.value() {
+                            } else if secondary_meta.path.is_ident("left_field_title") {
+                                match secondary_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
-                                            return Err(inner_meta.error("The `cookbook(left_field_title)` attribute must be set equal to a literal value"));
+                                            return Err(secondary_meta.error("The `cookbook(left_field_title)` attribute must be set equal to a literal value"));
                                         };
                                         let Lit::Str(ref lit_str) = lit.lit else {
-                                            return Err(inner_meta.error("The `cookbook(left_field_title)` attribute must be set equal to an string"));
+                                            return Err(secondary_meta.error("The `cookbook(left_field_title)` attribute must be set equal to an string"));
                                         };
                                         left_lower_field_title = Some(lit_str.value());
                                         Ok(())
                                     }
 
-                                    Err(_) => Err(inner_meta.error("The `cookbook(left_field_title)` attribute must be called as a NameValue attribute type")),
+                                    Err(_) => Err(secondary_meta.error("The `cookbook(left_field_title)` attribute must be called as a NameValue attribute type")),
                                 }
-                            } else if inner_meta.path.is_ident("right_field_title") {
-                                match inner_meta.value() {
+                            } else if secondary_meta.path.is_ident("right_field_title") {
+                                match secondary_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
-                                            return Err(inner_meta.error("The `cookbook(right_field_title)` attribute must be set equal to a literal value"));
+                                            return Err(secondary_meta.error("The `cookbook(right_field_title)` attribute must be set equal to a literal value"));
                                         };
                                         let Lit::Str(ref lit_str) = lit.lit else {
-                                            return Err(inner_meta.error("The `cookbook(right_field_title)` attribute must be set equal to an string"));
+                                            return Err(secondary_meta.error("The `cookbook(right_field_title)` attribute must be set equal to an string"));
                                         };
                                         right_lower_field_title = Some(lit_str.value());
                                         Ok(())
                                     }
 
-                                    Err(_) => Err(inner_meta.error("The `cookbook(right_field_title)` attribute must be called as a NameValue attribute type")),
+                                    Err(_) => Err(secondary_meta.error("The `cookbook(right_field_title)` attribute must be called as a NameValue attribute type")),
                                 }
                             } else {
                                 //continue;
@@ -355,6 +387,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                     }
                 }
             }
+
             if bottom_field {
                 //https://users.rust-lang.org/t/derive-macro-determine-if-field-implements-trait/109417/6
                 let field_type = &f.ty;
@@ -444,7 +477,48 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                         }
                     }
                 }
-                if widget_type == default_widget_type {
+
+                // special casing for other widgets
+                //
+                // Dropdown is always stateful
+                if widget_type == format_ident!("Dropdown") && stateful {
+                    if widget_state.is_none() {
+                        return Err(syn::Error::new_spanned(f, "No widget_state specified"));
+                    }
+                    if widget_options.is_empty() {
+                        return Err(syn::Error::new_spanned(f, "No widget options specified"));
+                    }
+                    let state_struct_ident = format_ident!("state");
+                    #[allow(clippy::unwrap_used)] // already checked for None above
+                    let widget_state_unwrapped = widget_state.unwrap();
+                    let widget_state_name = quote!(#state_struct_ident.#widget_state_unwrapped);
+
+                    field_display_code.insert(
+                        display_order,
+                        quote! {
+                            let mut #field_block_style_name = ratatui::style::Style::default();
+                            let mut #field_block_border_style_name = ratatui::style::Style::default();
+                            #state_styling_code
+                            let #block_name = ratatui::widgets::block::Block::default()
+                               .borders(ratatui::widgets::Borders::ALL)
+                               .border_style(#field_block_border_style_name)
+                               .style(#field_block_style_name)
+                               .title(#field_title);
+                            let mut #field_text_style_name = ratatui::style::Style::default();
+                            let mut dropdown = Dropdown::new();
+                            let entries = vec![#(#widget_options.to_string()),*];
+                            dropdown.add_entries(entries);
+                            dropdown.block(#block_name);
+
+
+                            dropdown.render_ref(layout[#display_order], buf, &mut #widget_state_name);
+                        },
+                    );
+                } else {
+                    // widget_type == default_widget_type or not stateful
+                    //
+                    // reset widget type to default
+                    widget_type = default_widget_type;
                     //TODO: this is where to fix the widget_type issues
                     let paragraph_name_code = if is_option(&f.ty) {
                         quote! {
@@ -478,18 +552,6 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                             #paragraph_name.render(layout[#display_order], buf);
                         },
                     );
-                } else {
-                    // special casing for other widgets
-                    if widget_type == format_ident!("Dropdown") {
-                        field_display_code.insert(
-                            display_order,
-                            quote! {
-                                let mut dropdown = Dropdown::new();
-
-
-                            },
-                        );
-                    }
                 }
                 // don't need this mapping if not stateful
                 if stateful && !skip && !bottom_field {
@@ -602,7 +664,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
            #(#constraint_code_values)*
         } else {
             //TODO: implement scrolling
-            todo!()
+            todo!("Scrolling not implemented yet")
         }
         // last constraint for step/equipment block
         constraints.push(ratatui::layout::Constraint::Length(3));

@@ -8,25 +8,45 @@ use ratatui::{
 };
 
 /// representation of a drop down menu
-pub struct Dropdown {
+#[derive(Default)]
+pub struct Dropdown<'a> {
     /// entries in the dropdown
     entries: Vec<String>,
+    block: Option<Block<'a>>,
+    style: Style,
 }
 
-impl Dropdown {
+impl<'a> Dropdown<'a> {
     #[must_use]
     pub fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+            block: None,
+            style: Style::default(),
+        }
     }
     pub fn add_entry(&mut self, entry: String) {
         self.entries.push(entry);
         self.entries.sort_unstable();
     }
+    pub fn add_entries(&mut self, entries: Vec<String>) {
+        self.entries.extend(entries);
+        self.entries.sort_unstable();
+    }
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+    pub fn block(&mut self, block: Block<'a>) {
+        self.block = Some(block);
+    }
+    pub fn style<S: Into<Style>>(&mut self, style: S) {
+        self.style = style.into();
+    }
 }
-
+#[derive(Default, Debug)]
 pub struct DropdownState {
     pub selected_entry: Wrapping<usize>,
     pub expanded: bool,
@@ -35,7 +55,7 @@ pub struct DropdownState {
 }
 
 //TODO: finish implementing dropdown widget, scrolling
-impl StatefulWidgetRef for Dropdown {
+impl StatefulWidgetRef for Dropdown<'_> {
     type State = DropdownState;
     fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         if state.expanded {
@@ -60,7 +80,7 @@ impl StatefulWidgetRef for Dropdown {
                 }
             };
             let expanded_rect = Rect::new(area.x, area.y, area.width, expanded_rect_height);
-            // creating a vertical layout of boxes that will contain one entry
+            // creating a vertical layout of boxes that will each contain one entry
             let entry_rects = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(entry_constraints)
@@ -79,7 +99,7 @@ impl StatefulWidgetRef for Dropdown {
         } else {
             // collapsed
             let collapsed_view =
-                Paragraph::new(self.entries[state.selected_entry.0].clone()).block(Block::default().borders(Borders::ALL));
+                Paragraph::new(self.entries[state.selected_entry.0].clone()).block(self.block.clone().unwrap_or_default());
             collapsed_view.render(area, buf);
         }
     }
