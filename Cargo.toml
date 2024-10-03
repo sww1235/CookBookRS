@@ -28,7 +28,7 @@ readme = "README.md"
 
 [dependencies]
 clap = { version = "~4", features = ["derive", "unicode", "wrap_help", "cargo"] }
-crossterm = "0.27.0"
+crossterm = "0.28.1"
 dimensioned = "~0"
 log = "~0"
 ratatui = {version = "~0.27", features = ["unstable-widget-ref"] }
