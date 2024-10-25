@@ -1,5 +1,3 @@
-use std::num::Wrapping;
-
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
