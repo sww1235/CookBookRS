@@ -7,8 +7,9 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph, StatefulWidgetRef, Widget},
 };
 
+use ranged_wrapping::RangedWrapping;
 /// representation of a drop down menu
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Dropdown<'a> {
     /// entries in the dropdown
     entries: Vec<String>,
@@ -48,10 +49,11 @@ impl<'a> Dropdown<'a> {
 }
 #[derive(Default, Debug)]
 pub struct DropdownState {
-    pub selected_entry: Wrapping<usize>,
+    pub selected_entry: RangedWrapping<usize, usize>,
     pub expanded: bool,
     pub scrolling: bool,
     pub visible_entries: Vec<String>,
+    pub num_entries: RangedWrapping<usize, usize>,
 }
 
 //TODO: finish implementing dropdown widget, scrolling

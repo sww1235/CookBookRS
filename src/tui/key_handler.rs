@@ -2,6 +2,7 @@ use std::num::{Saturating, Wrapping};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use num_traits::FromPrimitive;
+use ranged_wrapping::RangedWrapping;
 
 use crate::{
     datatypes::{
@@ -107,13 +108,22 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                             }
                         }
                     }
-                    EditingState::Step(_) => {
-                        if app_state.step_state.editing_selected_field.is_some() {
+                    EditingState::Step(_) => match app_state.step_state.editing_selected_field {
+                        Some(StepFields::StepType) if app_state.step_state.dropdown_state.expanded => {
+                            app_state.step_state.dropdown_state.expanded = false;
+                        }
+                        Some(StepFields::StepType) if !app_state.step_state.dropdown_state.expanded => {
                             app_state.step_state.editing_selected_field = None;
-                        } else {
+                        }
+                        None => {
                             app_state.editing_state = EditingState::Recipe;
                         }
-                    }
+
+                        _ if app_state.step_state.editing_selected_field.is_some() => {
+                            app_state.step_state.editing_selected_field = None;
+                        }
+                        _ => {}
+                    },
                     EditingState::Ingredient(_, _) => {
                         if app_state.ingredient_state.editing_selected_field.is_some() {
                             app_state.ingredient_state.editing_selected_field = None;
@@ -135,38 +145,41 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             KeyCode::Up => match app_state.editing_state {
                 // editing main recipe part
                 EditingState::Recipe if app_state.recipe_state.editing_selected_field.is_none() => {
-                    app_state.recipe_state.selected_field -= Wrapping(1);
-                    app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
+                    app_state.recipe_state.selected_field -= RangedWrapping(1, 0, app_state.recipe_state.num_fields);
                 }
-                // select field in current step
-                EditingState::Step(_)
-                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::NONE =>
-                {
-                    app_state.step_state.selected_field -= Wrapping(1);
-                    app_state.step_state.selected_field %= app_state.step_state.num_fields;
-                }
-                // change selected step
-                EditingState::Step(step_num)
-                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::SHIFT =>
-                {
-                    app_state.step_state.selected_field = Wrapping(0);
-                    let selected_step = (step_num - Saturating(1)) % Saturating(app_state.step_state.num_fields);
-                    app_state.editing_state = EditingState::Step(selected_step);
+                EditingState::Step(step_num) => {
+                    match app_state.step_state.editing_selected_field {
+                        // select field in current step
+                        None if key_event.modifiers == KeyModifiers::NONE => {
+                            app_state.step_state.selected_field -= RangedWrapping(1, 0, app_state.step_state.num_fields);
+                        }
+                        // change selected step
+                        None if key_event.modifiers == KeyModifiers::SHIFT => {
+                            app_state.step_state.selected_field = RangedWrapping(0, 0, app_state.step_state.num_fields);
+                            let selected_step = (step_num - Saturating(1)) % Saturating(app_state.step_state.num_fields);
+                            app_state.editing_state = EditingState::Step(selected_step);
+                        }
+                        // scroll in dropdown
+                        Some(StepFields::StepType) if app_state.step_state.dropdown_state.expanded => {
+                            app_state.step_state.dropdown_state.selected_entry -=
+                                RangedWrapping(1, 0, app_state.step_state.num_fields);
+                        }
+                        _ => {}
+                    }
                 }
                 // select field in current ingredient
                 EditingState::Ingredient(_, _)
                     if app_state.ingredient_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::NONE =>
                 {
-                    app_state.ingredient_state.selected_field -= Wrapping(1);
-                    app_state.ingredient_state.selected_field %= app_state.ingredient_state.num_fields;
+                    app_state.ingredient_state.selected_field -= RangedWrapping(1, 0, app_state.ingredient_state.num_fields);
                 }
                 // change selected ingredient
                 EditingState::Ingredient(step_num, ingredient_num)
                     if app_state.ingredient_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::SHIFT =>
                 {
-                    app_state.ingredient_state.selected_field = Wrapping(0);
+                    app_state.ingredient_state.selected_field = RangedWrapping(0, 0, app_state.ingredient_state.num_fields);
                     let selected_ingredient =
                         (ingredient_num - Saturating(1)) % Saturating(app_state.ingredient_state.num_fields);
                     app_state.editing_state = EditingState::Ingredient(step_num, selected_ingredient);
@@ -176,15 +189,14 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     if app_state.equipment_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::NONE =>
                 {
-                    app_state.equipment_state.selected_field -= Wrapping(1);
-                    app_state.equipment_state.selected_field %= app_state.equipment_state.num_fields;
+                    app_state.equipment_state.selected_field -= RangedWrapping(1, 0, app_state.equipment_state.num_fields);
                 }
                 // change selected equipment
                 EditingState::Equipment(step_num, equipment_num)
                     if app_state.equipment_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::SHIFT =>
                 {
-                    app_state.equipment_state.selected_field = Wrapping(0);
+                    app_state.equipment_state.selected_field = RangedWrapping(0, 0, app_state.equipment_state.num_fields);
                     let selected_equipment = (equipment_num - Saturating(1)) & Saturating(app_state.equipment_state.num_fields);
                     app_state.editing_state = EditingState::Equipment(step_num, selected_equipment);
                 }
@@ -192,41 +204,44 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             },
             KeyCode::Down => match app_state.editing_state {
                 EditingState::Recipe if app_state.recipe_state.editing_selected_field.is_none() => {
-                    app_state.recipe_state.selected_field += Wrapping(1);
-                    app_state.recipe_state.selected_field %= app_state.recipe_state.num_fields;
+                    app_state.recipe_state.selected_field += RangedWrapping(1, 0, app_state.recipe_state.num_fields);
                 }
-                // select field in current step
-                EditingState::Step(_)
-                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::NONE =>
-                {
-                    app_state.step_state.selected_field += Wrapping(1);
-                    app_state.step_state.selected_field %= app_state.step_state.num_fields;
-                }
-                // change selected step
-                EditingState::Step(step_num)
-                    if app_state.step_state.editing_selected_field.is_none() && key_event.modifiers == KeyModifiers::SHIFT =>
-                {
-                    app_state.step_state.selected_field = Wrapping(0);
-                    let mut selected_step = (step_num + Saturating(1)) % Saturating(app_state.step_state.num_fields);
-                    if selected_step > Saturating(app_state.step_state.num_fields) {
-                        selected_step = Saturating(app_state.step_state.num_fields);
+                EditingState::Step(step_num) => {
+                    match app_state.step_state.editing_selected_field {
+                        // select field in current step
+                        None if key_event.modifiers == KeyModifiers::NONE => {
+                            app_state.step_state.selected_field += RangedWrapping(1, 0, app_state.step_state.num_fields);
+                        }
+                        // change selected step
+                        None if key_event.modifiers == KeyModifiers::SHIFT => {
+                            app_state.step_state.selected_field = RangedWrapping(0, 0, app_state.step_state.num_fields);
+                            let mut selected_step = (step_num + Saturating(1)) % Saturating(app_state.step_state.num_fields);
+                            if selected_step > Saturating(app_state.step_state.num_fields) {
+                                selected_step = Saturating(app_state.step_state.num_fields);
+                            }
+                            app_state.editing_state = EditingState::Step(selected_step);
+                        }
+                        // scroll in dropdown
+                        Some(StepFields::StepType) if app_state.step_state.dropdown_state.expanded => {
+                            app_state.step_state.dropdown_state.selected_entry +=
+                                RangedWrapping(1, 0, app_state.step_state.dropdown_state.num_entries.0);
+                        }
+                        _ => {}
                     }
-                    app_state.editing_state = EditingState::Step(selected_step);
                 }
                 // select field in current ingredient
                 EditingState::Ingredient(_, _)
                     if app_state.ingredient_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::NONE =>
                 {
-                    app_state.ingredient_state.selected_field += Wrapping(1);
-                    app_state.ingredient_state.selected_field %= app_state.ingredient_state.num_fields;
+                    app_state.ingredient_state.selected_field += RangedWrapping(1, 0, app_state.ingredient_state.num_fields);
                 }
                 // change selected ingredient
                 EditingState::Ingredient(step_num, ingredient_num)
                     if app_state.ingredient_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::SHIFT =>
                 {
-                    app_state.ingredient_state.selected_field = Wrapping(0);
+                    app_state.ingredient_state.selected_field = RangedWrapping(0, 0, app_state.ingredient_state.num_fields);
                     let mut selected_ingredient =
                         (ingredient_num + Saturating(1)) % Saturating(app_state.ingredient_state.num_fields);
                     if selected_ingredient > Saturating(app_state.ingredient_state.num_fields) {
@@ -239,15 +254,14 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     if app_state.equipment_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::NONE =>
                 {
-                    app_state.equipment_state.selected_field += Wrapping(1);
-                    app_state.equipment_state.selected_field %= app_state.equipment_state.num_fields;
+                    app_state.equipment_state.selected_field += RangedWrapping(1, 0, app_state.equipment_state.num_fields);
                 }
                 // change selected equipment
                 EditingState::Equipment(step_num, equipment_num)
                     if app_state.equipment_state.editing_selected_field.is_none()
                         && key_event.modifiers == KeyModifiers::SHIFT =>
                 {
-                    app_state.equipment_state.selected_field = Wrapping(0);
+                    app_state.equipment_state.selected_field = RangedWrapping(0, 0, app_state.equipment_state.num_fields);
                     let mut selected_equipment =
                         (equipment_num + Saturating(1)) % Saturating(app_state.equipment_state.num_fields);
                     if selected_equipment > Saturating(app_state.equipment_state.num_fields) {
@@ -284,7 +298,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         if let Some(recipe) = &app.edit_recipe {
                             if !recipe.steps.is_empty() {
                                 app_state.editing_state = EditingState::Step(Saturating(0));
-                                app_state.step_state.selected_field = Wrapping(0);
+                                app_state.step_state.selected_field = RangedWrapping(0, 0, app_state.step_state.num_fields);
                             }
                             //TODO: display an error if there are no steps defined
                         }
@@ -294,11 +308,12 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         if let Some(recipe) = &app.edit_recipe {
                             if !recipe.steps.is_empty() && !recipe.steps[step.0].ingredients.is_empty() {
                                 app_state.editing_state = EditingState::Ingredient(step, Saturating(0));
-                                app_state.ingredient_state.selected_field = Wrapping(0);
+                                app_state.ingredient_state.selected_field =
+                                    RangedWrapping(0, 0, app_state.ingredient_state.num_fields);
                             } else {
                                 //already in step, but ingredient is None
                                 app_state.editing_state = EditingState::Recipe;
-                                app_state.recipe_state.selected_field = Wrapping(0);
+                                app_state.recipe_state.selected_field = RangedWrapping(0, 0, app_state.recipe_state.num_fields);
                             }
                         }
                     }
@@ -307,17 +322,18 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         if let Some(recipe) = &app.edit_recipe {
                             if !recipe.steps.is_empty() && !recipe.steps[step.0].equipment.is_empty() {
                                 app_state.editing_state = EditingState::Equipment(step, Saturating(0));
-                                app_state.equipment_state.selected_field = Wrapping(0);
+                                app_state.equipment_state.selected_field =
+                                    RangedWrapping(0, 0, app_state.equipment_state.num_fields);
                             } else {
                                 //already in ingredient, but equipment is None
                                 app_state.editing_state = EditingState::Recipe;
-                                app_state.recipe_state.selected_field = Wrapping(0);
+                                app_state.recipe_state.selected_field = RangedWrapping(0, 0, app_state.recipe_state.num_fields);
                             }
                         }
                     }
                     EditingState::Equipment(_, _) if app_state.equipment_state.editing_selected_field.is_none() => {
                         app_state.editing_state = EditingState::Recipe;
-                        app_state.recipe_state.selected_field = Wrapping(0);
+                        app_state.recipe_state.selected_field = RangedWrapping(0, 0, app_state.recipe_state.num_fields);
                     }
                     EditingState::SavePrompt(_, _) => match app_state.save_response {
                         SaveResponse::Yes => app_state.save_response = SaveResponse::Cancel,
@@ -337,7 +353,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     match app_state.editing_state {
                         EditingState::Idle if chr == 'e' || chr == 'i' => {
                             app_state.editing_state = EditingState::Recipe;
-                            app_state.recipe_state.selected_field = Wrapping(0);
+                            app_state.recipe_state.selected_field = RangedWrapping(0, 0, app_state.recipe_state.num_fields);
                         }
                         EditingState::Recipe => {
                             #[allow(clippy::unwrap_used)] // already checking for is_some above
@@ -400,7 +416,10 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                 Some(StepFields::Instructions) => {
                                     app.edit_recipe.as_mut().unwrap().steps[step.0].instructions.push(chr)
                                 }
-                                Some(StepFields::StepType) => {} //TODO,
+                                Some(StepFields::StepType) => {
+                                    // StepType doesn't have any interactions with random key codes
+                                    // currently
+                                }
 
                                 // editing selected field
                                 None if chr == 'e' || chr == 'i' => {
@@ -594,8 +613,15 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             KeyCode::Delete => {} //TODO
             KeyCode::Enter => {
                 if app.edit_recipe.is_some() {
-                    #[allow(clippy::single_match)]
                     match app_state.editing_state {
+                        EditingState::Step(_) =>
+                        {
+                            #[allow(clippy::single_match)]
+                            match app_state.step_state.editing_selected_field {
+                                Some(StepFields::StepType) => app_state.step_state.dropdown_state.expanded = true,
+                                _ => {}
+                            }
+                        }
                         EditingState::SavePrompt(_, _) => {
                             match app_state.save_response {
                                 SaveResponse::Yes => {

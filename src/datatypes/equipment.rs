@@ -1,6 +1,5 @@
-use std::num::Wrapping;
-
 use num_derive::{FromPrimitive, ToPrimitive};
+use ranged_wrapping::RangedWrapping;
 use ratatui::{style::Stylize, widgets::Widget};
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
@@ -38,7 +37,7 @@ pub struct Equipment {
 #[derive(Debug, Default)]
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct EquipmentState {
-    pub selected_field: Wrapping<usize>,
+    pub selected_field: RangedWrapping<usize, usize>,
     pub num_fields: usize,
     pub editing_selected_field: Option<EquipmentFields>,
 }

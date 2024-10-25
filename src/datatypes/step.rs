@@ -1,13 +1,15 @@
 use std::fmt;
-use std::num::Wrapping;
 
 use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
 
+use ranged_wrapping::RangedWrapping;
+
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
 use super::{equipment::Equipment, filetypes, ingredient::Ingredient};
+use crate::tui::dropdown::{Dropdown, DropdownState};
 
 /// `Step` represents a discrete step within a recipe
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
@@ -45,6 +47,9 @@ pub struct Step {
     #[cookbook(display_order = 3)]
     #[cookbook(constraint_type = "Length")]
     #[cookbook(constraint_value = 3)]
+    #[cookbook(display_widget = "Dropdown")]
+    #[cookbook(display_widget_state = "dropdown_state")]
+    #[cookbook(display_widget_options(StepType::Prep, StepType::Cook, StepType::Wait, StepType::Other))]
     pub step_type: StepType,
 }
 
@@ -52,9 +57,11 @@ pub struct Step {
 #[derive(Default, Debug)]
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct StepState {
-    pub selected_field: Wrapping<usize>,
+    pub selected_field: RangedWrapping<usize, usize>,
     pub num_fields: usize,
     pub editing_selected_field: Option<StepFields>,
+    //TODO: may need to change the name of this if adding more dropdowns to Step
+    pub dropdown_state: DropdownState,
 }
 
 /// `StepType` represents what type of step each step is in a recipe. It is used to bucket times

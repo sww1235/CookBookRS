@@ -481,6 +481,8 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                 // special casing for other widgets
                 //
                 // Dropdown is always stateful
+                //
+                // TODO: should instead error on not stateful
                 if widget_type == format_ident!("Dropdown") && stateful {
                     if widget_state.is_none() {
                         return Err(syn::Error::new_spanned(f, "No widget_state specified"));
@@ -508,6 +510,7 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                             let mut dropdown = Dropdown::new();
                             let entries = vec![#(#widget_options.to_string()),*];
                             dropdown.add_entries(entries);
+                            #widget_state_name.num_entries.0 = dropdown.len();
                             dropdown.block(#block_name);
 
 
