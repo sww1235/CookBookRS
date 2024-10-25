@@ -38,8 +38,9 @@ simple_logger = "~5"
 strum = {version = "~0.26", features = ["derive"] }
 cookbook_macros = {path="cookbook_macros"}
 num-derive = "~0.4"
-num-traits = "~0.2"
 gix = {version = "~0", default-features=false, features=["status"]}
+ranged_wrapping = {path="../ranged_wrapping"}
+num-traits = "~0.2"
 
 [lib]
 name = "cookbook_core"
