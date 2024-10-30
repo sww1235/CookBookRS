@@ -1,6 +1,7 @@
 //! cookbook TODO: add more documentation
 
 use std::io::{stdin, stdout, Write};
+use std::panic::{set_hook, take_hook};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -19,9 +20,12 @@ use cookbook_core::tui::{
 };
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
+//
+//TODO: add a status message box at the bottom of the window and log some errors to it
 
 #[allow(clippy::result_large_err)] //TODO: fix this
 fn main() -> Result<(), Error> {
+    // parse command line flags
     let cli = Cli::parse();
 
     // init logger
@@ -181,6 +185,7 @@ fn main() -> Result<(), Error> {
     // }
     app.load_recipes_from_directory(input_dir)?;
 
+    tui_panic_hook();
     let mut tui = Tui::init(events)?;
     let mut app_state = AppState::default();
     app.running = true;
@@ -205,6 +210,17 @@ fn main() -> Result<(), Error> {
     }
     Tui::restore()?;
     Ok(())
+}
+//https://ratatui.rs/recipes/apps/panic-hooks/
+fn tui_panic_hook() {
+    let original_hook = take_hook();
+    set_hook(Box::new(move |panic_info| {
+        // intentionally ignore errors here since we're already in a panic
+        // do the same functions here that the normal
+        let _ = Tui::restore();
+        //let _ = stdout().flush();
+        original_hook(panic_info);
+    }))
 }
 /// `Cli` holds the defintions for command line arguments used in this binary
 #[derive(Parser)]
