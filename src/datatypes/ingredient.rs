@@ -61,7 +61,6 @@ pub enum UnitType {
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct IngredientState {
     pub selected_field: RangedWrapping<usize, usize>,
-    pub num_fields: usize,
     pub editing_selected_field: Option<IngredientFields>,
 }
 

@@ -58,7 +58,6 @@ pub struct Step {
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct StepState {
     pub selected_field: RangedWrapping<usize, usize>,
-    pub num_fields: usize,
     pub editing_selected_field: Option<StepFields>,
     //TODO: may need to change the name of this if adding more dropdowns to Step
     pub dropdown_state: DropdownState,

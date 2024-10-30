@@ -38,7 +38,6 @@ pub struct Equipment {
 #[allow(clippy::module_name_repetitions, missing_docs)]
 pub struct EquipmentState {
     pub selected_field: RangedWrapping<usize, usize>,
-    pub num_fields: usize,
     pub editing_selected_field: Option<EquipmentFields>,
 }
 

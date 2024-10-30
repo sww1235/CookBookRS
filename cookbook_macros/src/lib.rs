@@ -46,19 +46,23 @@ use std::num::Saturating;
 #[proc_macro_derive(StatefulWidgetRef, attributes(cookbook))]
 pub fn stateful_widget_ref_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    expand(input, true).unwrap_or_else(syn::Error::into_compile_error).into()
+    widget_ref_expand(input, true)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }
 ///[`widget_ref_derive`] is the outer derive function for the [`WidgetRef`]
 ///trait on structs with named fields
 #[proc_macro_derive(WidgetRef, attributes(cookbook))]
 pub fn widget_ref_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    expand(input, false).unwrap_or_else(syn::Error::into_compile_error).into()
+    widget_ref_expand(input, false)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }
 
-/// Implementation of [`StatefulWidget`] derive
+/// Implementation of [`StatefulWidgetRef`] and [`WidgetRef`] derive
 #[allow(clippy::too_many_lines)]
-fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
+fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
     let fields = match input.data {
         Data::Struct(DataStruct {
             fields: Fields::Named(ref fields),
@@ -708,8 +712,12 @@ fn expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStream2> {
                     type State = #state_struct_ident;
                     fn render_ref(&self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer, state: &mut Self::State){
                         #inner_fn_code
-                        state.num_fields = #num_visible_fields;
                     }
+                }
+
+                #[automatically_derived]
+                impl #struct_name {
+                    pub const NUM_FIELDS: usize = #num_visible_fields;
                 }
 
             }, // end of quote block
