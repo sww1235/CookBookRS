@@ -5,10 +5,12 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use clap::{self, Parser};
+use flexi_logger::{FileSpec, Logger};
 use gix::{
     discover::{self, upwards},
     open,
 };
+use log::LevelFilter;
 
 use cookbook_core::tui::{
     app::{App, AppState},
@@ -21,6 +23,31 @@ use cookbook_core::tui::{
 #[allow(clippy::result_large_err)] //TODO: fix this
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
+
+    // init logger
+    #[allow(clippy::unwrap_used)]
+    //TODO: investigate to see if it is worth trying to handle these
+    //errors manually
+    let mut logger = Logger::with(LevelFilter::Trace)
+        .log_to_file(FileSpec::default().suppress_timestamp())
+        .format_for_files(flexi_logger::opt_format)
+        .start()
+        .unwrap();
+    //TODO: add verboseness level here
+    // match on how many times verbose flag is present in commandline
+    //logger = match cli.verbose {
+    //    0 => logger.with_level(LevelFilter::Info),
+    //    1 => logger.with_level(LevelFilter::Debug),
+    //    _ => logger.with_level(LevelFilter::Trace),
+    //};
+    //
+    // match on how many times quiet flag is present in commandline
+    //logger = match cli.quiet {
+    //    0 => logger, // do nothing
+    //    1 => logger.with_level(LevelFilter::Error),
+    //    _ => logger.with_level(LevelFilter::Off),
+    //};
+
     let events = EventHandler::new(Duration::from_millis(250));
     let mut app = App::new();
 
