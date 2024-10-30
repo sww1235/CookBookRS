@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::fs;
 use std::io;
 use std::num::Saturating;
@@ -77,6 +78,21 @@ pub enum EditingState {
     ///Save Prompt, first value is index to insert into recipes, second value is if the recipe was
     ///found or not
     SavePrompt(usize, bool),
+}
+
+impl Display for EditingState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EditingState::Idle => write!(f, "Idle"),
+            EditingState::Recipe => write!(f, "Recipe"),
+            EditingState::Step(step_num) => write!(f, "Step: {step_num}"),
+            EditingState::Ingredient(step_num, ingredient_num) => write!(f, "Ingredient {ingredient_num} of Step {step_num}"),
+            EditingState::Equipment(step_num, equipment_num) => write!(f, "Equipment {equipment_num} of Step {step_num}"),
+            EditingState::SavePrompt(recipe_index, recipe_new) => {
+                write!(f, "SavePrompt {recipe_index}, Recipe new? {recipe_new}")
+            }
+        }
+    }
 }
 
 impl App {
