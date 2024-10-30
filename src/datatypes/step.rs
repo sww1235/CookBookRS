@@ -55,7 +55,7 @@ pub struct Step {
 
 /// [`StepState`]
 #[derive(Default, Debug)]
-#[allow(clippy::module_name_repetitions, missing_docs)]
+#[expect(clippy::module_name_repetitions, missing_docs)]
 pub struct StepState {
     pub selected_field: RangedWrapping<usize, usize>,
     pub editing_selected_field: Option<StepFields>,
@@ -66,7 +66,7 @@ pub struct StepState {
 /// `StepType` represents what type of step each step is in a recipe. It is used to bucket times
 /// for recipe total duration
 #[non_exhaustive]
-#[allow(clippy::module_name_repetitions)]
+#[expect(clippy::module_name_repetitions)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum StepType {
     /// Prep steps
