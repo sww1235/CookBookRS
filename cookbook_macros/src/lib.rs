@@ -473,9 +473,9 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                 if stateful {
                     state_styling_code = quote! {
                         // field is selected
-                        if state.selected_field.0 == #display_order && state.editing_selected_field.is_some(){
+                        if state.selected_field.value == #display_order && state.editing_selected_field.is_some(){
                             #field_block_border_style_name = #field_block_border_style_name.cyan();
-                        } else if state.selected_field.0 == #display_order && state.editing_selected_field.is_none() {
+                        } else if state.selected_field.value == #display_order && state.editing_selected_field.is_none() {
 
                             #field_block_border_style_name = #field_block_border_style_name.red();
                         }
@@ -514,7 +514,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             let mut dropdown = Dropdown::new();
                             let entries = vec![#(#widget_options.to_string()),*];
                             dropdown.add_entries(entries);
-                            #widget_state_name.num_entries.0 = dropdown.len();
+                            #widget_state_name.num_entries.value = dropdown.len();
                             dropdown.block(#block_name);
 
 

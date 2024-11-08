@@ -99,7 +99,7 @@ impl StatefulWidgetRef for Dropdown<'_> {
         } else {
             // collapsed
             let collapsed_view =
-                Paragraph::new(self.entries[state.selected_entry.0].clone()).block(self.block.clone().unwrap_or_default());
+                Paragraph::new(self.entries[state.selected_entry.value].clone()).block(self.block.clone().unwrap_or_default());
             collapsed_view.render(area, buf);
         }
     }
