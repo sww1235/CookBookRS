@@ -16,14 +16,16 @@ use log::LevelFilter;
 use cookbook_core::tui::{
     app::{App, AppState},
     event::{Event, EventHandler},
-    key_handler, Error, Tui,
+    key_handler,
+    keybind_handler::AppKeybinds,
+    Error, Tui,
 };
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
 //
 //TODO: add a status message box at the bottom of the window and log some errors to it
 
-#[allow(clippy::result_large_err)] //TODO: fix this
+#[expect(clippy::result_large_err)] //TODO: fix this
 fn main() -> Result<(), Error> {
     // parse command line flags
     let cli = Cli::parse();
@@ -196,7 +198,7 @@ fn main() -> Result<(), Error> {
     while app.running {
         // render interface
         tui.draw(&app, &mut app_state)?;
-        #[allow(clippy::match_same_arms)] //TODO: remove this eventually
+        #[expect(clippy::match_same_arms)] //TODO: remove this eventually
         match tui.events.next()? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => {

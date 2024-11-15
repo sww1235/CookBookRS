@@ -68,7 +68,7 @@ pub struct State {
 impl Add for UnitType {
     type Output = Self;
 
-    #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
+    #[expect(clippy::arithmetic_side_effects)] //TODO: fix this
     fn add(self, other: Self) -> Self {
         match (self, other) {
             (Self::Quantity(l), Self::Quantity(r)) => Self::Quantity(l + r),
@@ -79,7 +79,7 @@ impl Add for UnitType {
     }
 }
 impl AddAssign for UnitType {
-    #[allow(clippy::arithmetic_side_effects)] //TODO: fix this
+    #[expect(clippy::arithmetic_side_effects)] //TODO: fix this
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }

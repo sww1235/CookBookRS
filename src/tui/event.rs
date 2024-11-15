@@ -22,8 +22,8 @@ pub enum Event {
 
 ///Terminal Event Handler
 #[derive(Debug)]
-#[allow(clippy::module_name_repetitions)]
-#[allow(dead_code)] //TODO: figure out why this is detecting dead code
+#[expect(clippy::module_name_repetitions)]
+#[expect(dead_code)] //TODO: figure out why this is detecting dead code
 pub struct EventHandler {
     /// Event sender channel
     sender: mpsc::Sender<Event>,
@@ -38,7 +38,7 @@ impl EventHandler {
     ///
     /// # Panics
     /// This function doesn't actually panic itself, but the thread spawned inside may panic
-    #[allow(clippy::expect_used)] //TODO: maybe fix this?
+    #[expect(clippy::expect_used)] //TODO: maybe fix this?
     #[must_use]
     pub fn new(tick_rate: Duration) -> Self {
         let (sender, receiver) = mpsc::channel();
@@ -50,7 +50,7 @@ impl EventHandler {
                     let timeout = tick_rate.checked_sub(last_tick.elapsed()).unwrap_or(tick_rate);
 
                     if event::poll(timeout).expect("failed to poll new events") {
-                        #[allow(clippy::match_same_arms)] //TODO: remove this eventually
+                        #[expect(clippy::match_same_arms)] //TODO: remove this eventually
                         match event::read().expect("unable to read event") {
                             CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
                             CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
@@ -82,8 +82,8 @@ impl EventHandler {
     /// # Errors
     /// - [`std::io::Error errors`]
     /// - [`std::sync::mpsc::RecvError`] errors
-    #[allow(clippy::result_large_err)] //TODO: fix this by splitting up the error types, create an
-                                       //app error type
+    #[expect(clippy::result_large_err)] //TODO: fix this by splitting up the error types, create an
+                                        //app error type
     pub fn next(&self) -> Result<Event, Error> {
         Ok(self.receiver.recv()?)
     }
