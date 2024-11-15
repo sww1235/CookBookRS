@@ -21,7 +21,7 @@ use super::filetypes;
 
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
-#[cookbook(state_struct = "IngredientState")]
+#[cookbook(state_struct = "State")]
 pub struct Ingredient {
     /// database ID
     #[cookbook(skip)]
@@ -56,11 +56,12 @@ pub enum UnitType {
     Volume(ucum::Meter3<f64>),
 }
 
-/// [`IngredientState`]
+/// `State` contains the state of the Ingredient widget
 #[derive(Debug, Default)]
-#[allow(clippy::module_name_repetitions, missing_docs)]
-pub struct IngredientState {
+pub struct State {
+    /// which field is selected in the Ingredient widget display
     pub selected_field: RangedWrapping<usize, usize>,
+    /// which field is being edited, if any
     pub editing_selected_field: Option<IngredientFields>,
 }
 

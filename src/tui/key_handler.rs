@@ -15,7 +15,10 @@ use crate::{
     tui::app::{App, AppState, CurrentScreen, EditingState, SaveResponse},
 };
 
+//TODO: switch to using defined keybinds
 /// `handle_key_event` handles all `KeyEvent`s
+///
+/// default keybinds are defined in [`default_options`] and modified by the config file.
 pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: KeyEvent) {
     if key_event.kind == KeyEventKind::Release {
         // Skip events that are not KeyEventKind::Press
@@ -40,8 +43,10 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     debug! {"creating new recipe"}
                     app.edit_recipe = Some(Recipe::new());
                     //TODO: fix this with proper error handling
-                    debug! {"changing EditingState to Idle"}
-                    app_state.editing_state = EditingState::Idle;
+                    //
+                    //TODO: confirm changing directly to Recipe editing state works
+                    debug! {"changing EditingState to Recipe"}
+                    app_state.editing_state = EditingState::Recipe;
                     debug! {"changing CurrentScreen to RecipeCreator"}
                     app.current_screen = CurrentScreen::RecipeCreator;
                 }
@@ -485,10 +490,21 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                         min: 0,
                                         max: Ingredient::NUM_FIELDS,
                                     };
+                                } else if !recipe.steps.is_empty()
+                                    && !recipe.steps[step.0].equipment.is_empty()
+                                    && recipe.steps[step.0].ingredients.is_empty()
+                                {
+                                    debug! {"Step: switch to editing equipment in step. Skip editing ingredients as they don't exist."}
+                                    app_state.editing_state = EditingState::Equipment(step, Saturating(0));
+                                    app_state.equipment_state.selected_field = RangedWrapping {
+                                        value: 0,
+                                        min: 0,
+                                        max: Equipment::NUM_FIELDS,
+                                    };
                                 } else {
-                                    //already in step, but ingredient is None
-                                    // no ingredients defined in step, wrap back around to Recipe
-                                    debug! {"Step: wrapping back around to Recipe if no ingredients are defined"}
+                                    //already in step, but ingredient and equipemnt are None
+                                    // no ingredients or equipment defined in step, wrap back around to Recipe
+                                    debug! {"Step: wrapping back around to Recipe if no ingredients or equipment are defined"}
                                     app_state.editing_state = EditingState::Recipe;
                                     app_state.recipe_state.selected_field = RangedWrapping {
                                         value: 0,

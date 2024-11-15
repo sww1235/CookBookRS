@@ -53,7 +53,11 @@ fn main() -> Result<(), Error> {
     //};
 
     let events = EventHandler::new(Duration::from_millis(250));
-    let mut app = App::new();
+    // TODO: parse config file
+
+    // TODO: set keybinds from config file
+    let keybinds = AppKeybinds::default();
+    let mut app = App::new(keybinds);
 
     // either use directory passed in or current directory
     let cwd = std::env::current_dir();

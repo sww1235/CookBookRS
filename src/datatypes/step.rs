@@ -13,7 +13,7 @@ use crate::tui::dropdown::{Dropdown, DropdownState};
 
 /// `Step` represents a discrete step within a recipe
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
-#[cookbook(state_struct = "StepState")]
+#[cookbook(state_struct = "State")]
 pub struct Step {
     /// database ID
     #[cookbook(skip)]
@@ -53,13 +53,15 @@ pub struct Step {
     pub step_type: StepType,
 }
 
-/// [`StepState`]
+/// `State` contains the state of the Step widget
 #[derive(Default, Debug)]
-#[expect(clippy::module_name_repetitions, missing_docs)]
-pub struct StepState {
+pub struct State {
+    /// which field is selected in the Step widget display
     pub selected_field: RangedWrapping<usize, usize>,
+    /// which field is being edited, if any
     pub editing_selected_field: Option<StepFields>,
     //TODO: may need to change the name of this if adding more dropdowns to Step
+    /// State of step_type dropdown
     pub dropdown_state: DropdownState,
 }
 

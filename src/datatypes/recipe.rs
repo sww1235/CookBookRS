@@ -18,10 +18,13 @@ use super::{
 //TODO: associate equipment with recipe and steps, so you don't have to re-enter info for equipment
 //that is used on multiple steps. Maybe do this with ingredients as well? May have to use ref_cell
 //for this
+//
+//TODO: change the macro generating the rendering to print list of steps with ingredients/equipment at
+//the top for display only
 
 /// `Recipe` represents one recipe from start to finish
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
-#[cookbook(state_struct = "RecipeState")]
+#[cookbook(state_struct = "State")]
 pub struct Recipe {
     /// database ID
     #[cookbook(skip)]
@@ -174,11 +177,12 @@ impl Recipe {
     }
 }
 
-/// [`RecipeState`]
+/// `State` contains the state of the Recipe widget
 #[derive(Default, Debug)]
-#[allow(clippy::module_name_repetitions, missing_docs)]
-pub struct RecipeState {
+pub struct State {
+    /// which field is selected in the Recipe widget display
     pub selected_field: RangedWrapping<usize, usize>,
+    /// which field is being edited, if any
     pub editing_selected_field: Option<RecipeFields>,
 }
 

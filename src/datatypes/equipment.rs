@@ -9,7 +9,7 @@ use super::filetypes;
 /// `Equipment` represents any implement you might use to prepare a recipe,
 /// from a stove, to a microwave, to a stand mixer, to a potato peeler
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
-#[cookbook(state_struct = "EquipmentState")]
+#[cookbook(state_struct = "State")]
 pub struct Equipment {
     /// database unique ID
     #[cookbook(skip)]
@@ -33,11 +33,12 @@ pub struct Equipment {
     pub is_owned: bool,
 }
 
-/// [`EquipmentState`]
+/// `State` contains the state of the Equipment widget
 #[derive(Debug, Default)]
-#[allow(clippy::module_name_repetitions, missing_docs)]
-pub struct EquipmentState {
+pub struct State {
+    /// which field is selected in the Equipment widget display
     pub selected_field: RangedWrapping<usize, usize>,
+    /// which field is being edited, if any
     pub editing_selected_field: Option<EquipmentFields>,
 }
 

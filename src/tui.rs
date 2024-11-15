@@ -8,7 +8,16 @@ pub mod event;
 pub mod key_handler;
 
 /// `dropdown` is a dropdown menu widget
-pub mod dropdown;
+pub(crate) mod dropdown;
+
+/// `choice_popup` is a popup box with selectable options
+pub(crate) mod choice_popup;
+
+/// `keybinds` provides default keybinds for the TUI side of the application
+pub mod keybinds;
+
+/// `style` is a central location for storing the style info for the TUI side of the application
+pub mod style;
 
 use std::io::{self, stdout, Stdout};
 use std::sync::mpsc;
