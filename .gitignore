@@ -17,3 +17,7 @@ target/
 
 # VIM swap files
 *.swp
+
+
+# ignore application log files
+*.log
