@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -38,20 +39,28 @@ impl Default for BrowsingKeybinds {
             recipe_scroll: KeybindGroup {
                 instructional_text: "scroll to select recipe".to_owned(),
                 display_text: "\u{2195}".to_owned(),
-                keybinds: vec![
-                    KeybindDefinition {
-                        key: KeyCode::Down,
-                        modifiers: KeyModifiers::NONE,
-                        instructional_text: "scroll down in recipe list".to_owned(),
-                        display_text: "\u{2193}".to_owned(),
-                    },
-                    KeybindDefinition {
-                        key: KeyCode::Up,
-                        modifiers: KeyModifiers::NONE,
-                        instructional_text: "scroll up in recipe list".to_owned(),
-                        display_text: "\u{2191}".to_owned(),
-                    },
-                ],
+                keybinds: {
+                    let mut keybinds = HashMap::with_capacity(2);
+                    keybinds.insert(
+                        "recipe_scroll_down".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Down,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "scroll down in recipe list".to_owned(),
+                            display_text: "\u{2193}".to_owned(),
+                        },
+                    );
+                    keybinds.insert(
+                        "recipe_scroll_up".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Up,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "scroll up in recipe list".to_owned(),
+                            display_text: "\u{2191}".to_owned(),
+                        },
+                    );
+                    keybinds
+                },
             },
         }
     }
@@ -65,6 +74,8 @@ pub struct EditingKeybinds {
     pub edit: KeybindGroup,
     /// exit out of editing a recipe
     pub exit: KeybindDefinition,
+    /// scroll between options in popup prompts
+    pub prompt_scroll: KeybindGroup,
     /// switch between fields in a recipe/step/equipment/ingredient
     pub field_scroll: KeybindGroup,
     /// scroll through steps/equipment/ingredients in a recipe
@@ -77,106 +88,178 @@ pub struct EditingKeybinds {
     pub new_ingredient: KeybindDefinition,
     /// insert a new equipment into a step
     pub new_equipment: KeybindDefinition,
+    /// delete character behind the cursor
+    pub back_delete: KeybindDefinition,
+    /// delete character in front of cursor
+    pub front_delete: KeybindDefinition,
+    /// confirm choices and insert new lines
+    pub confirm: KeybindDefinition,
 }
 
 impl Default for EditingKeybinds {
     fn default() -> Self {
         Self {
             edit: KeybindGroup {
-                instructional_text: "Edit selected field".to_string(),
-                display_text: "e || i".to_string(),
-                keybinds: vec![
-                    KeybindDefinition {
-                        key: KeyCode::Char('e'),
-                        modifiers: KeyModifiers::NONE,
-                        instructional_text: "Edit selected field".to_string(),
-                        display_text: "e".to_string(),
-                    },
-                    KeybindDefinition {
-                        key: KeyCode::Char('i'),
-                        modifiers: KeyModifiers::NONE,
-                        instructional_text: "Edit selected fielde".to_string(),
-                        display_text: "i".to_string(),
-                    },
-                ],
+                instructional_text: "Edit selected field".to_owned(),
+                display_text: "e || i".to_owned(),
+                keybinds: HashMap::from([
+                    (
+                        "edit".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Char('e'),
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "Edit selected field".to_owned(),
+                            display_text: "e".to_owned(),
+                        },
+                    ),
+                    (
+                        "edit_alt".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Char('i'),
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "Edit selected fielde".to_owned(),
+                            display_text: "i".to_owned(),
+                        },
+                    ),
+                ]),
             },
             exit: KeybindDefinition {
                 key: KeyCode::Esc,
                 modifiers: KeyModifiers::NONE,
-                instructional_text: "Finish editing recipe".to_string(),
-                display_text: "ESC".to_string(),
+                instructional_text: "Finish editing recipe".to_owned(),
+                display_text: "ESC".to_owned(),
+            },
+            prompt_scroll: KeybindGroup {
+                instructional_text: "Scroll prompt options".to_owned(),
+                display_text: "\u{2190} || \u{2192}".to_owned(),
+                keybinds: HashMap::from([
+                    (
+                        "prompt_scroll_left".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Left,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "Scroll Prompt Option Left".to_owned(),
+                            display_text: "\u{2190}".to_owned(),
+                        },
+                    ),
+                    (
+                        "prompt_scroll_left".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Right,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "Scroll Prompt Option Right".to_owned(),
+                            display_text: "\u{2192}".to_owned(),
+                        },
+                    ),
+                ]),
             },
             field_scroll: KeybindGroup {
-                instructional_text: "cycle between fields".to_string(),
-                display_text: "\u{2195}".to_string(),
-                keybinds: vec![
-                    KeybindDefinition {
-                        key: KeyCode::Down,
-                        modifiers: KeyModifiers::NONE,
-                        instructional_text: "scroll to next field".to_owned(),
-                        display_text: "\u{2193}".to_owned(),
-                    },
-                    KeybindDefinition {
-                        key: KeyCode::Up,
-                        modifiers: KeyModifiers::NONE,
-                        instructional_text: "scroll to previous field".to_owned(),
-                        display_text: "\u{2191}".to_owned(),
-                    },
-                ],
+                instructional_text: "cycle between fields".to_owned(),
+                display_text: "\u{2195}".to_owned(),
+                keybinds: HashMap::from([
+                    (
+                        "field_scroll_down".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Down,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "scroll to next field".to_owned(),
+                            display_text: "\u{2193}".to_owned(),
+                        },
+                    ),
+                    (
+                        "field_scroll_up".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Up,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "scroll to previous field".to_owned(),
+                            display_text: "\u{2191}".to_owned(),
+                        },
+                    ),
+                ]),
             },
             item_scroll: KeybindGroup {
-                instructional_text: "cycle between items".to_string(),
-                display_text: "\u{21E7}+\u{2195}".to_string(),
-                keybinds: vec![
-                    KeybindDefinition {
-                        key: KeyCode::Down,
-                        modifiers: KeyModifiers::SHIFT,
-                        instructional_text: "scroll to next item".to_owned(),
-                        display_text: "\u{21E7} + \u{2193}".to_owned(),
-                    },
-                    KeybindDefinition {
-                        key: KeyCode::Up,
-                        modifiers: KeyModifiers::SHIFT,
-                        instructional_text: "scroll to previous item".to_owned(),
-                        display_text: "\u{21E7} + \u{2191}".to_owned(),
-                    },
-                ],
+                instructional_text: "cycle between items".to_owned(),
+                display_text: "\u{21E7}+\u{2195}".to_owned(),
+                keybinds: HashMap::from([
+                    (
+                        "item_scroll_down".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Down,
+                            modifiers: KeyModifiers::SHIFT,
+                            instructional_text: "scroll to next item".to_owned(),
+                            display_text: "\u{21E7} + \u{2193}".to_owned(),
+                        },
+                    ),
+                    (
+                        "item_scroll_up".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Up,
+                            modifiers: KeyModifiers::SHIFT,
+                            instructional_text: "scroll to previous item".to_owned(),
+                            display_text: "\u{21E7} + \u{2191}".to_owned(),
+                        },
+                    ),
+                ]),
             },
             item_switch: KeybindGroup {
-                instructional_text: "switch between item types".to_string(),
-                display_text: "(\u{21E7}) + \u{2B7E}".to_string(),
-                keybinds: vec![
-                    KeybindDefinition {
-                        key: KeyCode::Down,
-                        modifiers: KeyModifiers::NONE,
-                        instructional_text: "switch to next item type".to_owned(),
-                        display_text: "\u{2B7E}".to_owned(),
-                    },
-                    KeybindDefinition {
-                        key: KeyCode::Up,
-                        modifiers: KeyModifiers::SHIFT,
-                        instructional_text: "switch to next item type".to_owned(),
-                        display_text: "\u{21E7}+\u{2B7E}".to_owned(),
-                    },
-                ],
+                instructional_text: "switch between item types".to_owned(),
+                display_text: "(\u{21E7}) + \u{2B7E}".to_owned(),
+                keybinds: HashMap::from([
+                    (
+                        "item_switch_forward".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Tab,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "switch to next item type".to_owned(),
+                            display_text: "\u{2B7E}".to_owned(),
+                        },
+                    ),
+                    (
+                        "item_switch_forward".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Tab,
+                            modifiers: KeyModifiers::SHIFT,
+                            instructional_text: "switch to previous item type".to_owned(),
+                            display_text: "\u{21E7}+\u{2B7E}".to_owned(),
+                        },
+                    ),
+                ]),
             },
             new_step: KeybindDefinition {
                 key: KeyCode::Char('s'),
                 modifiers: KeyModifiers::NONE,
-                instructional_text: "Insert new Step".to_string(),
-                display_text: "s".to_string(),
+                instructional_text: "Insert new Step".to_owned(),
+                display_text: "s".to_owned(),
             },
             new_ingredient: KeybindDefinition {
                 key: KeyCode::Char('g'),
                 modifiers: KeyModifiers::NONE,
-                instructional_text: "Insert new inGredient".to_string(),
-                display_text: "g".to_string(),
+                instructional_text: "Insert new inGredient".to_owned(),
+                display_text: "g".to_owned(),
             },
             new_equipment: KeybindDefinition {
                 key: KeyCode::Char('q'),
                 modifiers: KeyModifiers::NONE,
-                instructional_text: "Insert new eQuipment".to_string(),
-                display_text: "q".to_string(),
+                instructional_text: "Insert new eQuipment".to_owned(),
+                display_text: "q".to_owned(),
+            },
+            back_delete: KeybindDefinition {
+                key: KeyCode::Backspace,
+                modifiers: KeyModifiers::NONE,
+                instructional_text: "Delete text behind cursor".to_owned(),
+                display_text: "\u{232B}".to_owned(),
+            },
+            front_delete: KeybindDefinition {
+                key: KeyCode::Delete,
+                modifiers: KeyModifiers::NONE,
+                instructional_text: "Delete text in front of cursor".to_owned(),
+                display_text: "\u{2326}".to_owned(),
+            },
+            confirm: KeybindDefinition {
+                key: KeyCode::Enter,
+                modifiers: KeyModifiers::NONE,
+                instructional_text: "Confirm selection or insert newline".to_owned(),
+                display_text: "\u{21B5}".to_owned(),
             },
         }
     }
@@ -196,8 +279,8 @@ impl Default for ViewingKeybinds {
             exit: KeybindDefinition {
                 key: KeyCode::Esc,
                 modifiers: KeyModifiers::NONE,
-                instructional_text: "Return to Browsing".to_string(),
-                display_text: "ESC".to_string(),
+                instructional_text: "Return to Browsing".to_owned(),
+                display_text: "ESC".to_owned(),
             },
         }
     }
@@ -216,8 +299,8 @@ impl Default for FieldEditingKeybinds {
             exit: KeybindDefinition {
                 key: KeyCode::Esc,
                 modifiers: KeyModifiers::NONE,
-                instructional_text: "Finish editing recipe".to_string(),
-                display_text: "ESC".to_string(),
+                instructional_text: "Finish editing recipe".to_owned(),
+                display_text: "ESC".to_owned(),
             },
         }
     }
@@ -227,17 +310,35 @@ impl Default for FieldEditingKeybinds {
 #[derive(Debug, PartialEq)]
 pub struct CoreKeybinds {
     /// force exits app without saving
-    pub exit: KeybindDefinition,
+    pub exit: KeybindGroup,
 }
 
 impl Default for CoreKeybinds {
     fn default() -> Self {
         Self {
-            exit: KeybindDefinition {
-                key: KeyCode::Char('c'),
-                modifiers: KeyModifiers::CONTROL,
-                instructional_text: "force quit app without saving".to_string(),
-                display_text: "^c".to_string(),
+            exit: KeybindGroup {
+                display_text: "^c".to_owned(),
+                instructional_text: "force quit app without saving".to_owned(),
+                keybinds: HashMap::from([
+                    (
+                        "^c".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Char('c'),
+                            modifiers: KeyModifiers::CONTROL,
+                            instructional_text: "force quit app without saving".to_owned(),
+                            display_text: "^c".to_owned(),
+                        },
+                    ),
+                    (
+                        "^C".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Char('c'),
+                            modifiers: KeyModifiers::CONTROL & KeyModifiers::SHIFT,
+                            instructional_text: "force quit app without saving".to_owned(),
+                            display_text: "^c".to_owned(),
+                        },
+                    ),
+                ]),
             },
         }
     }
@@ -279,7 +380,7 @@ pub struct KeybindGroup {
     /// symbols representing this key group for display purposes
     pub display_text: String,
     /// keys in group
-    pub keybinds: Vec<KeybindDefinition>,
+    pub keybinds: HashMap<String, KeybindDefinition>,
 }
 
 impl fmt::Display for KeybindGroup {

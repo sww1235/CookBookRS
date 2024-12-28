@@ -5,6 +5,8 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph, StatefulWidgetRef, Widget},
 };
 
+use ranged_wrapping::RangedWrapping;
+
 /// `ChoicePopup` is a centered popup box with multiple selectable choices
 #[derive(Debug, Default, PartialEq)]
 pub struct ChoicePopup {
@@ -13,7 +15,10 @@ pub struct ChoicePopup {
     /// optional text to display above the choices
     description: Option<String>,
     /// list of choices and associated styles
+    //TODO: maybe make this a hashmap or something for better find performance?
     choices: Vec<(String, Style)>,
+    /// index of default choice in `choices` vector
+    default_choice: usize,
     /// what percentage of the containing [`Rect`](`ratatui::layout::Rect)'s width the popup will
     /// take up
     percent_x: u16,
@@ -26,13 +31,6 @@ pub struct ChoicePopup {
     selected_style: Style,
     /// Style of descriptive text
     description_style: Style,
-}
-
-/// `State` is the state of the widget
-#[derive(Debug, Default, PartialEq)]
-pub struct State {
-    /// which choice is selected
-    pub selected_choice: usize,
 }
 
 impl ChoicePopup {
@@ -92,6 +90,49 @@ impl ChoicePopup {
         choices.push((choice.to_owned(), style));
         Self { choices, ..self }
     }
+
+    pub fn set_default_choice(self, choice_idx: usize) -> Self {
+        Self {
+            default_choice: choice_idx,
+            ..self
+        }
+    }
+}
+
+/// `State` is the state of the widget
+#[derive(Debug, Default, PartialEq)]
+pub struct State {
+    /// which choice is selected
+    selected_choice: RangedWrapping<usize, usize>,
+}
+
+impl State {
+    pub fn new(widget: ChoicePopup) -> Self {
+        Self {
+            selected_choice: RangedWrapping {
+                value: 0,
+                min: 0,
+                max: widget.choices.len() - 1,
+            },
+        }
+    }
+    pub fn select_next(&mut self) {
+        self.selected_choice += RangedWrapping {
+            value: 1,
+            min: self.selected_choice.min,
+            max: self.selected_choice.max,
+        };
+    }
+    pub fn select_previous(&mut self) {
+        self.selected_choice -= RangedWrapping {
+            value: 1,
+            min: self.selected_choice.min,
+            max: self.selected_choice.max,
+        };
+    }
+    pub fn value(&self) -> usize {
+        self.selected_choice.value
+    }
 }
 
 impl StatefulWidgetRef for ChoicePopup {
@@ -135,7 +176,7 @@ impl StatefulWidgetRef for ChoicePopup {
 
         let choice_paragraphs = self.choices.clone().into_iter().enumerate().map(|(idx, choice)| {
             let mut temp_style = choice.1;
-            if state.selected_choice == idx {
+            if state.selected_choice.value == idx {
                 temp_style = temp_style.patch(self.selected_style)
             }
             Paragraph::new(choice.0)
@@ -154,9 +195,9 @@ impl StatefulWidgetRef for ChoicePopup {
         }
         popup_block.render(save_popup_area, buf);
         //clear.clone().render(choices_area, buf);
-        choice_paragraphs
+        let _ = choice_paragraphs
             .into_iter()
-            .zip(choice_areas.into_iter())
+            .zip(choice_areas.iter())
             .map(|(pgh, area)| pgh.render(*area, buf));
     }
 }

@@ -7,8 +7,7 @@ use std::path::Path;
 use gix::Repository;
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    layout::{Constraint, Direction, Layout, Rect},
     text::{Line, Span, Text},
     widgets::{
         Block, Borders, Clear, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget,
@@ -25,9 +24,7 @@ use crate::{
     },
     tui::{
         choice_popup::{self, ChoicePopup},
-        keybinds::{
-            BrowsingKeybinds, CoreKeybinds, EditingKeybinds, FieldEditingKeybinds, Keybinds as AppKeybinds, ViewingKeybinds,
-        },
+        keybinds::Keybinds as AppKeybinds,
         style::Style as AppStyle,
     },
 };
@@ -86,7 +83,7 @@ pub enum EditingState {
     Equipment(Saturating<usize>, Saturating<usize>),
     ///Save Prompt, first value is index to insert into recipes, second value is if the recipe was
     ///found or not
-    SavePrompt(usize, bool),
+    SavePrompt,
 }
 
 impl fmt::Display for EditingState {
@@ -96,8 +93,8 @@ impl fmt::Display for EditingState {
             EditingState::Step(step_num) => write!(f, "Step: {step_num}"),
             EditingState::Ingredient(step_num, ingredient_num) => write!(f, "Ingredient {ingredient_num} of Step {step_num}"),
             EditingState::Equipment(step_num, equipment_num) => write!(f, "Equipment {equipment_num} of Step {step_num}"),
-            EditingState::SavePrompt(recipe_index, recipe_new) => {
-                write!(f, "SavePrompt {recipe_index}, Recipe new? {recipe_new}")
+            EditingState::SavePrompt => {
+                write!(f, "SavePrompt")
             }
         }
     }
@@ -278,14 +275,6 @@ pub struct AppState {
     /// save_response
     pub save_prompt_state: choice_popup::State,
 }
-/// [`SaveResponse`] is the return value from the save recipe prompt
-#[derive(Debug, Default)]
-pub enum SaveResponse {
-    #[default]
-    Yes,
-    No,
-    Cancel,
-}
 
 impl StatefulWidgetRef for App {
     type State = AppState;
@@ -449,7 +438,7 @@ impl StatefulWidgetRef for App {
                         ));
                     }
 
-                    EditingState::SavePrompt(_, _) => {
+                    EditingState::SavePrompt => {
                         editor_kb_text.clear();
                         editor_kb_text.push(Span::styled("Save Recipe?", self.style.keyboard_shortcut_text));
                     }
@@ -557,7 +546,7 @@ impl StatefulWidgetRef for App {
                             &mut state.equipment_state,
                         );
                     }
-                    EditingState::SavePrompt(_, _) => {
+                    EditingState::SavePrompt => {
                         let save_prompt = ChoicePopup::default()
                             .title("Save Recipe?")
                             .percent_x(75)

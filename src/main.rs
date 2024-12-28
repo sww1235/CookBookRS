@@ -17,7 +17,8 @@ use cookbook_core::tui::{
     app::{App, AppState},
     event::{Event, EventHandler},
     key_handler,
-    keybind_handler::AppKeybinds,
+    keybinds::Keybinds as AppKeybinds,
+    style::Style as AppStyle,
     Error, Tui,
 };
 
@@ -57,9 +58,10 @@ fn main() -> Result<(), Error> {
     let events = EventHandler::new(Duration::from_millis(250));
     // TODO: parse config file
 
-    // TODO: set keybinds from config file
+    // TODO: set keybinds and style from config file
+    let style = AppStyle::default();
     let keybinds = AppKeybinds::default();
-    let mut app = App::new(keybinds);
+    let mut app = App::new(keybinds, style);
 
     // either use directory passed in or current directory
     let cwd = std::env::current_dir();
