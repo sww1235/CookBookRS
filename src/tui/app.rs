@@ -135,10 +135,9 @@ impl App {
             }
         } else {
             Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
+                io::ErrorKind::NotADirectory,
                 format! {"Provided filepath not a directory {}", dir.display()},
             ))
-            //TODO: return is not directory error
         }
     }
     fn write_recipe(recipe: Recipe, out_path: &Path) -> Result<(), io::Error> {
@@ -165,10 +164,9 @@ impl App {
             Ok(())
         } else {
             Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
+                io::ErrorKind::NotADirectory,
                 format! {"Provided filepath not a directory {}", dir.display()},
             ))
-            //TODO: return is not directory error
         }
     }
 
