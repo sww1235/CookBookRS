@@ -217,38 +217,40 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                 }
                             }
                         }
-                    } else if app
+                    } else if (app
                         .keybinds
                         .editing
                         .edit
                         .keybinds
                         .values()
-                        .any(|x| x.key == key_event.code && x.modifiers == key_event.modifiers)
+                        .any(|x| x.key == key_event.code && x.modifiers == key_event.modifiers))
+                        && app_state.recipe_state.editing_selected_field.is_none()
+                    // need the last part of the logic chain here, rather than nested so it
+                    // short circuits and goes to the `else` at the bottom
                     {
-                        if app_state.recipe_state.editing_selected_field.is_none() {
-                            debug! {"Recipe: editing selected field {} when i or e pressed", app_state.recipe_state.selected_field}
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            app_state.recipe_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.recipe_state.selected_field.value).unwrap() {
-                                    RecipeFields::Name => Some(RecipeFields::Name),
-                                    RecipeFields::Description => Some(RecipeFields::Description),
-                                    RecipeFields::Comments => Some(RecipeFields::Comments),
-                                    RecipeFields::Source => Some(RecipeFields::Source),
-                                    RecipeFields::Author => Some(RecipeFields::Author),
-                                    RecipeFields::AmountMade => Some(RecipeFields::AmountMade),
-                                }
-                        }
+                        debug! {"Recipe: editing selected field {} when i or e pressed", app_state.recipe_state.selected_field}
+                        // the use of unwrap should be fine, since the FromPrimitive
+                        // is being derived automatically on an enum of
+                        // known size
+                        app_state.recipe_state.editing_selected_field =
+                            match FromPrimitive::from_usize(app_state.recipe_state.selected_field.value).unwrap() {
+                                RecipeFields::Name => Some(RecipeFields::Name),
+                                RecipeFields::Description => Some(RecipeFields::Description),
+                                RecipeFields::Comments => Some(RecipeFields::Comments),
+                                RecipeFields::Source => Some(RecipeFields::Source),
+                                RecipeFields::Author => Some(RecipeFields::Author),
+                                RecipeFields::AmountMade => Some(RecipeFields::AmountMade),
+                            }
                     } else if app.keybinds.editing.new_step.key == key_event.code
                         && app.keybinds.editing.new_step.modifiers == key_event.modifiers
+                        && app_state.recipe_state.editing_selected_field.is_none()
+                    // need the last part of the logic chain here, rather than nested so it
+                    // short circuits and goes to the `else` at the bottom
                     {
-                        if app_state.recipe_state.editing_selected_field.is_none() {
-                            debug! {"Recipe: insert new step into recipe when s is pressed"}
-                            app.edit_recipe.as_mut().unwrap().steps.push(Step::default());
-                            // do not change to display newly inserted step as multiple
-                            // steps may be inserted at once.
-                        }
+                        debug! {"Recipe: insert new step into recipe when s is pressed"}
+                        app.edit_recipe.as_mut().unwrap().steps.push(Step::default());
+                        // do not change to display newly inserted step as multiple
+                        // steps may be inserted at once.
                     }
                     // handling text entry into fields and deletion here with else
                     else {
@@ -513,42 +515,45 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         .keybinds
                         .values()
                         .any(|x| x.key == key_event.code && x.modifiers == key_event.modifiers)
+                        && app_state.step_state.editing_selected_field.is_none()
+                    // need the last part of the logic chain here, rather than nested so it
+                    // short circuits and goes to the `else` at the bottom
                     {
-                        if app_state.step_state.editing_selected_field.is_none() {
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            debug! {"Step: editing selected field when i or e is pressed"}
-                            app_state.step_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.step_state.selected_field.value).unwrap() {
-                                    StepFields::TimeNeeded => Some(StepFields::TimeNeeded),
-                                    StepFields::Temperature => Some(StepFields::Temperature),
-                                    StepFields::Instructions => Some(StepFields::Instructions),
-                                    StepFields::StepType => Some(StepFields::StepType),
-                                }
-                        }
+                        // the use of unwrap should be fine, since the FromPrimitive
+                        // is being derived automatically on an enum of
+                        // known size
+                        debug! {"Step: editing selected field when i or e is pressed"}
+                        app_state.step_state.editing_selected_field =
+                            match FromPrimitive::from_usize(app_state.step_state.selected_field.value).unwrap() {
+                                StepFields::TimeNeeded => Some(StepFields::TimeNeeded),
+                                StepFields::Temperature => Some(StepFields::Temperature),
+                                StepFields::Instructions => Some(StepFields::Instructions),
+                                StepFields::StepType => Some(StepFields::StepType),
+                            }
                     } else if app.keybinds.editing.new_ingredient.key == key_event.code
                         && app.keybinds.editing.new_ingredient.modifiers == key_event.modifiers
+                        && app_state.step_state.editing_selected_field.is_none()
+                    // need the last part of the logic chain here, rather than nested so it
+                    // short circuits and goes to the `else` at the bottom
                     {
-                        if app_state.step_state.editing_selected_field.is_none() {
-                            debug! {"Step: insert new inGredient into step when g is pressed"}
-                            app.edit_recipe.as_mut().unwrap().steps[step.0]
-                                .ingredients
-                                .push(Ingredient::default());
-                            // do not change to display newly inserted ingredient as
-                            // multiple ingredients may be inserted at once
-                        }
+                        debug! {"Step: insert new inGredient into step when g is pressed"}
+                        app.edit_recipe.as_mut().unwrap().steps[step.0]
+                            .ingredients
+                            .push(Ingredient::default());
+                        // do not change to display newly inserted ingredient as
+                        // multiple ingredients may be inserted at once
                     } else if app.keybinds.editing.new_equipment.key == key_event.code
                         && app.keybinds.editing.new_equipment.modifiers == key_event.modifiers
+                        && app_state.step_state.editing_selected_field.is_none()
+                    // need the last part of the logic chain here, rather than nested so it
+                    // short circuits and goes to the `else` at the bottom
                     {
-                        if app_state.step_state.editing_selected_field.is_none() {
-                            debug! {"Step: insert new eQuipment into step when q is pressed"}
-                            app.edit_recipe.as_mut().unwrap().steps[step.0]
-                                .equipment
-                                .push(Equipment::default());
-                            // do not change to display newly inserted equipment as
-                            // multiple pieces of equipment may be inserted at once
-                        }
+                        debug! {"Step: insert new eQuipment into step when q is pressed"}
+                        app.edit_recipe.as_mut().unwrap().steps[step.0]
+                            .equipment
+                            .push(Equipment::default());
+                        // do not change to display newly inserted equipment as
+                        // multiple pieces of equipment may be inserted at once
                     }
                     // handling text entry into fields and deletion here with else
                     else {
@@ -738,18 +743,19 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         .keybinds
                         .values()
                         .any(|x| x.key == key_event.code && x.modifiers == key_event.modifiers)
+                        && app_state.ingredient_state.editing_selected_field.is_none()
+                    // need the last part of the logic chain here, rather than nested so it
+                    // short circuits and goes to the `else` at the bottom
                     {
-                        if app_state.ingredient_state.editing_selected_field.is_none() {
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            debug! {"Ingredient: editing selected field when i or e is pressed"}
-                            app_state.ingredient_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.ingredient_state.selected_field.value).unwrap() {
-                                    IngredientFields::Name => Some(IngredientFields::Name),
-                                    IngredientFields::Description => Some(IngredientFields::Description),
-                                }
-                        }
+                        // the use of unwrap should be fine, since the FromPrimitive
+                        // is being derived automatically on an enum of
+                        // known size
+                        debug! {"Ingredient: editing selected field when i or e is pressed"}
+                        app_state.ingredient_state.editing_selected_field =
+                            match FromPrimitive::from_usize(app_state.ingredient_state.selected_field.value).unwrap() {
+                                IngredientFields::Name => Some(IngredientFields::Name),
+                                IngredientFields::Description => Some(IngredientFields::Description),
+                            }
                     }
                     // handling text entry into fields and deletion here with else
                     else {
@@ -905,19 +911,20 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         .keybinds
                         .values()
                         .any(|x| x.key == key_event.code && x.modifiers == key_event.modifiers)
+                        && app_state.equipment_state.editing_selected_field.is_none()
+                    // need the last part of the logic chain here, rather than nested so it
+                    // short circuits and goes to the `else` at the bottom
                     {
-                        if app_state.equipment_state.editing_selected_field.is_none() {
-                            // the use of unwrap should be fine, since the FromPrimitive
-                            // is being derived automatically on an enum of
-                            // known size
-                            debug! {"Equipment: editing selected field when i or e is pressed"}
-                            app_state.equipment_state.editing_selected_field =
-                                match FromPrimitive::from_usize(app_state.equipment_state.selected_field.value).unwrap() {
-                                    EquipmentFields::Name => Some(EquipmentFields::Name),
-                                    EquipmentFields::Description => Some(EquipmentFields::Description),
-                                    EquipmentFields::IsOwned => Some(EquipmentFields::IsOwned),
-                                }
-                        }
+                        // the use of unwrap should be fine, since the FromPrimitive
+                        // is being derived automatically on an enum of
+                        // known size
+                        debug! {"Equipment: editing selected field when i or e is pressed"}
+                        app_state.equipment_state.editing_selected_field =
+                            match FromPrimitive::from_usize(app_state.equipment_state.selected_field.value).unwrap() {
+                                EquipmentFields::Name => Some(EquipmentFields::Name),
+                                EquipmentFields::Description => Some(EquipmentFields::Description),
+                                EquipmentFields::IsOwned => Some(EquipmentFields::IsOwned),
+                            }
                     }
                     // handling text entry into fields and deletion here with else
                     else {

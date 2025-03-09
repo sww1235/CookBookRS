@@ -671,7 +671,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
            #(#constraint_code_values)*
         } else {
             //TODO: implement scrolling
-            todo!("Scrolling not implemented yet")
+            todo!("Scrolling not implemented yet. Screen Height too small")
         }
         // last constraint for step/equipment block
         constraints.push(ratatui::layout::Constraint::Length(3));

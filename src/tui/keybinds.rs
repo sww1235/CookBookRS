@@ -215,7 +215,7 @@ impl Default for EditingKeybinds {
                         },
                     ),
                     (
-                        "item_switch_forward".to_owned(),
+                        "item_switch_reverse".to_owned(),
                         KeybindDefinition {
                             key: KeyCode::Tab,
                             modifiers: KeyModifiers::SHIFT,

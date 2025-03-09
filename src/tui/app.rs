@@ -300,7 +300,7 @@ impl StatefulWidgetRef for App {
         let title_block = Block::default().borders(Borders::ALL).style(self.style.title_block);
         let mut title_paragraph = Paragraph::default();
 
-        let mut keybind_area_height: u16 = 3;
+        let mut keybind_area_height: u16;
         let mut current_keybind_text: Vec<Line> = Vec::new();
         let status_block = Block::default().borders(Borders::ALL).style(self.style.status_block);
         let mut status_paragraph = Paragraph::default();
