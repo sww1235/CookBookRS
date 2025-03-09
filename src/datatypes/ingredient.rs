@@ -57,12 +57,24 @@ pub enum UnitType {
 }
 
 /// `State` contains the state of the Ingredient widget
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct State {
     /// which field is selected in the Ingredient widget display
     pub selected_field: RangedWrapping<usize, usize>,
     /// which field is being edited, if any
     pub editing_selected_field: Option<IngredientFields>,
+}
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            selected_field: RangedWrapping {
+                value: 0,
+                max: Ingredient::NUM_FIELDS,
+                min: 0,
+            },
+            editing_selected_field: None,
+        }
+    }
 }
 
 impl Add for UnitType {

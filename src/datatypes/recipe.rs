@@ -178,12 +178,25 @@ impl Recipe {
 }
 
 /// `State` contains the state of the Recipe widget
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct State {
     /// which field is selected in the Recipe widget display
     pub selected_field: RangedWrapping<usize, usize>,
     /// which field is being edited, if any
     pub editing_selected_field: Option<RecipeFields>,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            selected_field: RangedWrapping {
+                value: 0,
+                max: Recipe::NUM_FIELDS,
+                min: 0,
+            },
+            editing_selected_field: None,
+        }
+    }
 }
 
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/

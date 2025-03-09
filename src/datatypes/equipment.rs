@@ -34,12 +34,24 @@ pub struct Equipment {
 }
 
 /// `State` contains the state of the Equipment widget
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct State {
     /// which field is selected in the Equipment widget display
     pub selected_field: RangedWrapping<usize, usize>,
     /// which field is being edited, if any
     pub editing_selected_field: Option<EquipmentFields>,
+}
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            selected_field: RangedWrapping {
+                value: 0,
+                max: Equipment::NUM_FIELDS,
+                min: 0,
+            },
+            editing_selected_field: None,
+        }
+    }
 }
 
 impl From<filetypes::Equipment> for Equipment {

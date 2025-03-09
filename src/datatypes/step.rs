@@ -54,7 +54,7 @@ pub struct Step {
 }
 
 /// `State` contains the state of the Step widget
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct State {
     /// which field is selected in the Step widget display
     pub selected_field: RangedWrapping<usize, usize>,
@@ -65,6 +65,19 @@ pub struct State {
     pub dropdown_state: DropdownState,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            selected_field: RangedWrapping {
+                value: 0,
+                max: Step::NUM_FIELDS,
+                min: 0,
+            },
+            editing_selected_field: None,
+            dropdown_state: DropdownState::default(),
+        }
+    }
+}
 /// `StepType` represents what type of step each step is in a recipe. It is used to bucket times
 /// for recipe total duration
 #[non_exhaustive]
