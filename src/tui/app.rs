@@ -326,7 +326,9 @@ impl StatefulWidgetRef for App {
                 //TODO: see if this can be moved to the keybinds module
                 let browser_kb_text = vec![
                     Span::styled(format!("{}", self.keybinds.browsing.quit), self.style.keyboard_shortcut_text),
+                    Span::raw(" | "),
                     Span::styled(format!("{}", self.keybinds.browsing.new), self.style.keyboard_shortcut_text),
+                    Span::raw(" | "),
                     Span::styled(
                         format!("{}", self.keybinds.browsing.recipe_scroll),
                         self.style.keyboard_shortcut_text,
@@ -398,26 +400,32 @@ impl StatefulWidgetRef for App {
                     format!("{}", self.keybinds.editing.exit),
                     self.style.keyboard_shortcut_text,
                 ));
+                editor_kb_text.push(Span::raw(" | "));
                 editor_kb_text.push(Span::styled(
                     format!("{}", self.keybinds.editing.edit),
                     self.style.keyboard_shortcut_text,
                 ));
+                editor_kb_text.push(Span::raw(" | "));
                 editor_kb_text.push(Span::styled(
                     format!("{}", self.keybinds.editing.field_scroll),
                     self.style.keyboard_shortcut_text,
                 ));
+                editor_kb_text.push(Span::raw(" | "));
                 editor_kb_text.push(Span::styled(
                     format!("{}", self.keybinds.editing.item_scroll),
                     self.style.keyboard_shortcut_text,
                 ));
+                editor_kb_text.push(Span::raw(" | "));
                 editor_kb_text.push(Span::styled(
                     format!("{}", self.keybinds.editing.item_switch),
                     self.style.keyboard_shortcut_text,
                 ));
+                editor_kb_text.push(Span::raw(" | "));
                 editor_kb_text.push(Span::styled(
                     format!("{}", self.keybinds.editing.item_switch),
                     self.style.keyboard_shortcut_text,
                 ));
+                editor_kb_text.push(Span::raw(" | "));
                 match state.editing_state {
                     EditingState::Recipe => {
                         editor_kb_text.push(Span::styled(
@@ -430,6 +438,7 @@ impl StatefulWidgetRef for App {
                             format!("{}", self.keybinds.editing.new_ingredient),
                             self.style.keyboard_shortcut_text,
                         ));
+                        editor_kb_text.push(Span::raw(" | "));
                         editor_kb_text.push(Span::styled(
                             format!("{}", self.keybinds.editing.new_equipment),
                             self.style.keyboard_shortcut_text,
