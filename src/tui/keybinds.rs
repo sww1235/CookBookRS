@@ -143,7 +143,7 @@ impl Default for EditingKeybinds {
                         },
                     ),
                     (
-                        "prompt_scroll_left".to_owned(),
+                        "prompt_scroll_right".to_owned(),
                         KeybindDefinition {
                             key: KeyCode::Right,
                             modifiers: KeyModifiers::NONE,

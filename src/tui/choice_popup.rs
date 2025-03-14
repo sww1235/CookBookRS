@@ -117,18 +117,10 @@ impl State {
         }
     }
     pub fn select_next(&mut self) {
-        self.selected_choice += RangedWrapping {
-            value: 1,
-            min: self.selected_choice.min,
-            max: self.selected_choice.max,
-        };
+        self.selected_choice += 1
     }
     pub fn select_previous(&mut self) {
-        self.selected_choice -= RangedWrapping {
-            value: 1,
-            min: self.selected_choice.min,
-            max: self.selected_choice.max,
-        };
+        self.selected_choice -= 1
     }
     pub fn value(&self) -> usize {
         self.selected_choice.value
@@ -156,7 +148,7 @@ impl StatefulWidgetRef for ChoicePopup {
                 Constraint::Length(1),
                 Constraint::Fill(1),
             ])
-            .areas(area);
+            .areas(save_popup_area);
 
         // use u16::MAX for max constraint size for now. TODO: see if there is a more sensible
         // default here
@@ -198,7 +190,7 @@ impl StatefulWidgetRef for ChoicePopup {
         let _ = choice_paragraphs
             .into_iter()
             .zip(choice_areas.iter())
-            .map(|(pgh, area)| pgh.render(*area, buf));
+            .for_each(|(pgh, area)| pgh.render(*area, buf));
     }
 }
 
