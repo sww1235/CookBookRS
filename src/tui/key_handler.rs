@@ -133,11 +133,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         // editing main recipe part
                         if app_state.recipe_state.editing_selected_field.is_none() {
                             debug! {"Recipe: select previous field"}
-                            app_state.recipe_state.selected_field -= RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Recipe::NUM_FIELDS,
-                            };
+                            app_state.recipe_state.selected_field -= 1;
                         }
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].modifiers
@@ -145,11 +141,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
                         if app_state.recipe_state.editing_selected_field.is_none() {
                             debug! {"Recipe: select next field"}
-                            app_state.recipe_state.selected_field += RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Recipe::NUM_FIELDS,
-                            };
+                            app_state.recipe_state.selected_field += 1;
                         }
                     } else if key_event.code == app.keybinds.editing.item_switch.keybinds["item_switch_forward"].key
                         && key_event.modifiers == app.keybinds.editing.item_switch.keybinds["item_switch_forward"].modifiers
@@ -365,40 +357,24 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                         // only scroll fields if a field is not selected
                         if app_state.step_state.editing_selected_field.is_none() {
                             debug! {"Step: select previous field"}
-                            app_state.step_state.selected_field -= RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Step::NUM_FIELDS,
-                            };
+                            app_state.step_state.selected_field -= 1
                         } else if app_state.step_state.editing_selected_field.is_some()
                             && app_state.step_state.dropdown_state.expanded
                         {
                             debug! {"Step: scroll up in dropdown"}
-                            app_state.step_state.dropdown_state.selected_entry -= RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Step::NUM_FIELDS,
-                            };
+                            app_state.step_state.dropdown_state.selected_entry -= 1
                         }
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].modifiers
                     {
                         if app_state.step_state.editing_selected_field.is_none() {
                             debug! {"Step : select next field"}
-                            app_state.step_state.selected_field += RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Step::NUM_FIELDS,
-                            };
+                            app_state.step_state.selected_field += 1
                         } else if app_state.step_state.editing_selected_field.is_some()
                             && app_state.step_state.dropdown_state.expanded
                         {
                             debug! {"Step : scrooll down in dropdown"}
-                            app_state.step_state.dropdown_state.selected_entry += RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Step::NUM_FIELDS,
-                            };
+                            app_state.step_state.dropdown_state.selected_entry += 1
                         }
                     } else if key_event.code == app.keybinds.editing.item_scroll.keybinds["item_scroll_up"].key
                         && key_event.modifiers == app.keybinds.editing.item_scroll.keybinds["item_scroll_up"].modifiers
@@ -633,22 +609,14 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     {
                         if app_state.ingredient_state.editing_selected_field.is_none() {
                             debug! {"Ingredient: select previous field"}
-                            app_state.ingredient_state.selected_field -= RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Ingredient::NUM_FIELDS,
-                            };
+                            app_state.ingredient_state.selected_field -= 1
                         }
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].modifiers
                     {
                         if app_state.ingredient_state.editing_selected_field.is_none() {
                             debug! {"Ingredient: select next field"}
-                            app_state.ingredient_state.selected_field += RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Ingredient::NUM_FIELDS,
-                            };
+                            app_state.ingredient_state.selected_field += 1
                         }
                     } else if key_event.code == app.keybinds.editing.item_scroll.keybinds["item_scroll_up"].key
                         && key_event.modifiers == app.keybinds.editing.item_scroll.keybinds["item_scroll_up"].modifiers
@@ -833,22 +801,14 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     {
                         if app_state.equipment_state.editing_selected_field.is_none() {
                             debug! {"Equipment: select previous field"}
-                            app_state.equipment_state.selected_field -= RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Equipment::NUM_FIELDS,
-                            };
+                            app_state.equipment_state.selected_field -= 1
                         }
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_down"].modifiers
                     {
                         if app_state.equipment_state.editing_selected_field.is_none() {
                             debug! {"Equipment: select next field"}
-                            app_state.equipment_state.selected_field += RangedWrapping {
-                                value: 1,
-                                min: 0,
-                                max: Equipment::NUM_FIELDS,
-                            };
+                            app_state.equipment_state.selected_field += 1
                         }
                     } else if key_event.code == app.keybinds.editing.item_scroll.keybinds["item_scroll_up"].key
                         && key_event.modifiers == app.keybinds.editing.item_scroll.keybinds["item_scroll_up"].modifiers
