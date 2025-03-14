@@ -103,7 +103,7 @@ impl ChoicePopup {
 #[derive(Debug, Default, PartialEq)]
 pub struct State {
     /// which choice is selected
-    selected_choice: RangedWrapping<usize, usize>,
+    selected_choice: RangedWrapping<usize>,
 }
 
 impl State {

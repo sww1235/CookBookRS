@@ -47,11 +47,11 @@ impl<'a> Dropdown<'a> {
 }
 #[derive(Default, Debug)]
 pub struct DropdownState {
-    pub selected_entry: RangedWrapping<usize, usize>,
+    pub selected_entry: RangedWrapping<usize>,
     pub expanded: bool,
     pub scrolling: bool,
     pub visible_entries: Vec<String>,
-    pub num_entries: RangedWrapping<usize, usize>,
+    pub num_entries: RangedWrapping<usize>,
 }
 
 //TODO: finish implementing dropdown widget, scrolling

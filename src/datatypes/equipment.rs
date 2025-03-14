@@ -37,7 +37,7 @@ pub struct Equipment {
 #[derive(Debug)]
 pub struct State {
     /// which field is selected in the Equipment widget display
-    pub selected_field: RangedWrapping<usize, usize>,
+    pub selected_field: RangedWrapping<usize>,
     /// which field is being edited, if any
     pub editing_selected_field: Option<EquipmentFields>,
 }
