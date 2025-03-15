@@ -1,7 +1,7 @@
 use ratatui::style::{Style as TUIStyle, Stylize};
 
 /// `Style` contains all the TUI styles
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Style {
     pub normal_text: TUIStyle,
     pub missing_text: TUIStyle,

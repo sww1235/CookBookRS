@@ -5,6 +5,7 @@ use std::num::Saturating;
 use std::path::Path;
 
 use gix::Repository;
+use log::debug;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
@@ -50,6 +51,8 @@ pub struct App {
     pub keybinds: AppKeybinds,
     /// visual style for app
     pub style: AppStyle,
+    /// storage for save prompt widget
+    pub save_prompt: ChoicePopup,
 }
 
 /// `CurrentScreen` represents the screen the user is currently seeing
@@ -113,7 +116,17 @@ impl App {
             tags: Vec::new(),
             git_repo: None,
             keybinds,
-            style,
+            style: style.clone(),
+            save_prompt: ChoicePopup::default()
+                .title("Save Recipe?")
+                .percent_x(75)
+                .percent_y(10)
+                .append_choice("Yes", style.yes_text)
+                .append_choice("No", style.no_text)
+                .append_choice("Cancel", style.cancel_text)
+                .block_style(style.save_block)
+                .description_style(style.normal_text)
+                .selected_style(style.selected_text),
         }
     }
 
@@ -245,9 +258,9 @@ impl App {
 /// [`AppState`] represents the main state of the application. It holds all states for subparts of
 /// the app, and anything that might need to change during a call to
 /// [`StatefulWidgetRef::render_ref()`]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 #[allow(clippy::module_name_repetitions, missing_docs)]
-pub struct AppState {
+pub struct State {
     /// state for recipe list
     pub recipe_list_state: ListState,
     /// tag list state
@@ -274,8 +287,27 @@ pub struct AppState {
     pub save_prompt_state: choice_popup::State,
 }
 
+impl State {
+    pub fn new(save_prompt: &ChoicePopup) -> Self {
+        Self {
+            recipe_list_state: ListState::default(),
+            tag_list_state: ListState::default(),
+            tag_list_len: usize::default(),
+            recipe_scroll_state: ScrollbarState::default(),
+            recipe_list_len: usize::default(),
+            middle_scrollbar_state: ScrollbarState::default(),
+            editing_state: EditingState::default(),
+            recipe_state: recipe::State::default(),
+            step_state: step::State::default(),
+            ingredient_state: ingredient::State::default(),
+            equipment_state: equipment::State::default(),
+            save_prompt_state: choice_popup::State::new(save_prompt),
+        }
+    }
+}
+
 impl StatefulWidgetRef for App {
-    type State = AppState;
+    type State = State;
     fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         //actually render everything at once, at the bottom of this function
         let mut recipe_list_items = Vec::<ListItem>::new();
@@ -554,18 +586,9 @@ impl StatefulWidgetRef for App {
                         );
                     }
                     EditingState::SavePrompt => {
-                        let save_prompt = ChoicePopup::default()
-                            .title("Save Recipe?")
-                            .percent_x(75)
-                            .percent_y(10)
-                            .append_choice("Yes", self.style.yes_text)
-                            .append_choice("No", self.style.no_text)
-                            .append_choice("Cancel", self.style.cancel_text)
-                            .block_style(self.style.save_block)
-                            .description(&recipe.name)
-                            .description_style(self.style.normal_text)
-                            .selected_style(self.style.selected_text);
-                        save_prompt.render_ref(recipe_area, buf, &mut state.save_prompt_state);
+                        state.save_prompt_state.set_description(&recipe.name);
+                        debug! {"selected_choice: {}", state.save_prompt_state.value()}
+                        self.save_prompt.render_ref(recipe_area, buf, &mut state.save_prompt_state);
                     }
                 },
                 None => {

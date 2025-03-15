@@ -14,7 +14,7 @@ use gix::{
 use log::LevelFilter;
 
 use cookbook_core::tui::{
-    app::{App, AppState},
+    app::{self, App},
     event::{Event, EventHandler},
     key_handler,
     keybinds::Keybinds as AppKeybinds,
@@ -195,7 +195,7 @@ fn main() -> Result<(), Error> {
 
     tui_panic_hook();
     let mut tui = Tui::init(events)?;
-    let mut app_state = AppState::default();
+    let mut app_state = app::State::new(&app.save_prompt);
     app.running = true;
     while app.running {
         // render interface

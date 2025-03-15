@@ -79,7 +79,7 @@ impl Tui<CrosstermBackend<Stdout>> {
     ///
     /// # Errors
     /// Will error if any of the underlying terminal manipulation commands fail
-    pub fn draw(&mut self, app: &app::App, state: &mut app::AppState) -> io::Result<()> {
+    pub fn draw(&mut self, app: &app::App, state: &mut app::State) -> io::Result<()> {
         self.terminal
             .draw(|frame| app.render_ref(frame.area(), frame.buffer_mut(), state))?;
         Ok(())

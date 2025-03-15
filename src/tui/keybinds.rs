@@ -39,9 +39,8 @@ impl Default for BrowsingKeybinds {
             recipe_scroll: KeybindGroup {
                 instructional_text: "scroll to select recipe".to_owned(),
                 display_text: "\u{2195}".to_owned(),
-                keybinds: {
-                    let mut keybinds = HashMap::with_capacity(2);
-                    keybinds.insert(
+                keybinds: HashMap::from([
+                    (
                         "recipe_scroll_down".to_owned(),
                         KeybindDefinition {
                             key: KeyCode::Down,
@@ -49,8 +48,8 @@ impl Default for BrowsingKeybinds {
                             instructional_text: "scroll down in recipe list".to_owned(),
                             display_text: "\u{2193}".to_owned(),
                         },
-                    );
-                    keybinds.insert(
+                    ),
+                    (
                         "recipe_scroll_up".to_owned(),
                         KeybindDefinition {
                             key: KeyCode::Up,
@@ -58,9 +57,8 @@ impl Default for BrowsingKeybinds {
                             instructional_text: "scroll up in recipe list".to_owned(),
                             display_text: "\u{2191}".to_owned(),
                         },
-                    );
-                    keybinds
-                },
+                    ),
+                ]),
             },
         }
     }

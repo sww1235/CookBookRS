@@ -12,14 +12,14 @@ use crate::{
         recipe::{Recipe, RecipeFields},
         step::{Step, StepFields},
     },
-    tui::app::{App, AppState, CurrentScreen, EditingState},
+    tui::app::{self, App, CurrentScreen, EditingState},
 };
 
 //TODO: switch to using defined keybinds
 /// `handle_key_event` handles all `KeyEvent`s
 ///
 /// default keybinds are defined in [`default_options`] and modified by the config file.
-pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: KeyEvent) {
+pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: KeyEvent) {
     if key_event.kind == KeyEventKind::Release {
         // Skip events that are not KeyEventKind::Press
         return;
@@ -106,8 +106,10 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
             debug! {"entering CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor branch of keyhandler"}
             match app_state.editing_state {
                 EditingState::Recipe => {
-                    if key_event.code == app.keybinds.viewing.exit.key
-                        && key_event.modifiers == app.keybinds.viewing.exit.modifiers
+                    debug! {"entering EditingState::Recipe branch of keyhandler"}
+                    trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
+                    if key_event.code == app.keybinds.editing.exit.key
+                        && key_event.modifiers == app.keybinds.editing.exit.modifiers
                     {
                         trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
                         if app.edit_recipe.is_some() {
@@ -121,6 +123,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                                     app.current_screen = CurrentScreen::RecipeBrowser;
                                 } else {
                                     debug! {"saving recipe"}
+                                    debug! {"changing to EditingState::SavePrompt"}
                                     app_state.editing_state = EditingState::SavePrompt;
                                 }
                             }
@@ -325,6 +328,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                 }
                 // scroll here
                 EditingState::Step(step) => {
+                    debug! {"entering EditingState::Step branch of keyhandler"}
                     trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
                     if key_event.code == app.keybinds.editing.exit.key
                         && key_event.modifiers == app.keybinds.editing.exit.modifiers
@@ -590,8 +594,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     }
                 }
                 EditingState::Ingredient(step, ingredient) => {
+                    debug! {"entering EditingState::Ingredient branch of keyhandler"}
                     trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
-
                     if key_event.code == app.keybinds.editing.exit.key
                         && key_event.modifiers == app.keybinds.editing.exit.modifiers
                     {
@@ -782,6 +786,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     }
                 }
                 EditingState::Equipment(step, equipment) => {
+                    debug! {"entering EditingState::Equipment branch of keyhandler"}
+                    trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
                     if key_event.code == app.keybinds.editing.exit.key
                         && key_event.modifiers == app.keybinds.editing.exit.modifiers
                     {
@@ -945,10 +951,9 @@ pub fn handle_key_events(app: &mut App, app_state: &mut AppState, key_event: Key
                     }
                 }
                 EditingState::SavePrompt => {
+                    debug! {"entering EditingState::SavePrompt branch of keyhandler"}
                     trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
 
-                    //TODO: want to be able to scroll through text during text entry, need to make sure
-                    //backspace and insert character are handled correctly
                     if key_event.code == app.keybinds.editing.prompt_scroll.keybinds["prompt_scroll_left"].key
                         && key_event.modifiers == app.keybinds.editing.prompt_scroll.keybinds["prompt_scroll_left"].modifiers
                     {

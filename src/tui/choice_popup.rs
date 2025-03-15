@@ -1,3 +1,4 @@
+use log::trace;
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
@@ -12,8 +13,6 @@ use ranged_wrapping::RangedWrapping;
 pub struct ChoicePopup {
     /// title of popup
     title: String,
-    /// optional text to display above the choices
-    description: Option<String>,
     /// list of choices and associated styles
     //TODO: maybe make this a hashmap or something for better find performance?
     choices: Vec<(String, Style)>,
@@ -40,13 +39,6 @@ impl ChoicePopup {
     pub fn title(self, title: &str) -> Self {
         Self {
             title: title.to_owned(),
-            ..self
-        }
-    }
-
-    pub fn description(self, description: &str) -> Self {
-        Self {
-            description: Some(description.to_owned()),
             ..self
         }
     }
@@ -100,30 +92,39 @@ impl ChoicePopup {
 }
 
 /// `State` is the state of the widget
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct State {
     /// which choice is selected
     selected_choice: RangedWrapping<usize>,
+    /// optional text to display above the choices
+    description: Option<String>,
 }
 
 impl State {
-    pub fn new(widget: ChoicePopup) -> Self {
+    #[must_use]
+    pub fn new(widget: &ChoicePopup) -> Self {
         Self {
             selected_choice: RangedWrapping {
                 value: 0,
                 min: 0,
                 max: widget.choices.len() - 1,
             },
+            description: None,
         }
     }
     pub fn select_next(&mut self) {
+        trace! {"increasing selected choice"}
         self.selected_choice += 1
     }
     pub fn select_previous(&mut self) {
+        trace! {"decreasing selected choice"}
         self.selected_choice -= 1
     }
     pub fn value(&self) -> usize {
         self.selected_choice.value
+    }
+    pub fn set_description(&mut self, description: &str) {
+        self.description = Some(description.to_owned());
     }
 }
 
@@ -178,7 +179,7 @@ impl StatefulWidgetRef for ChoicePopup {
         });
 
         clear.clone().render(save_popup_area, buf);
-        if let Some(description) = &self.description {
+        if let Some(description) = &state.description {
             let description_paragraph = Paragraph::new(description.clone())
                 .block(Block::new().borders(Borders::NONE))
                 .alignment(Alignment::Center)
@@ -187,7 +188,7 @@ impl StatefulWidgetRef for ChoicePopup {
         }
         popup_block.render(save_popup_area, buf);
         //clear.clone().render(choices_area, buf);
-        let _ = choice_paragraphs
+        choice_paragraphs
             .into_iter()
             .zip(choice_areas.iter())
             .for_each(|(pgh, area)| pgh.render(*area, buf));
