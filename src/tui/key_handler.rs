@@ -15,7 +15,6 @@ use crate::{
     tui::app::{self, App, CurrentScreen, EditingState},
 };
 
-//TODO: switch to using defined keybinds
 /// `handle_key_event` handles all `KeyEvent`s
 ///
 /// default keybinds are defined in [`default_options`] and modified by the config file.
@@ -116,6 +115,7 @@ pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: K
                             if app_state.recipe_state.editing_selected_field.is_some() {
                                 debug! {"unselecting field"}
                                 app_state.recipe_state.editing_selected_field = None;
+                                app_state.recipe_state.editing_field_cursor_position = None;
                             } else {
                                 // don't want to prompt to save an empty recipe
                                 if app.edit_recipe == Some(Recipe::new()) {
@@ -128,10 +128,14 @@ pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: K
                                 }
                             }
                         }
+                        //TODO: modify cursor position here
+                        //TODO: need to add new keybinds for left/right scroll with arrows
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].modifiers
                     {
                         // only scroll fields if a field is not selected
+                        //TODO: modify cursor position here
+                        //TODO: need to add new keybinds for left/right scroll with arrows
                         trace!("key {} pressed with modifiers: {}", key_event.code, key_event.modifiers);
                         // editing main recipe part
                         if app_state.recipe_state.editing_selected_field.is_none() {
@@ -246,79 +250,87 @@ pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: K
                         app.edit_recipe.as_mut().unwrap().steps.push(Step::default());
                         // do not change to display newly inserted step as multiple
                         // steps may be inserted at once.
+                    } else if key_event.code == app.keybinds.editing.move_cursor.keybinds["move_cursor_left"].key
+                        && key_event.modifiers == app.keybinds.editing.move_cursor.keybinds["move_cursor_left"].modifiers
+                        && app_state.recipe_state.editing_selected_field.is_some()
+                    {
+                        if let Some(ref mut temp) = app_state.recipe_state.editing_field_cursor_position {
+                            *temp -= 1;
+                        }
+                    } else if key_event.code == app.keybinds.editing.move_cursor.keybinds["move_cursor_right"].key
+                        && key_event.modifiers == app.keybinds.editing.move_cursor.keybinds["move_cursor_right"].modifiers
+                        && app_state.recipe_state.editing_selected_field.is_some()
+                    {
+                        if let Some(ref mut temp) = app_state.recipe_state.editing_field_cursor_position {
+                            *temp += 1;
+                        }
+                    } else if key_event.code == app.keybinds.editing.back_delete.key
+                        && key_event.modifiers == app.keybinds.editing.back_delete.modifiers
+                        && app_state.recipe_state.editing_selected_field.is_some()
+                    {
+                        #[expect(clippy::unwrap_used)] // already checking for is_some above
+                        match app_state.recipe_state.editing_selected_field {
+                            Some(RecipeFields::Name) => _ = app.edit_recipe.as_mut().unwrap().name.pop(),
+                            Some(RecipeFields::Description) => {
+                                _ = app
+                                    .edit_recipe
+                                    .as_mut()
+                                    .unwrap()
+                                    .description
+                                    .get_or_insert(String::new())
+                                    .pop()
+                            }
+                            Some(RecipeFields::Comments) => {
+                                _ = app.edit_recipe.as_mut().unwrap().comments.get_or_insert(String::new()).pop()
+                            }
+                            Some(RecipeFields::Source) => _ = app.edit_recipe.as_mut().unwrap().source.pop(),
+                            Some(RecipeFields::Author) => _ = app.edit_recipe.as_mut().unwrap().author.pop(),
+                            Some(RecipeFields::AmountMade) => {
+                                todo!()
+                            }
+                            _ => {}
+                        };
+                    } else if key_event.code == app.keybinds.editing.front_delete.key
+                        && key_event.modifiers == app.keybinds.editing.front_delete.modifiers
+                        && app_state.recipe_state.editing_selected_field.is_some()
+                    {
+                        todo!()
                     }
                     // handling text entry into fields and deletion here with else
                     else {
+                        //TODO: monitor cursor position
                         trace! {"key {} pressed with modifiers: {}", key_event.code, key_event.modifiers}
                         if let KeyCode::Char(chr) = key_event.code {
                             if app.edit_recipe.is_some() {
+                                debug! {"editing selected field in recipe: {:?}", app_state.recipe_state.editing_selected_field}
                                 #[expect(clippy::unwrap_used)] // already checking for is_some above
                                 match app_state.recipe_state.editing_selected_field {
+                                    //TODO: need to increment/decrement position of cursor here as
+                                    //well
                                     Some(RecipeFields::Name) => app.edit_recipe.as_mut().unwrap().name.push(chr),
-                                    //TODO: fix comment and description text entry
                                     Some(RecipeFields::Description) => app
                                         .edit_recipe
                                         .as_mut()
                                         .unwrap()
                                         .description
-                                        .as_mut()
-                                        .unwrap_or(&mut String::new())
+                                        .get_or_insert(String::new())
                                         .push(chr),
                                     Some(RecipeFields::Comments) => app
                                         .edit_recipe
                                         .as_mut()
                                         .unwrap()
                                         .comments
-                                        .as_mut()
-                                        .unwrap_or(&mut String::new())
+                                        .get_or_insert(String::new())
                                         .push(chr),
                                     Some(RecipeFields::Source) => app.edit_recipe.as_mut().unwrap().source.push(chr),
                                     Some(RecipeFields::Author) => app.edit_recipe.as_mut().unwrap().author.push(chr),
                                     Some(RecipeFields::AmountMade) => {
-                                        todo!()
+                                        todo!("AmountMade editing not implemented yet")
                                     }
                                     _ => {}
                                 };
                             }
                         //delete key, etc here
-                        } else if key_event.code == app.keybinds.editing.back_delete.key
-                            && key_event.modifiers == app.keybinds.editing.back_delete.modifiers
-                        {
-                            #[allow(clippy::unwrap_used)] // already checking for is_some above
-                            match app_state.recipe_state.editing_selected_field {
-                                Some(RecipeFields::Name) => _ = app.edit_recipe.as_mut().unwrap().name.pop(),
-                                //TODO: fix comment and description text entry
-                                Some(RecipeFields::Description) => {
-                                    _ = app
-                                        .edit_recipe
-                                        .as_mut()
-                                        .unwrap()
-                                        .description
-                                        .as_mut()
-                                        .unwrap_or(&mut String::new())
-                                        .pop()
-                                }
-                                Some(RecipeFields::Comments) => {
-                                    _ = app
-                                        .edit_recipe
-                                        .as_mut()
-                                        .unwrap()
-                                        .comments
-                                        .as_mut()
-                                        .unwrap_or(&mut String::new())
-                                        .pop()
-                                }
-                                Some(RecipeFields::Source) => _ = app.edit_recipe.as_mut().unwrap().source.pop(),
-                                Some(RecipeFields::Author) => _ = app.edit_recipe.as_mut().unwrap().author.pop(),
-                                Some(RecipeFields::AmountMade) => {
-                                    todo!()
-                                }
-                                _ => {}
-                            };
-                        } else if key_event.code == app.keybinds.editing.front_delete.key
-                            && key_event.modifiers == app.keybinds.editing.front_delete.modifiers
-                        {
-                            todo!()
                         } else if key_event.code == app.keybinds.editing.confirm.key
                             && key_event.modifiers == app.keybinds.editing.confirm.modifiers
                         {
@@ -355,6 +367,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: K
                             }
                             _ => {}
                         }
+                        //TODO: modify cursor position here
+                        //TODO: need to add new keybinds for left/right scroll with arrows
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].modifiers
                     {
@@ -608,6 +622,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: K
                             debug! {"changing EditingState to Recipe from Ingredient"}
                             app_state.editing_state = EditingState::Recipe;
                         }
+                        //TODO: modify cursor position here
+                        //TODO: need to add new keybinds for left/right scroll with arrows
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].modifiers
                     {
@@ -802,6 +818,8 @@ pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: K
                             debug! {"changing EditingState to Recipe from Equipment"}
                             app_state.editing_state = EditingState::Recipe;
                         }
+                        //TODO: modify cursor position here
+                        //TODO: need to add new keybinds for left/right scroll with arrows
                     } else if key_event.code == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].key
                         && key_event.modifiers == app.keybinds.editing.field_scroll.keybinds["field_scroll_up"].modifiers
                     {

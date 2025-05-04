@@ -184,6 +184,8 @@ pub struct State {
     pub selected_field: RangedWrapping<usize>,
     /// which field is being edited, if any
     pub editing_selected_field: Option<RecipeFields>,
+    // RecipeFields enum is automatically derived
+    pub editing_field_cursor_position: Option<u16>,
 }
 
 impl Default for State {
@@ -195,6 +197,7 @@ impl Default for State {
                 min: 0,
             },
             editing_selected_field: None,
+            editing_field_cursor_position: None,
         }
     }
 }

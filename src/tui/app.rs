@@ -6,21 +6,24 @@ use std::path::Path;
 
 use gix::Repository;
 use log::debug;
+use num_traits::ToPrimitive;
 use ratatui::{
-    buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Position},
     text::{Line, Span, Text},
     widgets::{
         Block, Borders, Clear, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget,
         WidgetRef, Wrap,
     },
+    Frame,
 };
 
 use crate::{
     datatypes::{
-        equipment, filetypes, ingredient,
-        recipe::{self, Recipe},
-        step,
+        equipment::{self, EquipmentFieldOffset, EquipmentFields},
+        filetypes,
+        ingredient::{self, IngredientFieldOffset, IngredientFields},
+        recipe::{self, Recipe, RecipeFieldOffset, RecipeFields},
+        step::{self, StepFieldOffset, StepFields},
         tag::Tag,
     },
     tui::{
@@ -253,62 +256,12 @@ impl App {
     pub fn exit(&mut self) {
         self.running = false;
     }
-}
-
-/// [`AppState`] represents the main state of the application. It holds all states for subparts of
-/// the app, and anything that might need to change during a call to
-/// [`StatefulWidgetRef::render_ref()`]
-#[derive(Debug)]
-#[allow(clippy::module_name_repetitions, missing_docs)]
-pub struct State {
-    /// state for recipe list
-    pub recipe_list_state: ListState,
-    /// tag list state
-    pub tag_list_state: ListState,
-    /// tag list length
-    pub tag_list_len: usize,
-    /// recipe list scrollbar state
-    pub recipe_scroll_state: ScrollbarState,
-    /// length of recipe list
-    pub recipe_list_len: usize,
-    /// scrollbar state for viewer/editor
-    pub middle_scrollbar_state: ScrollbarState,
-    /// editing state
-    pub editing_state: EditingState,
-    /// recipe state
-    pub recipe_state: recipe::State,
-    /// step state
-    pub step_state: step::State,
-    /// ingredient state
-    pub ingredient_state: ingredient::State,
-    /// equipment state
-    pub equipment_state: equipment::State,
-    /// save_response
-    pub save_prompt_state: choice_popup::State,
-}
-
-impl State {
-    pub fn new(save_prompt: &ChoicePopup) -> Self {
-        Self {
-            recipe_list_state: ListState::default(),
-            tag_list_state: ListState::default(),
-            tag_list_len: usize::default(),
-            recipe_scroll_state: ScrollbarState::default(),
-            recipe_list_len: usize::default(),
-            middle_scrollbar_state: ScrollbarState::default(),
-            editing_state: EditingState::default(),
-            recipe_state: recipe::State::default(),
-            step_state: step::State::default(),
-            ingredient_state: ingredient::State::default(),
-            equipment_state: equipment::State::default(),
-            save_prompt_state: choice_popup::State::new(save_prompt),
-        }
-    }
-}
-
-impl StatefulWidgetRef for App {
-    type State = State;
-    fn render_ref(&self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    // use draw instead of implementing RenderRef for App so we can have a frame reference within
+    // this code. See https://ratatui.rs/examples/apps/user_input/ for where this idea spawned
+    //TODO: track and show cursor when editing fields
+    /// `draw` contains the main rendering logic of the app
+    pub fn draw(&self, frame: &mut Frame, state: &mut self::State) {
+        let area = frame.area();
         //actually render everything at once, at the bottom of this function
         let mut recipe_list_items = Vec::<ListItem>::new();
 
@@ -332,7 +285,9 @@ impl StatefulWidgetRef for App {
         let title_block = Block::default().borders(Borders::ALL).style(self.style.title_block);
         let mut title_paragraph = Paragraph::default();
 
-        let mut keybind_area_height: u16;
+        // this doesn't need to be mutable, as I am not initializing here, and only giving it a
+        // value once down below
+        let keybind_area_height: u16;
         let mut current_keybind_text: Vec<Line> = Vec::new();
         let status_block = Block::default().borders(Borders::ALL).style(self.style.status_block);
         let mut status_paragraph = Paragraph::default();
@@ -530,13 +485,18 @@ impl StatefulWidgetRef for App {
             .areas(main_area);
 
         // render everything after defining areas (based on state)
-        title_paragraph.render(title_area, buf);
+        title_paragraph.render(title_area, frame.buffer_mut());
 
-        StatefulWidget::render(recipe_list, recipe_list_area, buf, &mut state.recipe_list_state);
+        StatefulWidget::render(
+            recipe_list,
+            recipe_list_area,
+            frame.buffer_mut(),
+            &mut state.recipe_list_state,
+        );
 
         match self.current_screen {
             CurrentScreen::RecipeBrowser => {
-                StatefulWidget::render(tag_list, tag_list_area, buf, &mut state.tag_list_state);
+                StatefulWidget::render(tag_list, tag_list_area, frame.buffer_mut(), &mut state.tag_list_state);
                 //TODO: use fmt/display of recipe here to display a preview as folks are scrolling
                 //
                 //TODO: provide a keybind to select recipe and change to recipeViewer mode
@@ -544,36 +504,119 @@ impl StatefulWidgetRef for App {
                     WidgetRef::render_ref(
                         &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
                         recipe_area,
-                        buf,
+                        frame.buffer_mut(),
                     );
                 } else {
-                    clear.render(recipe_area, buf);
+                    clear.render(recipe_area, frame.buffer_mut());
                 }
             }
             CurrentScreen::RecipeViewer => {
                 //TODO use actual render widget methods here
-                StatefulWidget::render(tag_list, tag_list_area, buf, &mut state.tag_list_state);
+                StatefulWidget::render(tag_list, tag_list_area, frame.buffer_mut(), &mut state.tag_list_state);
                 if !self.recipes.is_empty() {
                     WidgetRef::render_ref(
                         &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
                         recipe_area,
-                        buf,
+                        frame.buffer_mut(),
                     );
                 } else {
-                    clear.render(recipe_area, buf);
+                    clear.render(recipe_area, frame.buffer_mut());
                 }
             }
             CurrentScreen::RecipeCreator | CurrentScreen::RecipeEditor => match &self.edit_recipe {
                 Some(recipe) => match state.editing_state {
-                    EditingState::Recipe => StatefulWidgetRef::render_ref(recipe, recipe_area, buf, &mut state.recipe_state),
+                    EditingState::Recipe => {
+                        // field is currently being edited and cursor should be visible
+                        match state.recipe_state.editing_selected_field {
+                            Some(RecipeFields::Name) => {
+                                #[expect(clippy::unwrap_used)]
+                                frame.set_cursor_position(Position::new(
+                                    //draw cursor at current position in field
+                                    //
+                                    //add +1 to skip border
+                                    recipe_area.x + state.recipe_state.editing_field_cursor_position.unwrap() + 1,
+                                    // RecipeFieldOffset is a automatically derived enum
+                                    // via proc_macro. It contains the y offset of the
+                                    // field, need +1 to skip border
+                                    recipe_area.y + RecipeFieldOffset::Name.to_u16().unwrap() + 1,
+                                ));
+                            }
+                            Some(RecipeFields::Description) => {
+                                #[expect(clippy::unwrap_used)]
+                                frame.set_cursor_position(Position::new(
+                                    //draw cursor at current position in field
+                                    //
+                                    //add +1 to skip border
+                                    recipe_area.x + state.recipe_state.editing_field_cursor_position.unwrap() + 1,
+                                    // RecipeFieldOffset is a automatically derived enum
+                                    // via proc_macro. It contains the y offset of the
+                                    // field, need +1 to skip border
+                                    recipe_area.y + RecipeFieldOffset::Description.to_u16().unwrap() + 1,
+                                ));
+                            }
+
+                            Some(RecipeFields::Comments) => {
+                                #[expect(clippy::unwrap_used)]
+                                frame.set_cursor_position(Position::new(
+                                    //draw cursor at current position in field
+                                    //
+                                    //add +1 to skip border
+                                    recipe_area.x + state.recipe_state.editing_field_cursor_position.unwrap() + 1,
+                                    // RecipeFieldOffset is a automatically derived enum
+                                    // via proc_macro. It contains the y offset of the
+                                    // field, need +1 to skip border
+                                    recipe_area.y + RecipeFieldOffset::Comments.to_u16().unwrap() + 1,
+                                ));
+                            }
+
+                            Some(RecipeFields::Source) => {
+                                #[expect(clippy::unwrap_used)]
+                                frame.set_cursor_position(Position::new(
+                                    //draw cursor at current position in field
+                                    //
+                                    //add +1 to skip border
+                                    recipe_area.x + state.recipe_state.editing_field_cursor_position.unwrap() + 1,
+                                    // RecipeFieldOffset is a automatically derived enum
+                                    // via proc_macro. It contains the y offset of the
+                                    // field, need +1 to skip border
+                                    recipe_area.y + RecipeFieldOffset::Source.to_u16().unwrap() + 1,
+                                ));
+                            }
+
+                            Some(RecipeFields::Author) => {
+                                #[expect(clippy::unwrap_used)]
+                                frame.set_cursor_position(Position::new(
+                                    //draw cursor at current position in field
+                                    //
+                                    //add +1 to skip border
+                                    recipe_area.x + state.recipe_state.editing_field_cursor_position.unwrap() + 1,
+                                    // RecipeFieldOffset is a automatically derived enum
+                                    // via proc_macro. It contains the y offset of the
+                                    // field, need +1 to skip border
+                                    recipe_area.y + RecipeFieldOffset::Author.to_u16().unwrap() + 1,
+                                ));
+                            }
+
+                            Some(RecipeFields::AmountMade) => {
+                                todo!("AmountMade editing not implemented yet")
+                            }
+                            _ => {}
+                        }
+                        StatefulWidgetRef::render_ref(recipe, recipe_area, frame.buffer_mut(), &mut state.recipe_state)
+                    }
                     EditingState::Step(step_num) => {
-                        StatefulWidgetRef::render_ref(&recipe.steps[step_num.0], recipe_area, buf, &mut state.step_state);
+                        StatefulWidgetRef::render_ref(
+                            &recipe.steps[step_num.0],
+                            recipe_area,
+                            frame.buffer_mut(),
+                            &mut state.step_state,
+                        );
                     }
                     EditingState::Ingredient(step_num, ingredient_num) => {
                         StatefulWidgetRef::render_ref(
                             &recipe.steps[step_num.0].ingredients[ingredient_num.0],
                             recipe_area,
-                            buf,
+                            frame.buffer_mut(),
                             &mut state.ingredient_state,
                         );
                     }
@@ -581,14 +624,15 @@ impl StatefulWidgetRef for App {
                         StatefulWidgetRef::render_ref(
                             &recipe.steps[step_num.0].equipment[equipment_num.0],
                             recipe_area,
-                            buf,
+                            frame.buffer_mut(),
                             &mut state.equipment_state,
                         );
                     }
                     EditingState::SavePrompt => {
                         state.save_prompt_state.set_description(&recipe.name);
                         debug! {"selected_choice: {}", state.save_prompt_state.value()}
-                        self.save_prompt.render_ref(recipe_area, buf, &mut state.save_prompt_state);
+                        self.save_prompt
+                            .render_ref(recipe_area, frame.buffer_mut(), &mut state.save_prompt_state);
                     }
                 },
                 None => {
@@ -601,8 +645,59 @@ impl StatefulWidgetRef for App {
         let keybinds_paragraph = Paragraph::new(Text::from_iter(current_keybind_text))
             .block(Block::default().borders(Borders::ALL))
             .wrap(Wrap { trim: true });
-        keybinds_paragraph.render(keybinds_area, buf);
+        keybinds_paragraph.render(keybinds_area, frame.buffer_mut());
 
-        status_paragraph.render(status_area, buf);
+        status_paragraph.render(status_area, frame.buffer_mut());
+    }
+}
+
+/// [`AppState`] represents the main state of the application. It holds all states for subparts of
+/// the app, and anything that might need to change during a call to
+/// [`StatefulWidgetRef::render_ref()`]
+#[derive(Debug)]
+#[allow(clippy::module_name_repetitions, missing_docs)]
+pub struct State {
+    /// state for recipe list
+    pub recipe_list_state: ListState,
+    /// tag list state
+    pub tag_list_state: ListState,
+    /// tag list length
+    pub tag_list_len: usize,
+    /// recipe list scrollbar state
+    pub recipe_scroll_state: ScrollbarState,
+    /// length of recipe list
+    pub recipe_list_len: usize,
+    /// scrollbar state for viewer/editor
+    pub middle_scrollbar_state: ScrollbarState,
+    /// editing state
+    pub editing_state: EditingState,
+    /// recipe state
+    pub recipe_state: recipe::State,
+    /// step state
+    pub step_state: step::State,
+    /// ingredient state
+    pub ingredient_state: ingredient::State,
+    /// equipment state
+    pub equipment_state: equipment::State,
+    /// save_response
+    pub save_prompt_state: choice_popup::State,
+}
+
+impl State {
+    pub fn new(save_prompt: &ChoicePopup) -> Self {
+        Self {
+            recipe_list_state: ListState::default(),
+            tag_list_state: ListState::default(),
+            tag_list_len: usize::default(),
+            recipe_scroll_state: ScrollbarState::default(),
+            recipe_list_len: usize::default(),
+            middle_scrollbar_state: ScrollbarState::default(),
+            editing_state: EditingState::default(),
+            recipe_state: recipe::State::default(),
+            step_state: step::State::default(),
+            ingredient_state: ingredient::State::default(),
+            equipment_state: equipment::State::default(),
+            save_prompt_state: choice_popup::State::new(save_prompt),
+        }
     }
 }

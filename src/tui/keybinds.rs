@@ -90,6 +90,8 @@ pub struct EditingKeybinds {
     pub back_delete: KeybindDefinition,
     /// delete character in front of cursor
     pub front_delete: KeybindDefinition,
+    /// move cursor while editing fields
+    pub move_cursor: KeybindGroup,
     /// confirm choices and insert new lines
     pub confirm: KeybindDefinition,
 }
@@ -252,6 +254,30 @@ impl Default for EditingKeybinds {
                 modifiers: KeyModifiers::NONE,
                 instructional_text: "Delete text in front of cursor".to_owned(),
                 display_text: "\u{2326}".to_owned(),
+            },
+            move_cursor: KeybindGroup {
+                instructional_text: "Move cursor while editing".to_owned(),
+                display_text: "\u{2194}".to_owned(),
+                keybinds: HashMap::from([
+                    (
+                        "move_cursor_left".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Left,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "Move cursor left while editing".to_owned(),
+                            display_text: "\u{2190}".to_owned(),
+                        },
+                    ),
+                    (
+                        "move_cursor_right".to_owned(),
+                        KeybindDefinition {
+                            key: KeyCode::Right,
+                            modifiers: KeyModifiers::NONE,
+                            instructional_text: "Move cursor right while editing".to_owned(),
+                            display_text: "\u{2192}".to_owned(),
+                        },
+                    ),
+                ]),
             },
             confirm: KeybindDefinition {
                 key: KeyCode::Enter,

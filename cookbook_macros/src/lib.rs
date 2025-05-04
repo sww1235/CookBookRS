@@ -81,8 +81,11 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
     let mut constraints_code = BTreeMap::new();
     let mut field_display_code = BTreeMap::new();
     let mut field_enum_mapping_code = BTreeMap::new();
+    let mut field_offset_enum_code = BTreeMap::new();
     let mut len_check_fn_code = TokenStream2::new();
     let field_enum_name = format_ident!("{}Fields", struct_name);
+    let field_offset_enum_name = format_ident!("{}FieldOffset", struct_name);
+    let mut field_offset_value: u16 = 0;
 
     let mut total_field_height: Saturating<u16> = Saturating(0);
     let mut left_field = None;
@@ -149,7 +152,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
             let field_text_style_name = format_ident!("{}_text_style", field_name);
             let field_block_style_name = format_ident!("{}_block_style", field_name);
             let field_block_border_style_name = format_ident!("{}_block_border_style", field_name);
-            #[allow(clippy::single_char_pattern)]
+            #[expect(clippy::single_char_pattern)]
             let field_title = to_ascii_titlecase(field_name.to_string().replace("_", " ").as_str());
             let field_enum_variant = format_ident!("{}", to_camelcase_from_snake_case(field_name.to_string().as_str()));
             let mut display_order: Option<usize> = None;
@@ -468,7 +471,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                        constraints.push(#constraint);
                     },
                 );
-                //TODO: fix styling here
+                //TODO: fix styling here to use styles specified in config file
                 let mut state_styling_code = TokenStream2::new();
                 if stateful {
                     state_styling_code = quote! {
@@ -568,6 +571,16 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                              #field_enum_variant = #display_order,
                         },
                     );
+                    field_offset_enum_code.insert(
+                        display_order,
+                        quote! {
+                            #field_enum_variant = #field_offset_value,
+                        },
+                    );
+                    // increment this after setting the enum variant, so it is set for the next
+                    // field
+                    // unwrap_or_default() here is ok as these are all checked for None above here
+                    field_offset_value += constraint_value.unwrap_or_default();
                 }
             }
         } else {
@@ -655,6 +668,8 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
 
     let field_enum_mapping_code_values: Vec<TokenStream2> = field_enum_mapping_code.values().cloned().collect();
 
+    let field_offset_enum_code_values: Vec<TokenStream2> = field_offset_enum_code.values().cloned().collect();
+
     let total_field_height_value = total_field_height.0;
 
     let inner_fn_code = quote! {
@@ -705,6 +720,13 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                 #[repr(usize)]
                 pub enum #field_enum_name {
                     #(#field_enum_mapping_code_values)*
+                }
+
+                #[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, ToPrimitive)]
+                #[automatically_derived]
+                #[repr(u16)]
+                pub enum #field_offset_enum_name {
+                    #(#field_offset_enum_code_values)*
                 }
 
                 #[automatically_derived]
