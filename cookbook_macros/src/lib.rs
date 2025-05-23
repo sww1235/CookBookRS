@@ -80,7 +80,11 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
 
     let mut constraints_code = BTreeMap::new();
     let mut field_display_code = BTreeMap::new();
+    // field_enum_mapping_code contains the code that creates an enumeration of all fields in
+    // struct for use by application code
     let mut field_enum_mapping_code = BTreeMap::new();
+    // field_offset_enum_code contains the code that creates an enumeration of field rendering
+    // offsets for text editing
     let mut field_offset_enum_code = BTreeMap::new();
     let mut len_check_fn_code = TokenStream2::new();
     let field_enum_name = format_ident!("{}Fields", struct_name);

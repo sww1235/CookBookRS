@@ -651,7 +651,7 @@ impl App {
     }
 }
 
-/// [`AppState`] represents the main state of the application. It holds all states for subparts of
+/// [`State`] represents the main state of the application. It holds all states for subparts of
 /// the app, and anything that might need to change during a call to
 /// [`StatefulWidgetRef::render_ref()`]
 #[derive(Debug)]
