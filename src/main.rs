@@ -67,7 +67,11 @@ fn main() -> anyhow::Result<()> {
 
     let recipe_repo = load_git_repo(input_dir)?;
 
-    run_tui(input_dir, recipe_repo)?;
+    if cli.run_web_server {
+        run_web_server(input_dir, recipe_repo)?;
+    } else {
+        run_tui(input_dir, recipe_repo)?;
+    }
 
     Ok(())
 }
@@ -201,6 +205,10 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
     //     ));
     // }
     Ok(recipe_repo)
+}
+
+fn run_web_server(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
+    Ok(())
 }
 
 fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
