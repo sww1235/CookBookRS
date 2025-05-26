@@ -195,7 +195,7 @@ impl StatefulWidgetRef for ChoicePopup {
     }
 }
 
-/// `centered_rect` generates a centered [`Rect`](ratatui::layout::Rect) for your application
+/// `centered_rect` generates a centered [`Rect`] for your application
 ///
 /// Commonly used for generating popup dialog boxes, etc
 ///

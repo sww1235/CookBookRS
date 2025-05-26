@@ -17,7 +17,7 @@ use crate::{
 
 /// `handle_key_event` handles all `KeyEvent`s
 ///
-/// default keybinds are defined in [`default_options`] and modified by the config file.
+/// default keybinds are defined in [`crate::tui::keybinds`] and modified by the config file.
 pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: KeyEvent) {
     if key_event.kind == KeyEventKind::Release {
         // Skip events that are not KeyEventKind::Press

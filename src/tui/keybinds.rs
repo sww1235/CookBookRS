@@ -13,7 +13,7 @@ pub struct Keybinds {
     pub core: CoreKeybinds,
 }
 
-/// `BrowsingKeybinds` contains the keybinds used when in [`CurrentScreen::RecipeBrowser`]
+/// `BrowsingKeybinds` contains the keybinds used when in [`crate::tui::app::CurrentScreen::RecipeBrowser`]
 #[derive(Debug, PartialEq)]
 pub struct BrowsingKeybinds {
     pub quit: KeybindDefinition,
@@ -64,8 +64,8 @@ impl Default for BrowsingKeybinds {
     }
 }
 
-/// `EditingKeybinds` contains the keybinds used when in [`CurrentScreen::RecipeCreator`] or
-/// [`CurrentScreen::RecipeEditor`]
+/// `EditingKeybinds` contains the keybinds used when in [`crate::tui::app::CurrentScreen::RecipeCreator`] or
+/// [`crate::tui::app::CurrentScreen::RecipeEditor`]
 #[derive(Debug, PartialEq)]
 pub struct EditingKeybinds {
     /// start editing field
@@ -290,7 +290,7 @@ impl Default for EditingKeybinds {
 }
 
 //TODO: finish keybinds for viewer
-/// `ViewingKeybinds` contains the keybinds used when in [`CurrentScreen::RecipeViewer`]
+/// `ViewingKeybinds` contains the keybinds used when in [`crate::tui::app::CurrentScreen::RecipeViewer`]
 #[derive(Debug, PartialEq)]
 pub struct ViewingKeybinds {
     pub exit: KeybindDefinition,
@@ -395,7 +395,7 @@ impl fmt::Display for KeybindDefinition {
     }
 }
 
-/// `KeybindGroup` defines a group of [`KeyDefinition`]s that can be merged together in the
+/// `KeybindGroup` defines a group of [`KeybindDefinition`]s that can be merged together in the
 /// on-screen documentation with a single display_text and instruction.
 #[derive(Debug, PartialEq)]
 pub struct KeybindGroup {
