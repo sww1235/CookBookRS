@@ -6,12 +6,11 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use clap::{self, Parser};
-use flexi_logger::{FileSpec, Logger};
+use flexi_logger::{FileSpec, LogSpecification, Logger};
 use gix::{
     discover::{self, upwards},
     open,
 };
-use log::LevelFilter;
 
 use cookbook_core::tui::{
     app::{self, App},
@@ -35,25 +34,24 @@ fn main() -> Result<(), Error> {
     #[allow(clippy::unwrap_used)]
     //TODO: investigate to see if it is worth trying to handle these
     //errors manually
-    let mut logger = Logger::with(LevelFilter::Trace)
+    let logger = Logger::with(LogSpecification::trace())
         .log_to_file(FileSpec::default().suppress_timestamp())
         .format_for_files(flexi_logger::opt_format)
         .start()
         .unwrap();
-    //TODO: add verboseness level here
     // match on how many times verbose flag is present in commandline
-    //logger = match cli.verbose {
-    //    0 => logger.with_level(LevelFilter::Info),
-    //    1 => logger.with_level(LevelFilter::Debug),
-    //    _ => logger.with_level(LevelFilter::Trace),
-    //};
-    //
+    match cli.verbose {
+        0 => logger.set_new_spec(LogSpecification::info()),
+        1 => logger.set_new_spec(LogSpecification::debug()),
+        _ => logger.set_new_spec(LogSpecification::trace()),
+    };
+
     // match on how many times quiet flag is present in commandline
-    //logger = match cli.quiet {
-    //    0 => logger, // do nothing
-    //    1 => logger.with_level(LevelFilter::Error),
-    //    _ => logger.with_level(LevelFilter::Off),
-    //};
+    match cli.quiet {
+        0 => {} // do nothing
+        1 => logger.set_new_spec(LogSpecification::error()),
+        _ => logger.set_new_spec(LogSpecification::off()),
+    };
 
     let events = EventHandler::new(Duration::from_millis(250));
     // TODO: parse config file
@@ -245,9 +243,9 @@ struct Cli {
     // PostGres DSN (optional)
     //#[arg(short, long)]
     //post_gres_dsn: Option<String>,
-    // Only shows log messages with <Error> level. Use twice to completely eliminate output. Takes precidence over verbose
-    //#[arg(short, long, action = clap::ArgAction::Count)]
-    //quiet: u8,
+    /// Only shows log messages with <Error> level. Use twice to completely eliminate output. Takes precidence over verbose
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    quiet: u8,
     // Export complete PDF
     //#[arg(short, long)]
     //export_pdf: bool,

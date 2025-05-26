@@ -12,25 +12,25 @@
 //!
 //! # Struct Attributes
 //! - `state_struct` is the name of the struct that holds the state information for the struct that
-//!     [`StatefulWidgetRef`] is being derived on. this is case sensitive. It is only processed if
-//!     deriving [`StatefulWidgetRef`] and ignored otherwise.
+//!   [`StatefulWidgetRef`] is being derived on. this is case sensitive. It is only processed if
+//!   deriving [`StatefulWidgetRef`] and ignored otherwise.
 //!
 //! # Field Attributes
 //! - `display_order` is an integer that determines the order the field will be displayed. It is
-//!     used as follows: `display_order = 2`.
+//!   used as follows: `display_order = 2`.
 //! - `constraint_type` is matched against the values of
-//!     [`Constraint`](ratatui::layout::Constraint) and
-//!     determines the type of constraint for each field. It supports all values except `Ratio`. It is
-//!     used as follows: `constraint_type = min`. The first character is not case sensitive.
+//!   [`Constraint`](ratatui::layout::Constraint) and
+//!   determines the type of constraint for each field. It supports all values except `Ratio`. It is
+//!   used as follows: `constraint_type = min`. The first character is not case sensitive.
 //! - `constraint_value` is an integer that is used as the value inside the `Constraint`. It is
-//!     used as follows: `constraint_value = 5`
+//!   used as follows: `constraint_value = 5`
 //! - `display_widget` is used to select the type of widget to use to display the value of the
-//!     field. If not specified, will default to `Paragraph`.
+//!   field. If not specified, will default to `Paragraph`.
 //! - `display_widget_state`
 //! - `left_field` is used to select the field that will be displayed as a count in the left hand
-//!     info box.
+//!   info box.
 //! - `right_field` is used to select the field that will be displayed as a count in the right hand
-//!     info box.
+//!   info box.
 //! - `skip` will skip the field from being rendered.
 
 use proc_macro::TokenStream;
@@ -135,7 +135,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             }
                         })?;
                     }
-                    _ => continue,
+                    _ => {}
                 }
             }
             state_struct_value.ok_or(syn::Error::new_spanned(
@@ -394,7 +394,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                     }
                     _ => {
                         // ignore any field attributes that are not syn::Meta::List() types with path
-                        continue;
                     }
                 }
             }
