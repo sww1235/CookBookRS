@@ -4,8 +4,6 @@ use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 
-use super::Error;
-
 ///Terminal Events
 #[derive(Clone, Copy, Debug)]
 #[non_exhaustive]
@@ -82,9 +80,7 @@ impl EventHandler {
     /// # Errors
     /// - [`std::io::Error errors`]
     /// - [`std::sync::mpsc::RecvError`] errors
-    #[expect(clippy::result_large_err)] //TODO: fix this by splitting up the error types, create an
-                                        //app error type
-    pub fn next(&self) -> Result<Event, Error> {
+    pub fn next(&self) -> anyhow::Result<Event> {
         Ok(self.receiver.recv()?)
     }
 }

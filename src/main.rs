@@ -2,9 +2,10 @@
 
 use std::io::{stdin, stdout, Write};
 use std::panic::{set_hook, take_hook};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use anyhow::Context;
 use clap::{self, Parser};
 use flexi_logger::{FileSpec, LogSpecification, Logger};
 use gix::{
@@ -18,15 +19,14 @@ use cookbook_core::tui::{
     key_handler,
     keybinds::Keybinds as AppKeybinds,
     style::Style as AppStyle,
-    Error, Tui,
+    Tui,
 };
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
 //
 //TODO: add a status message box at the bottom of the window and log some errors to it
 
-#[expect(clippy::result_large_err)] //TODO: fix this
-fn main() -> Result<(), Error> {
+fn main() -> anyhow::Result<()> {
     // parse command line flags
     let cli = Cli::parse();
 
@@ -53,13 +53,7 @@ fn main() -> Result<(), Error> {
         _ => logger.set_new_spec(LogSpecification::off()),
     };
 
-    let events = EventHandler::new(Duration::from_millis(250));
     // TODO: parse config file
-
-    // TODO: set keybinds and style from config file
-    let style = AppStyle::default();
-    let keybinds = AppKeybinds::default();
-    let mut app = App::new(keybinds, style);
 
     // either use directory passed in or current directory
     let cwd = std::env::current_dir();
@@ -71,11 +65,20 @@ fn main() -> Result<(), Error> {
         },
     };
 
+    let recipe_repo = load_git_repo(input_dir)?;
+
+    run_tui(input_dir, recipe_repo)?;
+
+    Ok(())
+}
+
+fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
     //TODO: need to verify all recipe files are tracked in git repo
     //
     // first try to load git repo if present
+    let recipe_repo: gix::Repository;
     match gix::discover(input_dir) {
-        Ok(repo) => app.git_repo = Some(repo),
+        Ok(repo) => recipe_repo = repo,
         Err(e) => match e {
             discover::Error::Discover(e) => match e {
                 upwards::Error::NoGitRepository { .. }
@@ -97,7 +100,7 @@ fn main() -> Result<(), Error> {
                             Ok(_) => match input.trim().to_uppercase().as_str() {
                                 "Y" | "YES" => {
                                     match gix::init(input_dir) {
-                                        Ok(repo) => app.git_repo = Some(repo),
+                                        Ok(repo) => recipe_repo = repo,
                                         Err(e) => return Err(e.into()),
                                     }
                                     break;
@@ -105,12 +108,16 @@ fn main() -> Result<(), Error> {
                                 "N" | "NO" => {
                                     println!("Exiting without creating git repo");
                                     // return always exits the function which in this case is main
-                                    return Ok(());
+                                    return Err(std::io::Error::new(
+                                        std::io::ErrorKind::Unsupported,
+                                        "Git Repository required",
+                                    ))
+                                    .context("No Git Repository discovered to store recipes. This is required")?;
                                 }
                                 _ => {
                                     if input.is_empty() {
                                         match gix::init(input_dir) {
-                                            Ok(repo) => app.git_repo = Some(repo),
+                                            Ok(repo) => recipe_repo = repo,
                                             Err(e) => return Err(e.into()),
                                         }
                                         break;
@@ -143,7 +150,7 @@ fn main() -> Result<(), Error> {
                             Ok(_) => match input.trim().to_uppercase().as_str() {
                                 "Y" | "YES" => {
                                     match gix::init(input_dir) {
-                                        Ok(repo) => app.git_repo = Some(repo),
+                                        Ok(repo) => recipe_repo = repo,
                                         Err(e) => return Err(e.into()),
                                     }
                                     break;
@@ -152,12 +159,16 @@ fn main() -> Result<(), Error> {
                                 "N" | "NO" => {
                                     println!("Exiting without creating git repo");
                                     // return always exits the function which in this case is main
-                                    return Ok(());
+                                    return Err(std::io::Error::new(
+                                        std::io::ErrorKind::Unsupported,
+                                        "Git Repository required",
+                                    ))
+                                    .context("No Git Repository discovered to store recipes. This is required")?;
                                 }
                                 _ => {
                                     if input.is_empty() {
                                         match gix::init(input_dir) {
-                                            Ok(repo) => app.git_repo = Some(repo),
+                                            Ok(repo) => recipe_repo = repo,
                                             Err(e) => return Err(e.into()),
                                         }
                                         break;
@@ -189,6 +200,18 @@ fn main() -> Result<(), Error> {
     //         "No Git Repo defined in app. This should not have happened.".to_owned(),
     //     ));
     // }
+    Ok(recipe_repo)
+}
+
+fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
+    let events = EventHandler::new(Duration::from_millis(250));
+
+    // TODO: set keybinds and style from config file
+    let style = AppStyle::default();
+    let keybinds = AppKeybinds::default();
+    let mut app = App::new(keybinds, style);
+    app.git_repo = Some(recipe_repo);
+
     app.load_recipes_from_directory(input_dir)?;
 
     tui_panic_hook();
@@ -217,6 +240,7 @@ fn main() -> Result<(), Error> {
     Tui::restore()?;
     Ok(())
 }
+
 //https://ratatui.rs/recipes/apps/panic-hooks/
 fn tui_panic_hook() {
     let original_hook = take_hook();
