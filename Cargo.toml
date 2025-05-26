@@ -43,6 +43,7 @@ ranged_wrapping = {path="../ranged_wrapping"}
 num-traits = "~0.2"
 flexi_logger = "~0.29"
 finl_unicode = "~1.3"
+rouille = { version = "~3.6", features = ["gzip", "brotli", "rustls"] }
 anyhow = "~1.0"
 
 [lib]

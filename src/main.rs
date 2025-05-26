@@ -261,6 +261,9 @@ struct Cli {
     /// Increase verbosity of program by adding more v
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
+    /// Run Web Server to host a simple web gui
+    #[arg(short, long)]
+    run_web_server: bool,
     // Enable PostGresSql features
     //#[arg(short, long)]
     //enable_post_gres: bool,
