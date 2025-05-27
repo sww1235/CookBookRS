@@ -1,17 +1,23 @@
 //! cookbook TODO: add more documentation
 
+use std::error::Error;
 use std::io::{stdin, stdout, Write};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::panic;
 use std::panic::{set_hook, take_hook};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::thread;
 use std::time::Duration;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use clap::{self, Parser};
 use flexi_logger::{FileSpec, LogSpecification, Logger};
 use gix::{
     discover::{self, upwards},
     open,
 };
+use log::info;
 
 use cookbook_core::tui::{
     app::{self, App},
@@ -24,7 +30,6 @@ use cookbook_core::tui::{
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
 //
-//TODO: add a status message box at the bottom of the window and log some errors to it
 
 fn main() -> anyhow::Result<()> {
     // parse command line flags
@@ -67,12 +72,92 @@ fn main() -> anyhow::Result<()> {
 
     let recipe_repo = load_git_repo(input_dir)?;
 
+    //TODO: either parse this from commandline or config file
+    let ip_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+
     if cli.run_web_server {
-        run_web_server(input_dir, recipe_repo)?;
+        run_web_server(input_dir, recipe_repo, ip_addr, None)?;
     } else {
         run_tui(input_dir, recipe_repo)?;
     }
 
+    Ok(())
+}
+
+fn run_web_server(
+    input_dir: &Path,
+    recipe_repo: gix::Repository,
+    addrs: SocketAddr,
+    ssl_conf: Option<tiny_http::SslConfig>,
+) -> anyhow::Result<()> {
+    // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
+    // as the official multi-thread example is borked
+    use tiny_http::{ConfigListenAddr, Server, ServerConfig};
+    let server_config = ServerConfig {
+        addr: ConfigListenAddr::from_socket_addrs(addrs)?,
+        ssl: ssl_conf,
+    };
+    let server = Arc::new(Server::new(server_config).unwrap());
+
+    // TODO: add this into the config file
+    let num_threads = 4;
+    let mut join_guards = Vec::with_capacity(num_threads);
+
+    for _ in 0..num_threads {
+        let server = server.clone();
+
+        join_guards.push(thread::spawn(move || loop {
+            let server = server.clone();
+            panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
+                for mut request in server.incoming_requests() {
+                    todo!()
+                }
+                Ok(())
+            })
+            .ok()
+            .map(|e| e.unwrap());
+        }));
+    }
+
+    Ok(())
+}
+
+//TODO: add a status message box at the bottom of the window and log some errors to it
+fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
+    let events = EventHandler::new(Duration::from_millis(250));
+
+    // TODO: set keybinds and style from config file
+    let style = AppStyle::default();
+    let keybinds = AppKeybinds::default();
+    let mut app = App::new(keybinds, style);
+    app.git_repo = Some(recipe_repo);
+
+    app.load_recipes_from_directory(input_dir)?;
+
+    tui_panic_hook();
+    let mut tui = Tui::init(events)?;
+    let mut app_state = app::State::new(&app.save_prompt);
+    app.running = true;
+    while app.running {
+        // render interface
+        tui.draw(&app, &mut app_state)?;
+        #[expect(clippy::match_same_arms)] //TODO: remove this eventually
+        match tui.events.next()? {
+            Event::Tick => app.tick(),
+            Event::Key(key_event) => {
+                key_handler::handle_key_events(&mut app, &mut app_state, key_event);
+            }
+            Event::Mouse(_) => {
+                //TODO
+            }
+            // redraw app on resize
+            Event::Resize(_, _) => tui.draw(&app, &mut app_state)?,
+            _ => {
+                //TODO
+            }
+        }
+    }
+    Tui::restore()?;
     Ok(())
 }
 
@@ -205,48 +290,6 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
     //     ));
     // }
     Ok(recipe_repo)
-}
-
-fn run_web_server(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
-    Ok(())
-}
-
-fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
-    let events = EventHandler::new(Duration::from_millis(250));
-
-    // TODO: set keybinds and style from config file
-    let style = AppStyle::default();
-    let keybinds = AppKeybinds::default();
-    let mut app = App::new(keybinds, style);
-    app.git_repo = Some(recipe_repo);
-
-    app.load_recipes_from_directory(input_dir)?;
-
-    tui_panic_hook();
-    let mut tui = Tui::init(events)?;
-    let mut app_state = app::State::new(&app.save_prompt);
-    app.running = true;
-    while app.running {
-        // render interface
-        tui.draw(&app, &mut app_state)?;
-        #[expect(clippy::match_same_arms)] //TODO: remove this eventually
-        match tui.events.next()? {
-            Event::Tick => app.tick(),
-            Event::Key(key_event) => {
-                key_handler::handle_key_events(&mut app, &mut app_state, key_event);
-            }
-            Event::Mouse(_) => {
-                //TODO
-            }
-            // redraw app on resize
-            Event::Resize(_, _) => tui.draw(&app, &mut app_state)?,
-            _ => {
-                //TODO
-            }
-        }
-    }
-    Tui::restore()?;
-    Ok(())
 }
 
 //https://ratatui.rs/recipes/apps/panic-hooks/
