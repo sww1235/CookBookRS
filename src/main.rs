@@ -10,14 +10,14 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use clap::{self, Parser};
 use flexi_logger::{FileSpec, LogSpecification, Logger};
 use gix::{
     discover::{self, upwards},
     open,
 };
-use log::info;
+use log::{info, warn};
 
 use cookbook_core::tui::{
     app::{self, App},
@@ -66,6 +66,7 @@ fn main() -> anyhow::Result<()> {
         Some(ref i) => i.as_path(),
         None => match cwd {
             Ok(ref cwd) => cwd.as_path(),
+
             Err(e) => return Err(e.into()),
         },
     };
@@ -83,6 +84,14 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+//TODO: webpage ideas
+//
+// Need a main page that replicates the layout of the RecipeBrowser layout
+// Need a page for editing the main recipe + each of Ingredient, Step and Equipment
+// Can probably use the above for creation of recipies as well
+// Need a page for viewing recipes
+//
+// Also need a page for populating and viewing Ingredient database
 
 fn run_web_server(
     input_dir: &Path,
@@ -92,7 +101,11 @@ fn run_web_server(
 ) -> anyhow::Result<()> {
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
-    use tiny_http::{ConfigListenAddr, Server, ServerConfig};
+
+    use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
+
+    use cookbook_core::wgui::{error_responses, root};
+
     let server_config = ServerConfig {
         addr: ConfigListenAddr::from_socket_addrs(addrs)?,
         ssl: ssl_conf,
@@ -108,9 +121,23 @@ fn run_web_server(
 
         join_guards.push(thread::spawn(move || loop {
             let server = server.clone();
+            //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
+            #[expect(clippy::option_map_unit_fn)]
             panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
                 for mut request in server.incoming_requests() {
-                    todo!()
+                    match request.method().clone() {
+                        Method::GET => match request.url().path() {
+                            "/" => request.respond(root::webroot()?)?,
+                            _ => request.respond(error_responses::not_found())?,
+                        },
+                        Method::POST => {
+                            todo!()
+                        }
+                        method => {
+                            warn!("Unsupported method: {method:?}");
+                            todo!()
+                        }
+                    }
                 }
                 Ok(())
             })
