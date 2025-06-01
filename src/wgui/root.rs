@@ -9,7 +9,7 @@ use tiny_http::{
     Response,
 };
 
-use super::html_stubs::{FOOTER, ROOT_HEADER};
+use super::html_stubs::FOOTER;
 
 /// `webroot` displays the `/` page for the web server.
 ///
@@ -22,6 +22,7 @@ pub fn webroot() -> anyhow::Result<Response<Box<dyn Read + Send>>> {
     data.push_str(r#"<html lang="en-US">"#);
     data.push_str(ROOT_HEADER);
     data.push_str("<body>\n");
+    data.push_str(ROOT_FORM);
     data.push_str(FOOTER);
     data.push_str("</body>");
     data.push_str("/html>");
@@ -35,3 +36,17 @@ pub fn webroot() -> anyhow::Result<Response<Box<dyn Read + Send>>> {
         None,
     ))
 }
+
+pub(crate) const ROOT_HEADER: &str = r#"
+    <head>
+    <meta charset="utf-8" />
+    <title>Welcome to CookBookRS</title>
+    </head>
+    "#;
+
+pub(crate) const ROOT_FORM: &str = r#"
+    <form method="post">
+    <button formaction="/database" type="submit">Ingredient Database</button>
+    <button autofocus formaction="/cookbook" type="submit">CookbookRS</button>
+    </form>
+    "#;
