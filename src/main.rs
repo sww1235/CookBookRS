@@ -130,12 +130,18 @@ fn run_web_server(
                             "/" => request.respond(root::webroot()?)?,
                             _ => request.respond(error_responses::not_found())?,
                         },
-                        Method::POST => {
-                            todo!()
-                        }
+                        Method::POST => match request.url().path() {
+                            "/database" => {
+                                todo!()
+                            }
+                            "/cookbook" => {
+                                todo!()
+                            }
+                            _ => request.respond(error_responses::bad_request())?,
+                        },
                         method => {
                             warn!("Unsupported method: {method:?}");
-                            todo!()
+                            request.respond(error_responses::method_not_allowed())?
                         }
                     }
                 }
