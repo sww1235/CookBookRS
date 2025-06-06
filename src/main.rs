@@ -17,7 +17,7 @@ use gix::{
     discover::{self, upwards},
     open,
 };
-use log::{info, warn};
+use log::{info, trace, warn};
 
 use cookbook_core::tui::{
     app::{self, App},
@@ -77,7 +77,8 @@ fn main() -> anyhow::Result<()> {
     let ip_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
 
     if cli.run_web_server {
-        run_web_server(input_dir, recipe_repo, ip_addr, None)?;
+        info!("running web server");
+        run_web_server(ip_addr, None)?;
     } else {
         run_tui(input_dir, recipe_repo)?;
     }
@@ -93,12 +94,7 @@ fn main() -> anyhow::Result<()> {
 //
 // Also need a page for populating and viewing Ingredient database
 
-fn run_web_server(
-    input_dir: &Path,
-    recipe_repo: gix::Repository,
-    addrs: SocketAddr,
-    ssl_conf: Option<tiny_http::SslConfig>,
-) -> anyhow::Result<()> {
+fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
 
@@ -111,12 +107,14 @@ fn run_web_server(
         ssl: ssl_conf,
     };
     let server = Arc::new(Server::new(server_config).unwrap());
+    info!("starting web server on {addrs}");
 
     // TODO: add this into the config file
     let num_threads = 4;
     let mut join_guards = Vec::with_capacity(num_threads);
 
-    for _ in 0..num_threads {
+    for i in 0..num_threads {
+        trace! {"starting thread: {i}"}
         let server = server.clone();
 
         join_guards.push(thread::spawn(move || loop {
@@ -144,12 +142,19 @@ fn run_web_server(
                             request.respond(error_responses::method_not_allowed())?
                         }
                     }
-                }
-                Ok(())
-            })
-            .ok()
-            .map(|e| e.unwrap());
+                    Ok(())
+                })
+                .ok()
+                //TODO: can we handle these errors better rather than unwrapping
+                .map(|e| e.unwrap());
+            }
         }));
+    }
+    for g in join_guards {
+        //TODO: try using if Err(err_val) = g.join() and then using format!("{:?"}") or .downcast()
+        //to move it into an anyhow!()
+        //per the suggestions in https://users.rust-lang.org/t/avoiding-usage-of-unwrap-with-joinhandle/130280/12
+        g.join().unwrap();
     }
 
     Ok(())
