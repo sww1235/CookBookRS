@@ -117,29 +117,40 @@ fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> 
         trace! {"starting thread: {i}"}
         let server = server.clone();
 
-        join_guards.push(thread::spawn(move || loop {
-            let server = server.clone();
-            //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
-            #[expect(clippy::option_map_unit_fn)]
-            panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
-                for mut request in server.incoming_requests() {
-                    match request.method().clone() {
-                        Method::GET => match request.url().path() {
-                            "/" => request.respond(root::webroot()?)?,
-                            _ => request.respond(error_responses::not_found())?,
-                        },
-                        Method::POST => match request.url().path() {
-                            "/database" => {
-                                todo!()
+        join_guards.push(thread::spawn(move || {
+            loop {
+                let server = server.clone();
+                //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
+                #[expect(clippy::option_map_unit_fn)]
+                panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
+                    for mut request in server.incoming_requests() {
+                        let method = request.method().clone();
+                        let path = request.url().path();
+                        trace!("{method} request received with path {path}");
+                        match request.method().clone() {
+                            Method::GET => match request.url().path() {
+                                "/" => request.respond(root::webroot()?)?,
+                                "/database" => {
+                                    todo!()
+                                }
+                                "/cookbook" => {
+                                    todo!()
+                                }
+                                _ => request.respond(error_responses::not_found())?,
+                            },
+                            Method::POST => match request.url().path() {
+                                "/database" => {
+                                    todo!()
+                                }
+                                "/cookbook" => {
+                                    todo!()
+                                }
+                                _ => request.respond(error_responses::bad_request())?,
+                            },
+                            method => {
+                                warn!("Unsupported method: {method:?}");
+                                request.respond(error_responses::method_not_allowed())?
                             }
-                            "/cookbook" => {
-                                todo!()
-                            }
-                            _ => request.respond(error_responses::bad_request())?,
-                        },
-                        method => {
-                            warn!("Unsupported method: {method:?}");
-                            request.respond(error_responses::method_not_allowed())?
                         }
                     }
                     Ok(())
