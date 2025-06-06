@@ -17,17 +17,11 @@ use super::html_stubs::FOOTER;
 pub fn webroot() -> anyhow::Result<Response<Box<dyn Read + Send>>> {
     let mut headers = HeaderMap::with_capacity(2);
     headers.append(header::CONTENT_TYPE, HeaderValue::try_from("text/html; charset=utf-8")?);
-    let mut data = String::new();
-    data.push_str(r#"<!doctype html>"#);
-    data.push_str("\n");
-    data.push_str(r#"<html lang="en-US">"#);
-    data.push_str(ROOT_HEADER);
-    data.push_str("<body>\n");
-    data.push_str(ROOT_FORM);
-    data.push_str(FOOTER);
-    data.push_str("</body>");
-    data.push_str("\n");
-    data.push_str("</html>");
+    //https://github.com/rust-lang/rust/issues/85846
+    let data = format!(
+        "{}",
+        format_args!(include_str!("./root.html"), title = "Welcome to CookBookRS", footer = FOOTER)
+    );
     // Don't fully understand why Box + Cursor, but thats what Rouille used and it seems to work.
     // Also not sure why the response data needs to implement Read but...
     Ok(Response::new(
@@ -38,17 +32,3 @@ pub fn webroot() -> anyhow::Result<Response<Box<dyn Read + Send>>> {
         None,
     ))
 }
-
-pub(crate) const ROOT_HEADER: &str = r#"
-    <head>
-        <meta charset="utf-8" />
-        <title>Welcome to CookBookRS</title>
-    </head>
-    "#;
-
-pub(crate) const ROOT_FORM: &str = r#"
-    <form method="get">
-        <button formaction="/database" type="submit">Ingredient Database</button>
-        <button autofocus formaction="/cookbook" type="submit">CookbookRS</button>
-    </form>
-    "#;
