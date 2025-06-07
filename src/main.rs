@@ -141,11 +141,8 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                         match request.method().clone() {
                             Method::GET => match request.url().path() {
                                 "/" => request.respond(root::webroot()?)?,
-                                "/database" => {
-                                    todo!()
-                                },
-
-                                "/browse" =>  request.respond(browser::browser(&recipes, &tags)?)?,
+                                "/database" => request.respond(error_responses::method_not_allowed())?,
+                                "/browse" =>  request.respond(error_responses::method_not_allowed())?,
                                 _ => request.respond(error_responses::not_found())?,
                             },
                             Method::POST => match request.url().path() {
