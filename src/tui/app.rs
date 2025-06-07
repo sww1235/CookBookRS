@@ -19,11 +19,9 @@ use ratatui::{
 
 use crate::{
     datatypes::{
-        equipment::{self, EquipmentFieldOffset, EquipmentFields},
-        filetypes,
-        ingredient::{self, IngredientFieldOffset, IngredientFields},
+        equipment, filetypes, ingredient,
         recipe::{self, Recipe, RecipeFieldOffset, RecipeFields},
-        step::{self, StepFieldOffset, StepFields},
+        step,
         tag::Tag,
     },
     tui::{
@@ -162,88 +160,6 @@ impl App {
             out_path,
             output.map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format! {"Inner TOML parsing error: {}", err}))?,
         )
-    }
-
-    /// `load_recipes_from_directory` recursively parses the provided directory path to parse all
-    /// `*.toml` files found and load them into the cookbook.
-    ///
-    /// # Errors
-    ///
-    /// Will error if:
-    /// - reading any of the individual recipes fails
-    /// - the specified path is not a directory
-    /// - [`OsStr`](std::ffi::OsStr) failed to parse to UTF-8
-    pub fn load_recipes_from_directory(&mut self, dir: &Path) -> Result<(), io::Error> {
-        if dir.is_dir() {
-            Self::load_recipes_from_directory_inner(dir, &mut self.recipes)?;
-            self.recipes.sort_unstable_by_key(|r| r.id);
-            Ok(())
-        } else {
-            Err(io::Error::new(
-                io::ErrorKind::NotADirectory,
-                format! {"Provided filepath not a directory {}", dir.display()},
-            ))
-        }
-    }
-
-    fn load_recipes_from_directory_inner(inner_dir: &Path, recipes: &mut Vec<Recipe>) -> Result<(), io::Error> {
-        let ext = match inner_dir.extension() {
-            Some(ext) => match ext.to_str() {
-                Some(ext) => ext,
-                None => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "os_str failed to parse to valid utf-8",
-                    ))
-                }
-            },
-            None => "",
-        };
-        if inner_dir.is_file() && ext == "toml" {
-            let recipe = match Self::parse_recipe(inner_dir) {
-                Ok(r) => r,
-                Err(error) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        format! {"Parsing TOML file {} failed: {}", &inner_dir.display(), error},
-                    ))
-                }
-            };
-            recipes.push(recipe);
-            Ok(())
-        } else if inner_dir.is_dir() {
-            for entry in fs::read_dir(inner_dir)? {
-                let entry = entry?; // read_dir returns result
-                let path = entry.path();
-                Self::load_recipes_from_directory_inner(&path, recipes)?;
-            }
-            Ok(())
-        } else {
-            // not a directory or file (maybe a symlink or something?
-            Ok(())
-        }
-    }
-
-    fn parse_recipe(recipe_file: &Path) -> Result<Recipe, io::Error> {
-        let contents = fs::read_to_string(recipe_file)?;
-        let output: Result<filetypes::Recipe, toml::de::Error> = toml::from_str(contents.as_str());
-        output
-            .map(Into::into)
-            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format! {"Inner TOML parsing error: {}", err}))
-    }
-
-    /// `compile_tag_list` scans through all tags on all recipes, compiles them into the main app
-    /// tag list, then sorts and deduplicates the list
-    pub fn compile_tag_list(&mut self) {
-        for recipe in &self.recipes {
-            //TODO: maybe switch to using try_reserve instead
-            self.tags.reserve(recipe.tags.len());
-            self.tags.extend(recipe.tags.clone());
-        }
-        // don't care about order of duplicate elements since we are removing them
-        self.tags.sort_unstable();
-        self.tags.dedup();
-        self.tags.shrink_to_fit();
     }
 
     /// `tick` handles the tick event of the app

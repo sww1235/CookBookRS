@@ -1,3 +1,6 @@
+use std::fs;
+use std::io;
+use std::path::Path;
 use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
@@ -174,6 +177,91 @@ impl Recipe {
     pub fn all_equipment_owned(&self) -> bool {
         // iterate through all equipment in all steps, short circuiting if e.is_owned is false
         self.steps.iter().all(|s| s.equipment.iter().all(|e| e.is_owned))
+    }
+
+    /// `load_recipes_from_directory` recursively parses the provided directory path to parse all
+    /// `*.toml` files found and return a `Vec<Recipe>` with the parsed `Recipe`s.
+    ///
+    /// # Errors
+    ///
+    /// Will error if:
+    /// - reading any of the individual recipes fails
+    /// - the specified path is not a directory
+    /// - [`OsStr`](std::ffi::OsStr) failed to parse to UTF-8
+    pub fn load_recipes_from_directory(dir: &Path) -> anyhow::Result<Vec<Self>> {
+        if dir.is_dir() {
+            let mut recipes: Vec<Self> = Vec::new();
+            Self::load_recipes_from_directory_inner(dir, &mut recipes)?;
+            recipes.sort_unstable_by_key(|r| r.id);
+            Ok(recipes)
+        } else {
+            Err(anyhow::Error::new(io::Error::new(
+                io::ErrorKind::NotADirectory,
+                format! {"Provided filepath not a directory {}", dir.display()},
+            )))
+        }
+    }
+
+    fn load_recipes_from_directory_inner(inner_dir: &Path, recipes: &mut Vec<Self>) -> anyhow::Result<()> {
+        let ext = match inner_dir.extension() {
+            Some(ext) => match ext.to_str() {
+                Some(ext) => ext,
+                None => {
+                    return Err(anyhow::Error::new(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "os_str failed to parse to valid utf-8",
+                    )))
+                }
+            },
+            None => "",
+        };
+        if inner_dir.is_file() && ext == "toml" {
+            let recipe = match Self::parse_recipe(inner_dir) {
+                Ok(r) => r,
+                Err(error) => {
+                    return Err(anyhow::Error::new(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format! {"Parsing TOML file {} failed: {}", &inner_dir.display(), error},
+                    )))
+                }
+            };
+            recipes.push(recipe);
+            Ok(())
+        } else if inner_dir.is_dir() {
+            for entry in fs::read_dir(inner_dir)? {
+                let entry = entry?; // read_dir returns result
+                let path = entry.path();
+                Self::load_recipes_from_directory_inner(&path, recipes)?;
+            }
+            Ok(())
+        } else {
+            // not a directory or file (maybe a symlink or something?
+            Ok(())
+        }
+    }
+
+    fn parse_recipe(recipe_file: &Path) -> anyhow::Result<Self> {
+        let contents = fs::read_to_string(recipe_file)?;
+        let output: filetypes::Recipe = toml::from_str(contents.as_str())?;
+        Ok(output.into())
+    }
+
+    /// `compile_tag_list` scans through all tags on a `Vec<cookbook_core::datatypes::recipe::Recipe>`,
+    /// and returns a `Vec<cookbook_core::datatypes::tag::Tag>` with all tags found.
+    /// The resulting `Vec<cookbook_core::datatypes::tag::Tag>` is sorted and deduplicated before
+    /// being returned
+    pub fn compile_tag_list(recipes: Vec<Self>) -> Vec<Tag> {
+        let mut tags: Vec<Tag> = Vec::new();
+        for recipe in recipes {
+            //TODO: maybe switch to using try_reserve instead
+            tags.reserve(recipe.tags.len());
+            tags.extend(recipe.tags.clone());
+        }
+        // don't care about order of duplicate elements since we are removing them
+        tags.sort_unstable();
+        tags.dedup();
+        tags.shrink_to_fit();
+        tags
     }
 }
 

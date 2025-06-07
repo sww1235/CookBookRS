@@ -101,6 +101,7 @@ fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> 
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
 
     use cookbook_core::wgui::{error_responses, root};
+    let mut recipes = Recipe::load_recipes_from_directory(input_dir)?;
 
     let server_config = ServerConfig {
         addr: ConfigListenAddr::from_socket_addrs(addrs)?,
@@ -181,7 +182,7 @@ fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()>
     let mut app = App::new(keybinds, style);
     app.git_repo = Some(recipe_repo);
 
-    app.load_recipes_from_directory(input_dir)?;
+    app.recipes = Recipe::load_recipes_from_directory(input_dir)?;
 
     tui_panic_hook();
     let mut tui = Tui::init(events)?;
