@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-US">
+	<head>
+		<meta charset="utf-8"/>
+		<title>{title}</title>
+		<link rel="stylesheet" href="{stylesheet}">
+	</head>
+	<body>
+		<form method="push">
+			<fieldset id="recipe_list">
+				<legend>Recipe List</legend>
+				<select size={recipe_list_size}>
+					<!-- this needs to be a list of <option> tags-->
+					{recipe_list}
+				</select>
+			</fieldset>
+			<button formaction="/view-recipe" type="submit">View Recipe</button>
+			<button formaction="/edit-recipe" type="submit">Edit Recipe</button>
+		</form>
+		<form method="push">
+			<fieldset id="tag_list">
+				<legend>Tag List</legend>
+				<select multiple size={tag_list_size}>
+					<!-- this needs to be a list of <option> tags-->
+					{tag_list}
+				</select>
+			</fieldset>
+			<button formaction="/filter-tags" type="submit">Filter Tags</button>
+			<button formaction="/reset-tags" type="submit">Reset Tags</button>
+		</form>
+		{footer}
+	</body>
+</html>

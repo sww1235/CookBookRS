@@ -250,7 +250,7 @@ impl Recipe {
     /// and returns a `Vec<cookbook_core::datatypes::tag::Tag>` with all tags found.
     /// The resulting `Vec<cookbook_core::datatypes::tag::Tag>` is sorted and deduplicated before
     /// being returned
-    pub fn compile_tag_list(recipes: Vec<Self>) -> Vec<Tag> {
+    pub fn compile_tag_list(recipes: &[Self]) -> Vec<Tag> {
         let mut tags: Vec<Tag> = Vec::new();
         for recipe in recipes {
             //TODO: maybe switch to using try_reserve instead

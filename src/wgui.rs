@@ -1,6 +1,9 @@
 /// `root` contains the code for the root web page
 pub mod root;
 
+/// `browser` contains the code for the browser webpage
+pub mod browser;
+
 /// `error_responses` contains methods that return error responses
 pub mod error_responses;
 

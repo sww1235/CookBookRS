@@ -6,7 +6,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::panic;
 use std::panic::{set_hook, take_hook};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()> {
 
     if cli.run_web_server {
         info!("running web server");
-        run_web_server(ip_addr, None)?;
+        run_web_server(input_dir, ip_addr, None)?;
     } else {
         run_tui(input_dir, recipe_repo)?;
     }
@@ -94,14 +94,19 @@ fn main() -> anyhow::Result<()> {
 //
 // Also need a page for populating and viewing Ingredient database
 
-fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
+fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
 
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
 
-    use cookbook_core::wgui::{error_responses, root};
-    let mut recipes = Recipe::load_recipes_from_directory(input_dir)?;
+    use cookbook_core::{
+        datatypes::recipe::Recipe,
+        wgui::{browser, error_responses, root},
+    };
+    let recipes = Recipe::load_recipes_from_directory(input_dir)?;
+    let tags = Recipe::compile_tag_list(&recipes);
+    let recipes_arc = Arc::new(Mutex::new(recipes));
 
     let server_config = ServerConfig {
         addr: ConfigListenAddr::from_socket_addrs(addrs)?,
@@ -117,10 +122,15 @@ fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> 
     for i in 0..num_threads {
         trace! {"starting thread: {i}"}
         let server = server.clone();
+        let tags = tags.clone();
+        let recipes_arc = recipes_arc.clone();
 
         join_guards.push(thread::spawn(move || {
             loop {
                 let server = server.clone();
+                let tags = tags.clone();
+                //TODO: figure out how to recover from mutex poisoning
+                let recipes = recipes_arc.lock().unwrap();
                 //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
                 #[expect(clippy::option_map_unit_fn)]
                 panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
@@ -133,19 +143,16 @@ fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> 
                                 "/" => request.respond(root::webroot()?)?,
                                 "/database" => {
                                     todo!()
-                                }
-                                "/cookbook" => {
-                                    todo!()
-                                }
+                                },
+
+                                "/browse" =>  request.respond(browser::browser(&recipes, &tags)?)?,
                                 _ => request.respond(error_responses::not_found())?,
                             },
                             Method::POST => match request.url().path() {
                                 "/database" => {
                                     todo!()
                                 }
-                                "/cookbook" => {
-                                    todo!()
-                                }
+                                "/browse" =>  request.respond(browser::browser(&recipes, &tags)?)?,
                                 _ => request.respond(error_responses::bad_request())?,
                             },
                             method => {
@@ -157,8 +164,8 @@ fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> 
                     Ok(())
                 })
                 .ok()
-                //TODO: can we handle these errors better rather than unwrapping
-                .map(|e| e.unwrap());
+                    //TODO: can we handle these errors better rather than unwrapping
+                    .map(|e| e.unwrap());
             }
         }));
     }
@@ -174,6 +181,7 @@ fn run_web_server(addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> 
 
 //TODO: add a status message box at the bottom of the window and log some errors to it
 fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
+    use cookbook_core::datatypes::recipe::Recipe;
     let events = EventHandler::new(Duration::from_millis(250));
 
     // TODO: set keybinds and style from config file

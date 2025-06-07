@@ -11,7 +11,7 @@ use tiny_http::{
 
 use super::html_stubs::FOOTER;
 
-/// `webroot` displays the `/` page for the web server.
+/// `webroot` returns the `/` page for the web server.
 ///
 /// It allows users to either view the CookBook or view the ingredient database.
 pub fn webroot() -> anyhow::Result<Response<Box<dyn Read + Send>>> {
@@ -20,7 +20,12 @@ pub fn webroot() -> anyhow::Result<Response<Box<dyn Read + Send>>> {
     //https://github.com/rust-lang/rust/issues/85846
     let data = format!(
         "{}",
-        format_args!(include_str!("./root.html"), title = "Welcome to CookBookRS", footer = FOOTER)
+        format_args!(
+            include_str!("./root.html"),
+            title = "Welcome to CookBookRS",
+            footer = FOOTER,
+            stylesheet = ""
+        )
     );
     // Don't fully understand why Box + Cursor, but thats what Rouille used and it seems to work.
     // Also not sure why the response data needs to implement Read but...
