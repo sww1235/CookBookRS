@@ -18,6 +18,7 @@ jobs:
         with:
           root: src/wgui/
           log_level: INFO
+          config: html5validator_cfg.yaml
 
 
   css-lint:
@@ -28,3 +29,7 @@ jobs:
         uses: sww1235/stylelint_gh_action@master
         env:
           PATTERN: "src/wgui/styles/*.css"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: log
+          path: log.log

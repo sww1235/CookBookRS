@@ -1,0 +1,2 @@
+ignore_re:
+  - 'Illegal character in path segment: "{" is not allowed'
