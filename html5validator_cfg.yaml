@@ -1,3 +1,7 @@
 ignore_re:
+  # This fixes errors with {} in href
   - 'Illegal character in path segment: "{" is not allowed'
+  # This fixes errors with {} in size=
   - 'Expected a digit but saw "{" instead'
+  # This fixes issues when using {} to build list of items within select tags
+  - 'Text not allowed in element "select" in this context'
