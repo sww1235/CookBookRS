@@ -1,0 +1,30 @@
+# Linting HTML and CSS for Web GUI
+
+name: Lint
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  html-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: HTML5_Validation
+        uses: Cyb3r-Jak3/html5validator-action@v7.2.0
+        with:
+          root: src/wgui/
+          log_level: INFO
+
+
+  css-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: stylelint
+        uses: sww1235/stylelint_gh_action@master
+        env:
+          PATTERN: "src/wgui/styles/*.css"
