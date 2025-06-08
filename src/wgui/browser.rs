@@ -25,20 +25,28 @@ pub fn browser(recipes: &[Recipe], tags: &[Tag]) -> anyhow::Result<Response<Box<
     let mut recipe_list = String::new();
     let mut tag_list = String::new();
 
-    for recipe in recipes {
-        let recipe_name = recipe.name.clone();
-        let recipe_id = if recipe.id.is_some() {
-            // unwrap is fine here, since we checked for is_some() above
-            recipe.id.unwrap()
-        } else {
-            // don't want to list recipes without IDs
-            continue;
-        };
-        recipe_list.push_str(format!("<option value=\"{recipe_id}\">{recipe_name}</option>\n").as_str());
+    if recipes.is_empty() {
+        recipe_list.push_str("<option value=\"-1\">No Recipes Loaded</option>\n");
+    } else {
+        for recipe in recipes {
+            let recipe_name = recipe.name.clone();
+            let recipe_id = if recipe.id.is_some() {
+                // unwrap is fine here, since we checked for is_some() above
+                recipe.id.unwrap()
+            } else {
+                // don't want to list recipes without IDs
+                continue;
+            };
+            recipe_list.push_str(format!("<option value=\"{recipe_id}\">{recipe_name}</option>\n").as_str());
+        }
     }
 
-    for (i, tag) in tags.iter().enumerate() {
-        tag_list.push_str(format!("<option value=\"{i}\">{tag}</option>").as_str());
+    if tags.is_empty() {
+        tag_list.push_str("<option value=\"-1\">No Tags Loaded</option>");
+    } else {
+        for (i, tag) in tags.iter().enumerate() {
+            tag_list.push_str(format!("<option value=\"{i}\">{tag}</option>").as_str());
+        }
     }
 
     let tag_list_size = if tags.len() > page_len {
