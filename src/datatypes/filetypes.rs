@@ -1,5 +1,6 @@
 use dimensioned::{ucum, Dimensionless};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::{equipment, ingredient, recipe, step};
 
@@ -7,7 +8,7 @@ use super::{equipment, ingredient, recipe, step};
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Recipe {
     /// database ID
-    pub id: Option<u64>,
+    pub id: Option<Uuid>,
     /// short name of recipe
     pub name: String,
     /// optional description

@@ -7,6 +7,7 @@ use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ranged_wrapping::RangedWrapping;
 use ratatui::{style::Stylize, widgets::Widget};
+use uuid::Uuid;
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
@@ -24,6 +25,7 @@ use super::{
 //
 //TODO: change the macro generating the rendering to print list of steps with ingredients/equipment at
 //the top for display only
+//
 
 /// `Recipe` represents one recipe from start to finish
 #[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
@@ -31,7 +33,7 @@ use super::{
 pub struct Recipe {
     /// database ID
     #[cookbook(skip)]
-    pub id: Option<u64>,
+    pub id: Option<Uuid>,
     /// short name of recipe
     #[cookbook(display_order = 0)]
     #[cookbook(constraint_type = "Length")]
@@ -243,7 +245,11 @@ impl Recipe {
     fn parse_recipe(recipe_file: &Path) -> anyhow::Result<Self> {
         let contents = fs::read_to_string(recipe_file)?;
         let output: filetypes::Recipe = toml::from_str(contents.as_str())?;
-        Ok(output.into())
+        let mut output: Self = output.into();
+        if output.id.is_none() {
+            output.id = Some(Uuid::new_v4());
+        }
+        Ok(output)
     }
 
     /// `compile_tag_list` scans through all tags on a `Vec<cookbook_core::datatypes::recipe::Recipe>`,
