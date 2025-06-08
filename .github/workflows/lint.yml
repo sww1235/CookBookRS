@@ -29,7 +29,7 @@ jobs:
         uses: sww1235/stylelint_gh_action@master
         env:
           PATTERN: "src/wgui/styles/*.css"
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: log
           path: log.log
