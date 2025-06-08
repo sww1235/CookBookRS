@@ -139,6 +139,9 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                         let path = request.url().path();
                         trace!("{method} request received with path {path}");
                         match request.method().clone() {
+                            // Not using GET requests here, as the request adds a parameter flag on
+                            // the end of the URL for some reason, even though there are no
+                            // parameters in use.
                             Method::GET => match request.url().path() {
                                 "/" => request.respond(root::webroot()?)?,
                                 "/database" => request.respond(error_responses::method_not_allowed())?,

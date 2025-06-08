@@ -6,6 +6,11 @@
 		<link rel="stylesheet" href="{stylesheet}">
 	</head>
 	<body>
+		<!--
+			Not using GET requests here, as the request adds a parameter flag on
+			the end of the URL for some reason, even though there are no
+			parameters in use.
+		-->
 		<form method="post">
 			<button formaction="/database" type="submit">Ingredient Database</button>
 			<button autofocus formaction="/browse" type="submit">CookbookRS</button>
