@@ -3,6 +3,7 @@ use std::fmt;
 use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
+use uuid::Uuid;
 
 use ranged_wrapping::RangedWrapping;
 
@@ -17,7 +18,7 @@ use crate::tui::dropdown::{Dropdown, DropdownState};
 pub struct Step {
     /// database ID
     #[cookbook(skip)]
-    pub id: u64,
+    pub id: Uuid,
     /// time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated

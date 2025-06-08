@@ -4,6 +4,7 @@ use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ranged_wrapping::RangedWrapping;
 use ratatui::{style::Stylize, widgets::Widget};
+use uuid::Uuid;
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
@@ -25,7 +26,7 @@ use super::filetypes;
 pub struct Ingredient {
     /// database ID
     #[cookbook(skip)]
-    pub id: u64,
+    pub id: Uuid,
     /// ingredient short name
     #[cookbook(display_order = 0)]
     #[cookbook(constraint_type = "Length")]

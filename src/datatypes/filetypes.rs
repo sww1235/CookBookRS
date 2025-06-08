@@ -41,7 +41,7 @@ pub struct Recipe {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Equipment {
     /// database unique ID
-    pub id: u64,
+    pub id: Uuid,
     /// short name of item
     pub name: String,
     /// longer description of item
@@ -55,7 +55,7 @@ pub struct Equipment {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Ingredient {
     /// database ID
-    pub id: u64,
+    pub id: Uuid,
     /// ingredient short name
     pub name: String,
     /// optional description
@@ -88,7 +88,7 @@ impl Default for UnitType {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Step {
     /// database ID
-    pub id: u64,
+    pub id: Uuid,
     /// time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
