@@ -11,7 +11,7 @@ jobs:
   html-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: HTML5_Validation
         uses: Cyb3r-Jak3/html5validator-action@v7.2.0
@@ -23,7 +23,7 @@ jobs:
   css-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: stylelint
         uses: sww1235/stylelint_gh_action@master
         env:
