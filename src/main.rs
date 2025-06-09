@@ -19,13 +19,16 @@ use gix::{
 };
 use log::{info, trace, warn};
 
-use cookbook_core::tui::{
-    app::{self, App},
-    event::{Event, EventHandler},
-    key_handler,
-    keybinds::Keybinds as AppKeybinds,
-    style::Style as AppStyle,
-    Tui,
+use cookbook_core::{
+    datatypes::recipe::Recipe,
+    tui::{
+        app::{self, App},
+        event::{Event, EventHandler},
+        key_handler,
+        keybinds::Keybinds as AppKeybinds,
+        style::Style as AppStyle,
+        Tui,
+    },
 };
 
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
@@ -73,10 +76,16 @@ fn main() -> anyhow::Result<()> {
 
     let recipe_repo = load_git_repo(input_dir)?;
 
-    //TODO: either parse this from commandline or config file
-    let ip_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-
-    if cli.run_web_server {
+    if cli.check_recipe_files {
+        _ = Recipe::load_recipes_from_directory(input_dir)?;
+    } else if cli.print_recipe_files {
+        for recipe in Recipe::load_recipes_from_directory(input_dir)? {
+            let output_string = toml::to_string_pretty(&recipe)?;
+            println!("{output_string}");
+        }
+    } else if cli.run_web_server {
+        //TODO: either parse this from commandline or config file
+        let ip_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         info!("running web server");
         run_web_server(input_dir, ip_addr, None)?;
     } else {
@@ -382,6 +391,12 @@ struct Cli {
     /// Only shows log messages with `Error` level. Use twice to completely eliminate output. Takes precidence over verbose
     #[arg(short, long, action = clap::ArgAction::Count)]
     quiet: u8,
+    /// Check recipe files for errors or bad formatting
+    #[arg(short, long)]
+    check_recipe_files: bool,
+    /// Check recipe files for errors or bad formatting
+    #[arg(short, long)]
+    print_recipe_files: bool,
     // Export complete PDF
     //#[arg(short, long)]
     //export_pdf: bool,

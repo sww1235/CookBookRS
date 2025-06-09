@@ -3,6 +3,7 @@ use std::fmt;
 use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
+use serde::Serialize;
 use uuid::Uuid;
 
 use ranged_wrapping::RangedWrapping;
@@ -13,7 +14,7 @@ use super::{equipment::Equipment, filetypes, ingredient::Ingredient};
 use crate::tui::dropdown::{Dropdown, DropdownState};
 
 /// `Step` represents a discrete step within a recipe
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
+#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef, Serialize)]
 #[cookbook(state_struct = "State")]
 pub struct Step {
     /// database ID
@@ -83,7 +84,7 @@ impl Default for State {
 /// for recipe total duration
 #[non_exhaustive]
 #[expect(clippy::module_name_repetitions)]
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, Copy, Serialize)]
 pub enum StepType {
     /// Prep steps
     Prep,

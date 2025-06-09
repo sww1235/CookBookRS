@@ -7,6 +7,7 @@ use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ranged_wrapping::RangedWrapping;
 use ratatui::{style::Stylize, widgets::Widget};
+use serde::Serialize;
 use uuid::Uuid;
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
@@ -28,7 +29,7 @@ use super::{
 //
 
 /// `Recipe` represents one recipe from start to finish
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
+#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef, Serialize)]
 #[cookbook(state_struct = "State")]
 pub struct Recipe {
     /// database ID
@@ -82,7 +83,7 @@ pub struct Recipe {
 
 /// [`AmountMade`] represents the total finished quantity that the recipe makes, like 24 cookies,
 /// 24 servings, 6 portions, etc.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize)]
 pub struct AmountMade {
     /// amount made
     pub quantity: u64,

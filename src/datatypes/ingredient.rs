@@ -4,6 +4,7 @@ use dimensioned::ucum;
 use num_derive::{FromPrimitive, ToPrimitive};
 use ranged_wrapping::RangedWrapping;
 use ratatui::{style::Stylize, widgets::Widget};
+use serde::Serialize;
 use uuid::Uuid;
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
@@ -21,7 +22,7 @@ use super::filetypes;
 //))
 
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
+#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef, Serialize)]
 #[cookbook(state_struct = "State")]
 pub struct Ingredient {
     /// database ID
@@ -46,7 +47,7 @@ pub struct Ingredient {
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum UnitType {
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.

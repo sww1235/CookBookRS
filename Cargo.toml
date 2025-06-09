@@ -30,7 +30,7 @@ rust-version = "1.83"
 [dependencies]
 clap = { version = "~4", features = ["derive", "unicode", "wrap_help", "cargo", "color"] }
 crossterm = "~0"
-dimensioned = "~0"
+dimensioned = {version = "~0", features = ["serde"]}
 log = "~0"
 ratatui = {version = "~0", features = ["unstable-widget-ref"] }
 serde = { version = "~1", features = ["derive"] }

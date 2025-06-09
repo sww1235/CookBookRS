@@ -1,6 +1,7 @@
 use num_derive::{FromPrimitive, ToPrimitive};
 use ranged_wrapping::RangedWrapping;
 use ratatui::{style::Stylize, widgets::Widget};
+use serde::Serialize;
 use uuid::Uuid;
 
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
@@ -9,7 +10,7 @@ use super::filetypes;
 
 /// `Equipment` represents any implement you might use to prepare a recipe,
 /// from a stove, to a microwave, to a stand mixer, to a potato peeler
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef)]
+#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef, Serialize)]
 #[cookbook(state_struct = "State")]
 pub struct Equipment {
     /// database unique ID
