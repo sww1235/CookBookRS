@@ -31,6 +31,8 @@ use cookbook_core::{
     },
 };
 
+//TODO: allow specification of alternate ingredients
+
 //TODO: investigate crate-ci/typos, cargo-audit/cargo-deny, codecov, bacon, editorconfig.org
 //
 
