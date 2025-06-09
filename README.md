@@ -58,13 +58,12 @@ name = "Ingredient Name"
 # Optional. This supports newlines so a multi-line string is acceptable here instead
 description = "This is a description."
 
-[[steps.ingredients.unit_quantity]]
 # Only specify one of Quantity, Mass or Volume
 # Quantity represents a count or physical quantity of an Ingredient
 # Ex: 30 chocolate chips
 # Mass represents the mass of an Ingredient, specified in grams
-# Volume represents the volumen of an Ingredient, specified in m^3
-Quantity = 25.4
+# Volume represents the volume of an Ingredient, specified in m^3
+unit_quantity = {Quantity = 25.4}
 
 # repeat this for each piece of equipment in a step
 [[steps.equipment]]
