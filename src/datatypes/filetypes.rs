@@ -88,7 +88,7 @@ impl Default for UnitType {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Step {
     /// database ID
-    pub id: Uuid,
+    pub id: Option<Uuid>,
     /// time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
@@ -100,9 +100,9 @@ pub struct Step {
     /// instructions for step
     pub instructions: String,
     /// ingredients used in this step
-    pub ingredients: Vec<Ingredient>,
+    pub ingredients: Option<Vec<Ingredient>>,
     /// equipment used in this step
-    pub equipment: Vec<Equipment>,
+    pub equipment: Option<Vec<Equipment>>,
     /// Step type
     #[allow(clippy::struct_field_names)]
     pub step_type: StepType,
@@ -148,8 +148,16 @@ impl From<step::Step> for Step {
             time_needed: input.time_needed.map(|tn| *(tn / ucum::S).value()),
             temperature: input.temperature.map(|t| *(t / ucum::K).value()),
             instructions: input.instructions,
-            ingredients: input.ingredients.into_iter().map(Into::into).collect(),
-            equipment: input.equipment.into_iter().map(Into::into).collect(),
+            ingredients: if input.ingredients.is_empty() {
+                None
+            } else {
+                Some(input.ingredients.into_iter().map(Into::into).collect())
+            },
+            equipment: if input.equipment.is_empty() {
+                None
+            } else {
+                Some(input.equipment.into_iter().map(Into::into).collect())
+            },
             step_type: input.step_type.into(),
         }
     }

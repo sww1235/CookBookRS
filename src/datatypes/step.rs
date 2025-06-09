@@ -18,7 +18,7 @@ use crate::tui::dropdown::{Dropdown, DropdownState};
 pub struct Step {
     /// database ID
     #[cookbook(skip)]
-    pub id: Uuid,
+    pub id: Option<Uuid>,
     /// time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
@@ -114,8 +114,16 @@ impl From<filetypes::Step> for Step {
             time_needed: input.time_needed.map(|tn| tn * ucum::S),
             temperature: input.temperature.map(|t| t * ucum::K),
             instructions: input.instructions,
-            ingredients: input.ingredients.into_iter().map(Into::into).collect(),
-            equipment: input.equipment.into_iter().map(Into::into).collect(),
+            ingredients: if input.ingredients.is_some() {
+                input.ingredients.unwrap().into_iter().map(Into::into).collect()
+            } else {
+                Vec::new()
+            },
+            equipment: if input.equipment.is_some() {
+                input.equipment.unwrap().into_iter().map(Into::into).collect()
+            } else {
+                Vec::new()
+            },
             step_type: input.step_type.into(),
         }
     }
