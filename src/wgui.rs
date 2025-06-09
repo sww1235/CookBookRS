@@ -4,6 +4,9 @@ pub mod root;
 /// `browser` contains the code for the browser webpage
 pub mod browser;
 
+/// `recipe_editor` contains the code for the recipe editor and creator webpage
+pub mod recipe_editor;
+
 /// `error_responses` contains methods that return error responses
 pub mod error_responses;
 

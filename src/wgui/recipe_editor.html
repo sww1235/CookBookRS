@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en-US">
+	<head>
+		<meta charset="utf-8"/>
+		<title>{title}</title>
+		<link rel="stylesheet" href="{stylesheet}">
+	</head>
+	<body>
+		<form method="push">
+			<h2>{recipe_name}</h2>
+			<label for="name">Name of Recipe</label>
+			<input type="text" id="name" name="name" required value={edit_name}/>
+			<label for="description">Description</label>
+			<textarea id="description" name="description" autocomplete="off">{description}</textarea>
+
+		</form>
+		{footer}
+	</body>
+</html>
