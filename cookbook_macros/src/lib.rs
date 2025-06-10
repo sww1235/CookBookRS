@@ -567,6 +567,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                     );
                 }
                 // don't need this mapping if not stateful
+                #[expect(clippy::arithmetic_side_effects)]
                 if stateful && !skip && !bottom_field {
                     field_enum_mapping_code.insert(
                         display_order,

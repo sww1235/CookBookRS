@@ -8,10 +8,10 @@ pub mod event;
 pub mod key_handler;
 
 /// `dropdown` is a dropdown menu widget
-pub(crate) mod dropdown;
+pub mod dropdown;
 
 /// `choice_popup` is a popup box with selectable options
-pub(crate) mod choice_popup;
+pub mod choice_popup;
 
 /// `keybinds` provides default keybinds for the TUI side of the application
 pub mod keybinds;

@@ -1,8 +1,8 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style, Stylize},
-    widgets::{Block, Borders, Clear, Paragraph, StatefulWidgetRef, Widget},
+    style::{Style, Stylize},
+    widgets::{Block, Borders, Paragraph, StatefulWidgetRef, Widget},
 };
 
 use ranged_wrapping::RangedWrapping;
