@@ -34,7 +34,7 @@ use super::{
 pub struct Recipe {
     /// database ID
     #[cookbook(skip)]
-    pub id: Option<Uuid>,
+    pub id: Uuid,
     /// short name of recipe
     #[cookbook(display_order = 0)]
     #[cookbook(constraint_type = "Length")]
@@ -107,7 +107,7 @@ impl Recipe {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            id: None,
+            id: Uuid::nil(),
             name: String::default(),
             description: None,
             comments: None,
@@ -183,7 +183,7 @@ impl Recipe {
     }
 
     /// `load_recipes_from_directory` recursively parses the provided directory path to parse all
-    /// `*.toml` files found and return a `Vec<Recipe>` with the parsed `Recipe`s.
+    /// `*.toml` files found and return a `HashMap<Uuid, Recipe>` with the parsed `Recipe`s.
     ///
     /// # Errors
     ///
@@ -191,11 +191,11 @@ impl Recipe {
     /// - reading any of the individual recipes fails
     /// - the specified path is not a directory
     /// - [`OsStr`](std::ffi::OsStr) failed to parse to UTF-8
-    pub fn load_recipes_from_directory(dir: &Path) -> anyhow::Result<Vec<Self>> {
+    pub fn load_recipes_from_directory(dir: &Path) -> anyhow::Result<HashMap<Uuid, Self>> {
         if dir.is_dir() {
-            let mut recipes: Vec<Self> = Vec::new();
+            let mut recipes: HashMap<Uuid, Self> = HashMap::new();
             Self::load_recipes_from_directory_inner(dir, &mut recipes)?;
-            recipes.sort_unstable_by_key(|r| r.id);
+            //recipes.sort_unstable_by_key(|r| r.id);
             Ok(recipes)
         } else {
             Err(anyhow::Error::new(io::Error::new(
@@ -205,7 +205,7 @@ impl Recipe {
         }
     }
 
-    fn load_recipes_from_directory_inner(inner_dir: &Path, recipes: &mut Vec<Self>) -> anyhow::Result<()> {
+    fn load_recipes_from_directory_inner(inner_dir: &Path, recipes: &mut HashMap<Uuid, Self>) -> anyhow::Result<()> {
         let ext = match inner_dir.extension() {
             Some(ext) => match ext.to_str() {
                 Some(ext) => ext,
@@ -228,7 +228,7 @@ impl Recipe {
                     )))
                 }
             };
-            recipes.push(recipe);
+            recipes.insert(recipe.id, recipe);
             Ok(())
         } else if inner_dir.is_dir() {
             for entry in fs::read_dir(inner_dir)? {
@@ -247,8 +247,8 @@ impl Recipe {
         let contents = fs::read_to_string(recipe_file)?;
         let output: filetypes::Recipe = toml::from_str(contents.as_str())?;
         let mut output: Self = output.into();
-        if output.id.is_none() {
-            output.id = Some(Uuid::new_v4());
+        if output.id.is_nil() {
+            output.id = Uuid::new_v4();
         }
         Ok(output)
     }
@@ -257,9 +257,9 @@ impl Recipe {
     /// and returns a `Vec<cookbook_core::datatypes::tag::Tag>` with all tags found.
     /// The resulting `Vec<cookbook_core::datatypes::tag::Tag>` is sorted and deduplicated before
     /// being returned
-    pub fn compile_tag_list(recipes: &[Self]) -> Vec<Tag> {
+    pub fn compile_tag_list(recipes: HashMap<Uuid, Self>) -> Vec<Tag> {
         let mut tags: Vec<Tag> = Vec::new();
-        for recipe in recipes {
+        for recipe in recipes.values() {
             //TODO: maybe switch to using try_reserve instead
             tags.reserve(recipe.tags.len());
             tags.extend(recipe.tags.clone());
@@ -312,7 +312,7 @@ fn add(lhs: &mut Option<ucum::Second<f64>>, rhs: Option<ucum::Second<f64>>) -> O
 impl From<filetypes::Recipe> for Recipe {
     fn from(input: filetypes::Recipe) -> Self {
         Self {
-            id: input.id,
+            id: input.id.unwrap_or_default(),
             name: input.name,
             description: input.description,
             comments: input.comments,

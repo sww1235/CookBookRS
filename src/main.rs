@@ -116,7 +116,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
         wgui::{browser, error_responses, root},
     };
     let recipes = Recipe::load_recipes_from_directory(input_dir)?;
-    let tags = Recipe::compile_tag_list(&recipes);
+    let tags = Recipe::compile_tag_list(recipes);
     let recipes_arc = Arc::new(Mutex::new(recipes));
 
     let server_config = ServerConfig {

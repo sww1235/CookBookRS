@@ -127,7 +127,7 @@ pub enum StepType {
 impl From<recipe::Recipe> for Recipe {
     fn from(input: recipe::Recipe) -> Self {
         Self {
-            id: input.id,
+            id: if input.id == Uuid::nil() { None } else { Some(input.id) },
             name: input.name,
             description: input.description,
             comments: input.comments,

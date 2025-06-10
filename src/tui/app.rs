@@ -16,6 +16,7 @@ use ratatui::{
     },
     Frame,
 };
+use uuid::Uuid;
 
 use crate::{
     datatypes::{
@@ -35,7 +36,7 @@ use crate::{
 #[derive(Debug, Default, PartialEq)]
 pub struct App {
     /// the recipes contained in the application
-    pub recipes: Vec<Recipe>,
+    pub recipes: HashMap<Uuid, Recipe>,
     /// either a new recipe, or a clone of the recipe that is currently being edited
     pub edit_recipe: Option<Recipe>,
     /// the current screen the application is on
@@ -109,7 +110,7 @@ impl App {
     #[must_use]
     pub fn new(keybinds: AppKeybinds, style: AppStyle) -> Self {
         Self {
-            recipes: Vec::new(),
+            recipes: HashMap::new(),
             edit_recipe: None,
             current_screen: CurrentScreen::default(),
             running: false,
@@ -133,13 +134,13 @@ impl App {
 
     /// `save_recipes_to_file` outputs all recipes contained in app to individual files in the
     /// specified directory
-    pub fn save_recipes_to_directory(&self, dir: &Path) -> Result<(), io::Error> {
+    pub fn save_recipes_to_directory(&self, dir: &Path) -> anyhow::Result<()> {
         if dir.is_dir() {
             if !self.recipes.is_empty() {
-                for recipe in &self.recipes {
+                for recipe in self.recipes.values() {
                     let mut path = dir.join(recipe.name.replace(' ', "_"));
                     _ = path.set_extension("toml");
-                    Self::write_recipe(recipe.clone(), path.as_path())?
+                    Recipe::write_recipe(recipe.clone(), path.as_path())?
                 }
                 Ok(())
             } else {
@@ -184,7 +185,7 @@ impl App {
         if self.recipes.is_empty() {
             recipe_list_items.push(ListItem::new(Line::from(Span::styled("No Recipes", self.style.missing_text))));
         } else {
-            for recipe in &self.recipes {
+            for recipe in self.recipes.values() {
                 recipe_list_items.push(ListItem::new(Line::from(Span::styled(
                     recipe.name.clone(),
                     self.style.recipe_list_entries,
@@ -417,11 +418,12 @@ impl App {
                 //
                 //TODO: provide a keybind to select recipe and change to recipeViewer mode
                 if !self.recipes.is_empty() {
-                    WidgetRef::render_ref(
-                        &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
-                        recipe_area,
-                        frame.buffer_mut(),
-                    );
+                    //TODO: fix this state lookup, after switching to hashmap of recipes
+                    //    WidgetRef::render_ref(
+                    //        &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
+                    //        recipe_area,
+                    //        frame.buffer_mut(),
+                    //    );
                 } else {
                     clear.render(recipe_area, frame.buffer_mut());
                 }
@@ -430,11 +432,12 @@ impl App {
                 //TODO use actual render widget methods here
                 StatefulWidget::render(tag_list, tag_list_area, frame.buffer_mut(), &mut state.tag_list_state);
                 if !self.recipes.is_empty() {
-                    WidgetRef::render_ref(
-                        &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
-                        recipe_area,
-                        frame.buffer_mut(),
-                    );
+                    //TODO: fix this state lookup, after switching to hashmap of recipes
+                    //WidgetRef::render_ref(
+                    //    &self.recipes[state.recipe_list_state.selected().unwrap_or_default()],
+                    //    recipe_area,
+                    //    frame.buffer_mut(),
+                    //);
                 } else {
                     clear.render(recipe_area, frame.buffer_mut());
                 }

@@ -989,21 +989,13 @@ pub fn handle_key_events(app: &mut App, app_state: &mut app::State, key_event: K
                             // Yes
                             0 => {
                                 debug! {"SavePrompt: Save = Yes"}
-                                app.recipes.sort_unstable_by_key(|k| k.id);
                                 if app.edit_recipe.is_some() {
-                                    match app
-                                        .recipes
-                                        .binary_search_by_key(&app.edit_recipe.as_ref().unwrap().id, |k| k.id)
-                                    {
-                                        Ok(index) => {
-                                            app.recipes[index] = app.edit_recipe.clone().unwrap();
-                                            app.edit_recipe = None;
-                                        }
-                                        Err(index) => {
-                                            app.recipes.insert(index, app.edit_recipe.clone().unwrap());
-                                            app.edit_recipe = None;
-                                        }
-                                    }
+                                    let edit_key = app.edit_recipe.as_ref().unwrap().id;
+                                    // inserting will either insert new entry into map if key
+                                    // doesn't exist, or replace the existing value for the
+                                    // existing key
+                                    app.recipes.insert(edit_key, app.edit_recipe.clone().unwrap());
+                                    app.edit_recipe = None;
                                 }
                             }
                             // No

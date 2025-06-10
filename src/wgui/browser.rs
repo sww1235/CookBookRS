@@ -1,4 +1,5 @@
 use std::boxed::Box;
+use std::collections::HashMap;
 use std::io::{Cursor, Read};
 
 use tiny_http::{
@@ -8,6 +9,7 @@ use tiny_http::{
     },
     Response,
 };
+use uuid::Uuid;
 
 use crate::datatypes::{recipe::Recipe, tag::Tag};
 
@@ -17,7 +19,7 @@ use super::html_stubs::FOOTER;
 ///
 /// This is the main page for the Cookbook. This page allows users to select a specific recipe
 /// or filter the recipe list via selecting tags.
-pub fn browser(recipes: &[Recipe], tags: &[Tag]) -> anyhow::Result<Response<Box<dyn Read + Send>>> {
+pub fn browser(recipes: HashMap<Uuid, Recipe>, tags: &[Tag]) -> anyhow::Result<Response<Box<dyn Read + Send>>> {
     let page_len = 25;
     let mut headers = HeaderMap::with_capacity(2);
     headers.append(header::CONTENT_TYPE, HeaderValue::try_from("text/html; charset=utf-8")?);
@@ -28,11 +30,12 @@ pub fn browser(recipes: &[Recipe], tags: &[Tag]) -> anyhow::Result<Response<Box<
     if recipes.is_empty() {
         recipe_list.push_str("<option value=\"-1\">No Recipes Loaded</option>\n");
     } else {
-        for recipe in recipes {
+        let mut recipes_sorted = recipes.values().collect::<Vec<_>>();
+        recipes_sorted.sort_unstable_by_key(|k| k.name.clone());
+        for recipe in recipes_sorted {
             let recipe_name = recipe.name.clone();
-            let recipe_id = if recipe.id.is_some() {
-                // unwrap is fine here, since we checked for is_some() above
-                recipe.id.unwrap()
+            let recipe_id = if !recipe.id.is_nil() {
+                recipe.id
             } else {
                 // don't want to list recipes without IDs
                 continue;
