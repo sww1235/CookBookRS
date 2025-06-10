@@ -18,7 +18,7 @@ use super::html_stubs::FOOTER;
 /// This is the main page for the Cookbook. This page allows users to select a specific recipe
 /// or filter the recipe list via selecting tags.
 pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + Send>>> {
-    let page_len = 25;
+    //let page_len = 25;
     let mut headers = HeaderMap::with_capacity(2);
     headers.append(header::CONTENT_TYPE, HeaderValue::try_from("text/html; charset=utf-8")?);
 
