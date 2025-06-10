@@ -154,7 +154,13 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                 "/database" => {
                                     todo!()
                                 }
-                                "/browse" =>  request.respond(browser::browser(&recipes, &tags)?)?,
+                                "/browse" =>  request.respond(browser::browser(recipes, &tags)?)?,
+                                "/edit-recipe" => {
+                                    let form_data = http_helper::parse_post_form_data(&mut request)?;
+                                    if form_data.contains_key("recipe_list") {
+                                        
+                                    request.respond(recipe_editor::recipe_editor(Recipe::new())?)?}
+                                    }
                                 _ => request.respond(error_responses::bad_request())?,
                             },
                             method => {
