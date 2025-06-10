@@ -252,6 +252,12 @@ impl Recipe {
         }
         Ok(output)
     }
+    /// `write_recipe` writes an individual recipe to a toml file
+    pub fn write_recipe(recipe: Recipe, out_path: &Path) -> anyhow::Result<()> {
+        let output = toml::to_string_pretty(&filetypes::Recipe::from(recipe))?;
+        fs::write(out_path, output)?;
+        Ok(())
+    }
 
     /// `compile_tag_list` scans through all tags on a `Vec<cookbook_core::datatypes::recipe::Recipe>`,
     /// and returns a `Vec<cookbook_core::datatypes::tag::Tag>` with all tags found.

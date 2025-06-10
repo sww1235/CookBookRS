@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 use std::fmt;
-use std::fs;
 use std::io;
 use std::num::Saturating;
 use std::path::Path;
@@ -20,7 +20,7 @@ use uuid::Uuid;
 
 use crate::{
     datatypes::{
-        equipment, filetypes, ingredient,
+        equipment, ingredient,
         recipe::{self, Recipe, RecipeFieldOffset, RecipeFields},
         step,
         tag::Tag,
@@ -152,15 +152,8 @@ impl App {
             Err(io::Error::new(
                 io::ErrorKind::NotADirectory,
                 format! {"Provided filepath not a directory {}", dir.display()},
-            ))
+            ))?
         }
-    }
-    fn write_recipe(recipe: Recipe, out_path: &Path) -> Result<(), io::Error> {
-        let output: Result<String, toml::ser::Error> = toml::to_string_pretty(&filetypes::Recipe::from(recipe));
-        fs::write(
-            out_path,
-            output.map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format! {"Inner TOML parsing error: {}", err}))?,
-        )
     }
 
     /// `tick` handles the tick event of the app
