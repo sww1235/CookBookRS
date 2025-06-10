@@ -382,6 +382,7 @@ dependencies = [
  "dimensioned",
  "finl_unicode",
  "flexi_logger",
+ "form_urlencoded",
  "gix",
  "log",
  "num-derive",
