@@ -19,17 +19,7 @@ use gix::{
 };
 use log::{info, trace, warn};
 
-use cookbook_core::{
-    datatypes::recipe::Recipe,
-    tui::{
-        app::{self, App},
-        event::{Event, EventHandler},
-        key_handler,
-        keybinds::Keybinds as AppKeybinds,
-        style::Style as AppStyle,
-        Tui,
-    },
-};
+use cookbook_core::datatypes::recipe::Recipe;
 
 //TODO: allow specification of alternate ingredients
 
@@ -112,9 +102,10 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
 
     use cookbook_core::{
-        datatypes::recipe::Recipe,
-        wgui::{browser, error_responses, root},
+        http_helper,
+        wgui::{browser, error_responses, recipe_editor, root},
     };
+
     let recipes = Recipe::load_recipes_from_directory(input_dir)?;
     let tags = Recipe::compile_tag_list(recipes);
     let recipes_arc = Arc::new(Mutex::new(recipes));
@@ -192,7 +183,14 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
 
 //TODO: add a status message box at the bottom of the window and log some errors to it
 fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
-    use cookbook_core::datatypes::recipe::Recipe;
+    use cookbook_core::tui::{
+        app::{self, App},
+        event::{Event, EventHandler},
+        key_handler,
+        keybinds::Keybinds as AppKeybinds,
+        style::Style as AppStyle,
+        Tui,
+    };
     let events = EventHandler::new(Duration::from_millis(250));
 
     // TODO: set keybinds and style from config file
@@ -363,6 +361,7 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
 
 //https://ratatui.rs/recipes/apps/panic-hooks/
 fn tui_panic_hook() {
+    use cookbook_core::tui::Tui;
     let original_hook = take_hook();
     set_hook(Box::new(move |panic_info| {
         // intentionally ignore errors here since we're already in a panic
