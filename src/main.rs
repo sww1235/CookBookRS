@@ -145,13 +145,13 @@ use std::collections::HashMap;
         let mut recipes = recipes.clone();
         loop {
             // TODO: fix usage of unwrap here
-           let (thread_id, message) = rx.recv().unwrap();
+           let (thread_id, message): (usize, ThreadMessage) = rx.recv().unwrap();
            match message {
                 ThreadMessage::AllRecipes => tx_channels[thread_id].send(ThreadResponse::AllRecipes(recipes.clone())),
                 // TODO: properly handle the Option of HashMap.get() rather than unwrapping
                 ThreadMessage::RecipeRO(recipe_id) => tx_channels[thread_id].send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone())),
                 ThreadMessage::RecipeRW(recipe_id) => todo!()
-           }
+           };
         }
     }
             
