@@ -96,20 +96,37 @@ fn main() -> anyhow::Result<()> {
 fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc,mpsc};
 use std::thread;
 use std::collections::HashMap;
 
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
+    use uuid::Uuid;
+    use anyhow::anyhow;
 
     use cookbook_core::{
         http_helper,
         wgui::{browser, error_responses, recipe_editor, root},
     };
+    
+    // from threads ->  main thread, request either all recipes as RO, one recipe as RO, or one
+    // recipe as RW
+    enum ThreadMessage {
+        AllRecipes,
+        RecipeRO(Uuid),
+        RecipeRW(Uuid),
+
+    }
+    // response from main thread to worker threads
+    enum ThreadResponse {
+        AllRecipes(HashMap<Uuid,Recipe>),
+        Recipe(Recipe),
+    }
+
+    let (tx, rx) = mpsc::channel();
 
     let recipes = Recipe::load_recipes_from_directory(input_dir)?;
     let tags = Recipe::compile_tag_list(recipes.clone());
-    let recipes_arc = Arc::new(RwLock::new(recipes));
 
     let server_config = ServerConfig {
         addr: ConfigListenAddr::from_socket_addrs(addrs)?,
@@ -119,21 +136,41 @@ use std::collections::HashMap;
     info!("starting web server on {addrs}");
 
     // TODO: add this into the config file
-    let num_threads = 4;
-    let mut join_guards = Vec::with_capacity(num_threads);
+    let num_threads: usize = 4;
+    let mut join_guards = Vec::with_capacity(num_threads+1);
+    let mut tx_channels: Vec<mpsc::Sender<ThreadResponse>> = Vec::with_capacity(num_threads);
 
+    // spawn data owner thread
+    join_guards.push(thread::spawn(move || {
+        let mut recipes = recipes.clone();
+        loop {
+            // TODO: fix usage of unwrap here
+           let (thread_id, message) = rx.recv().unwrap();
+           match message {
+                ThreadMessage::AllRecipes => tx_channels[thread_id].send(ThreadResponse::AllRecipes(recipes.clone())),
+                // TODO: properly handle the Option of HashMap.get() rather than unwrapping
+                ThreadMessage::RecipeRO(recipe_id) => tx_channels[thread_id].send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone())),
+                ThreadMessage::RecipeRW(recipe_id) => todo!()
+           }
+        }
+    }
+            
+            ));
+
+    // spawn worker threads
     for i in 0..num_threads {
         trace! {"starting thread: {i}"}
         let server = server.clone();
         let tags = tags.clone();
-        let recipes_arc = recipes_arc.clone();
+        let (thread_tx, thread_rx) = mpsc::channel();
+        tx_channels.push(thread_tx);
+        let tx = tx.clone();
 
         join_guards.push(thread::spawn(move || {
             loop {
                 let server = server.clone();
                 let tags = tags.clone();
-        let recipes_arc = recipes_arc.clone();
-                //TODO: figure out how to recover from mutex poisoning
+        let tx = tx.clone();
                 //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
                 #[expect(clippy::option_map_unit_fn)]
                 panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
@@ -156,8 +193,13 @@ use std::collections::HashMap;
                                     todo!()
                                 }
                                 "/browse" =>  {
-                                    let recipes: Arc<RwLock<HashMap<String, Mutex<String>>>> = recipes_arc.into();
-                                    request.respond(browser::browser(recipes.read().unwrap(), &tags)?)?},
+                                    tx.send((i, ThreadMessage::AllRecipes))?;
+                                    let recipes = match thread_rx.recv()? {
+                                        ThreadResponse::AllRecipes(recipes) => recipes,
+                                        _ => return Err(anyhow!("Incorrect response to request for AllRecipes").into()),
+                                    };
+                                    request.respond(browser::browser(recipes, &tags)?)?
+                                },
                                 "/edit-recipe" => {
                                     let form_data = http_helper::parse_post_form_data(&mut request)?;
                                     if form_data.contains_key("recipe_list") {
