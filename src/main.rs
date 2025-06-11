@@ -6,8 +6,6 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::panic;
 use std::panic::{set_hook, take_hook};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
 
 use anyhow::Context;
@@ -98,6 +96,9 @@ fn main() -> anyhow::Result<()> {
 fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
+use std::collections::HashMap;
 
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
 
@@ -107,8 +108,8 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     };
 
     let recipes = Recipe::load_recipes_from_directory(input_dir)?;
-    let tags = Recipe::compile_tag_list(recipes);
-    let recipes_arc = Arc::new(Mutex::new(recipes));
+    let tags = Recipe::compile_tag_list(recipes.clone());
+    let recipes_arc = Arc::new(RwLock::new(recipes));
 
     let server_config = ServerConfig {
         addr: ConfigListenAddr::from_socket_addrs(addrs)?,
@@ -131,8 +132,8 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
             loop {
                 let server = server.clone();
                 let tags = tags.clone();
+        let recipes_arc = recipes_arc.clone();
                 //TODO: figure out how to recover from mutex poisoning
-                let recipes = recipes_arc.lock().unwrap();
                 //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
                 #[expect(clippy::option_map_unit_fn)]
                 panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
@@ -154,7 +155,9 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                 "/database" => {
                                     todo!()
                                 }
-                                "/browse" =>  request.respond(browser::browser(recipes, &tags)?)?,
+                                "/browse" =>  {
+                                    let recipes: Arc<RwLock<HashMap<String, Mutex<String>>>> = recipes_arc.into();
+                                    request.respond(browser::browser(recipes.read().unwrap(), &tags)?)?},
                                 "/edit-recipe" => {
                                     let form_data = http_helper::parse_post_form_data(&mut request)?;
                                     if form_data.contains_key("recipe_list") {
