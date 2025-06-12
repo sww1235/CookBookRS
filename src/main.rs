@@ -96,34 +96,33 @@ fn main() -> anyhow::Result<()> {
 fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
-use std::sync::{Arc,mpsc};
-use std::thread;
-use std::collections::HashMap;
+    use std::collections::HashMap;
+    use std::sync::{mpsc, Arc};
+    use std::thread;
 
+    use anyhow::anyhow;
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
     use uuid::Uuid;
-    use anyhow::anyhow;
 
     use cookbook_core::{
         http_helper,
         wgui::{browser, error_responses, recipe_editor, root},
     };
-    
+
     // from threads ->  main thread, request either all recipes as RO, one recipe as RO, or one
     // recipe as RW
     enum ThreadMessage {
         AllRecipes,
         RecipeRO(Uuid),
         RecipeRW(Uuid),
-
     }
     // response from main thread to worker threads
     enum ThreadResponse {
-        AllRecipes(HashMap<Uuid,Recipe>),
+        AllRecipes(HashMap<Uuid, Recipe>),
         Recipe(Recipe),
     }
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = mpsc::channel::<(usize, ThreadMessage)>();
 
     let recipes = Recipe::load_recipes_from_directory(input_dir)?;
     let tags = Recipe::compile_tag_list(recipes.clone());
@@ -137,43 +136,65 @@ use std::collections::HashMap;
 
     // TODO: add this into the config file
     let num_threads: usize = 4;
-    let mut join_guards = Vec::with_capacity(num_threads+1);
+    let mut join_guards = Vec::with_capacity(num_threads + 1);
     let mut tx_channels: Vec<mpsc::Sender<ThreadResponse>> = Vec::with_capacity(num_threads);
+    let mut rx_channels: Vec<mpsc::Receiver<ThreadResponse>> = Vec::with_capacity(num_threads);
+
+    // create channels
+    for _ in 0..num_threads {
+        let (thread_tx, thread_rx) = mpsc::channel::<ThreadResponse>();
+        tx_channels.push(thread_tx);
+        rx_channels.push(thread_rx);
+    }
+    // reverse order of elements so that popping works out properly.
+    rx_channels.reverse();
 
     // spawn data owner thread
     join_guards.push(thread::spawn(move || {
         let mut recipes = recipes.clone();
         loop {
             // TODO: fix usage of unwrap here
-           let (thread_id, message): (usize, ThreadMessage) = rx.recv().unwrap();
-           match message {
-                ThreadMessage::AllRecipes => tx_channels[thread_id].send(ThreadResponse::AllRecipes(recipes.clone())),
+            let (thread_id, message): (usize, ThreadMessage) = rx.recv().unwrap();
+            match message {
+                // TODO: fix usage of unwrap on send
+                ThreadMessage::AllRecipes => tx_channels[thread_id]
+                    .clone()
+                    .send(ThreadResponse::AllRecipes(recipes.clone()))
+                    .unwrap(),
                 // TODO: properly handle the Option of HashMap.get() rather than unwrapping
-                ThreadMessage::RecipeRO(recipe_id) => tx_channels[thread_id].send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone())),
-                ThreadMessage::RecipeRW(recipe_id) => todo!()
-           };
+                // TODO: fix usage of unwrap on send
+                ThreadMessage::RecipeRO(recipe_id) => tx_channels[thread_id]
+                    .clone()
+                    .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
+                    .unwrap(),
+                ThreadMessage::RecipeRW(recipe_id) => {
+                    // TODO: manually lock this recipe id somehow
+                    // TODO: fix usage of unwrap on send
+                    tx_channels[thread_id]
+                        .clone()
+                        .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
+                        .unwrap()
+                }
+            };
         }
-    }
-            
-            ));
+    }));
 
     // spawn worker threads
     for i in 0..num_threads {
         trace! {"starting thread: {i}"}
         let server = server.clone();
         let tags = tags.clone();
-        let (thread_tx, thread_rx) = mpsc::channel();
-        tx_channels.push(thread_tx);
         let tx = tx.clone();
+        let rx = rx_channels.pop().unwrap();
 
         join_guards.push(thread::spawn(move || {
             loop {
                 let server = server.clone();
                 let tags = tags.clone();
-        let tx = tx.clone();
+                let tx = tx.clone();
                 //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
                 #[expect(clippy::option_map_unit_fn)]
-                panic::catch_unwind(move || -> Result<(), Box<dyn Error>> {
+                panic::catch_unwind( || -> Result<(), Box<dyn Error>> {
                     for mut request in server.incoming_requests() {
                         let method = request.method().clone();
                         let path = request.url().path();
@@ -194,7 +215,7 @@ use std::collections::HashMap;
                                 }
                                 "/browse" =>  {
                                     tx.send((i, ThreadMessage::AllRecipes))?;
-                                    let recipes = match thread_rx.recv()? {
+                                    let recipes = match rx.recv()? {
                                         ThreadResponse::AllRecipes(recipes) => recipes,
                                         _ => return Err(anyhow!("Incorrect response to request for AllRecipes").into()),
                                     };
@@ -203,8 +224,13 @@ use std::collections::HashMap;
                                 "/edit-recipe" => {
                                     let form_data = http_helper::parse_post_form_data(&mut request)?;
                                     if form_data.contains_key("recipe_list") {
-                                        
-                                    request.respond(recipe_editor::recipe_editor(Recipe::new())?)?}
+                                        tx.send((i, ThreadMessage::RecipeRW(Uuid::parse_str(form_data["recipe_list"].as_str())?)))?;
+                                        let recipe = match rx.recv()? {
+                                            ThreadResponse::Recipe(recipe) => recipe,
+                                            _ => return Err(anyhow!("Incorrect resposne to request for RecipeRW").into()),
+                                        };
+                                            request.respond(recipe_editor::recipe_editor(recipe)?)?
+                                    }
                                     }
                                 _ => request.respond(error_responses::bad_request())?,
                             },
@@ -286,111 +312,113 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
     let recipe_repo: gix::Repository;
     match gix::discover(input_dir) {
         Ok(repo) => recipe_repo = repo,
-        Err(e) => match e {
-            discover::Error::Discover(e) => match e {
-                upwards::Error::NoGitRepository { .. }
-                | upwards::Error::NoGitRepositoryWithinCeiling { .. }
-                | upwards::Error::NoGitRepositoryWithinFs { .. } => {
-                    // if git repo is not detected, then prompt to create one.
-                    // TODO: provide a command line argument to always create a git repo
-                    let crate_name = clap::crate_name!();
-                    let path_string = input_dir.display();
-                    println!("Git repository not detected at path {path_string}.");
-                    println!("This is required for the version tracking and orginization of the cookbook.");
-                    println!("You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N).");
-                    print!("Do you want to automatically create one? ([Y]/N)");
-                    // need to flush output to screen prior to prompting for response.
-                    stdout().flush()?;
-                    let mut input = String::new();
-                    loop {
-                        match stdin().read_line(&mut input) {
-                            Ok(_) => match input.trim().to_uppercase().as_str() {
-                                "Y" | "YES" => {
-                                    match gix::init(input_dir) {
-                                        Ok(repo) => recipe_repo = repo,
-                                        Err(e) => return Err(e.into()),
-                                    }
-                                    break;
-                                }
-                                "N" | "NO" => {
-                                    println!("Exiting without creating git repo");
-                                    // return always exits the function which in this case is main
-                                    return Err(std::io::Error::new(
-                                        std::io::ErrorKind::Unsupported,
-                                        "Git Repository required",
-                                    ))
-                                    .context("No Git Repository discovered to store recipes. This is required")?;
-                                }
-                                _ => {
-                                    if input.is_empty() {
+        Err(e) => {
+            match e {
+                discover::Error::Discover(e) => match e {
+                    upwards::Error::NoGitRepository { .. }
+                    | upwards::Error::NoGitRepositoryWithinCeiling { .. }
+                    | upwards::Error::NoGitRepositoryWithinFs { .. } => {
+                        // if git repo is not detected, then prompt to create one.
+                        // TODO: provide a command line argument to always create a git repo
+                        let crate_name = clap::crate_name!();
+                        let path_string = input_dir.display();
+                        println!("Git repository not detected at path {path_string}.");
+                        println!("This is required for the version tracking and orginization of the cookbook.");
+                        println!("You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N).");
+                        print!("Do you want to automatically create one? ([Y]/N)");
+                        // need to flush output to screen prior to prompting for response.
+                        stdout().flush()?;
+                        let mut input = String::new();
+                        loop {
+                            match stdin().read_line(&mut input) {
+                                Ok(_) => match input.trim().to_uppercase().as_str() {
+                                    "Y" | "YES" => {
                                         match gix::init(input_dir) {
                                             Ok(repo) => recipe_repo = repo,
                                             Err(e) => return Err(e.into()),
                                         }
                                         break;
-                                    } else {
-                                        println!("Either enter [Y]es, [N]o or hit enter to accept the default of Yes");
                                     }
-                                }
-                            },
-                            Err(e) => return Err(e.into()),
+                                    "N" | "NO" => {
+                                        println!("Exiting without creating git repo");
+                                        // return always exits the function which in this case is main
+                                        return Err(std::io::Error::new(
+                                            std::io::ErrorKind::Unsupported,
+                                            "Git Repository required",
+                                        ))
+                                        .context("No Git Repository discovered to store recipes. This is required")?;
+                                    }
+                                    _ => {
+                                        if input.is_empty() {
+                                            match gix::init(input_dir) {
+                                                Ok(repo) => recipe_repo = repo,
+                                                Err(e) => return Err(e.into()),
+                                            }
+                                            break;
+                                        } else {
+                                            println!("Either enter [Y]es, [N]o or hit enter to accept the default of Yes");
+                                        }
+                                    }
+                                },
+                                Err(e) => return Err(e.into()),
+                            }
                         }
                     }
-                }
-                e => return Err(e.into()),
-            },
-            discover::Error::Open(e) => match e {
-                open::Error::NotARepository { .. } => {
-                    // if git repo is not detected, then prompt to create one.
-                    // TODO: provide a command line argument to always create a git repo
-                    let crate_name = clap::crate_name!();
-                    let path_string = input_dir.display();
-                    println!("Git repository not detected at path {path_string}.");
-                    println!("This is required for the version tracking and orginization of the cookbook.");
-                    println!("You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N).");
-                    print!("Do you want to automatically create one? ([Y]/N)");
-                    // need to flush output to screen prior to prompting for response.
-                    stdout().flush()?;
-                    let mut input = String::new();
-                    loop {
-                        match stdin().read_line(&mut input) {
-                            Ok(_) => match input.trim().to_uppercase().as_str() {
-                                "Y" | "YES" => {
-                                    match gix::init(input_dir) {
-                                        Ok(repo) => recipe_repo = repo,
-                                        Err(e) => return Err(e.into()),
+                    e => return Err(e.into()),
+                },
+                discover::Error::Open(e) => match e {
+                    open::Error::NotARepository { .. } => {
+                        // if git repo is not detected, then prompt to create one.
+                        // TODO: provide a command line argument to always create a git repo
+                        let crate_name = clap::crate_name!();
+                        let path_string = input_dir.display();
+                        println!("Git repository not detected at path {path_string}.");
+                        println!("This is required for the version tracking and orginization of the cookbook.");
+                        println!("You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N).");
+                        print!("Do you want to automatically create one? ([Y]/N)");
+                        // need to flush output to screen prior to prompting for response.
+                        stdout().flush()?;
+                        let mut input = String::new();
+                        loop {
+                            match stdin().read_line(&mut input) {
+                                Ok(_) => match input.trim().to_uppercase().as_str() {
+                                    "Y" | "YES" => {
+                                        match gix::init(input_dir) {
+                                            Ok(repo) => recipe_repo = repo,
+                                            Err(e) => return Err(e.into()),
+                                        }
+                                        break;
                                     }
-                                    break;
-                                }
 
-                                "N" | "NO" => {
-                                    println!("Exiting without creating git repo");
-                                    // return always exits the function which in this case is main
-                                    return Err(std::io::Error::new(
-                                        std::io::ErrorKind::Unsupported,
-                                        "Git Repository required",
-                                    ))
-                                    .context("No Git Repository discovered to store recipes. This is required")?;
-                                }
-                                _ => {
-                                    if input.is_empty() {
-                                        match gix::init(input_dir) {
-                                            Ok(repo) => recipe_repo = repo,
-                                            Err(e) => return Err(e.into()),
-                                        }
-                                        break;
-                                    } else {
-                                        println!("Either enter [Y]es, [N]o or hit enter to accept the default of Yes");
+                                    "N" | "NO" => {
+                                        println!("Exiting without creating git repo");
+                                        // return always exits the function which in this case is main
+                                        return Err(std::io::Error::new(
+                                            std::io::ErrorKind::Unsupported,
+                                            "Git Repository required",
+                                        ))
+                                        .context("No Git Repository discovered to store recipes. This is required")?;
                                     }
-                                }
-                            },
-                            Err(e) => return Err(e.into()),
+                                    _ => {
+                                        if input.is_empty() {
+                                            match gix::init(input_dir) {
+                                                Ok(repo) => recipe_repo = repo,
+                                                Err(e) => return Err(e.into()),
+                                            }
+                                            break;
+                                        } else {
+                                            println!("Either enter [Y]es, [N]o or hit enter to accept the default of Yes");
+                                        }
+                                    }
+                                },
+                                Err(e) => return Err(e.into()),
+                            }
                         }
                     }
-                }
-                e => return Err(e.into()),
-            },
-        },
+                    e => return Err(e.into()),
+                },
+            }
+        }
     };
 
     //TODO: need to check and set committer/author

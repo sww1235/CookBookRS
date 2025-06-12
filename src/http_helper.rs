@@ -17,6 +17,7 @@ pub fn get_content_type(request: &Request) -> Option<String> {
 // https://docs.rs/rouille/latest/src/rouille/input/post.rs.html#676
 // This is probably vulnerable to buffer overflows, etc but I can't be arsed to fix that right now.
 // TODO: check and see if request.as_reader() is vulnerable to buffer overflow
+// TODO: check and see if there are multiple values with the same name
 /// `parse_post_form_data()` parses form data from POST requests if present
 pub fn parse_post_form_data(request: &mut Request) -> anyhow::Result<HashMap<String, String>> {
     if get_content_type(request) == Some("application/x-www-form-urlencoded".to_owned()) {
