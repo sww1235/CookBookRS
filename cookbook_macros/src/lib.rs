@@ -233,9 +233,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                                                 Ok(())
                                             }
                                             "Ratio" | "ratio" => {
-                                                return Err(
-                                                    secondary_meta.error("Ratio constraint type in attribute `cookbook(constraint_type)` is not supported by this derive macro")
-                                                );
+                                                return Err(secondary_meta.error("Ratio constraint type in attribute `cookbook(constraint_type)` is not supported by this derive macro"));
                                             }
                                             x => {
                                                 let err_string = format!("Constraint type `cookbook(constraint = {x})` is not recognized");
@@ -281,7 +279,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
 
                                     Err(_) => Err(secondary_meta.error("The `cookbook(display_widget)` attribute must be called as a NameValue attribute type")),
                                 }
-                            } else if secondary_meta.path.is_ident("display_widget_state"){
+                            } else if secondary_meta.path.is_ident("display_widget_state") {
                                 match secondary_meta.value() {
                                     Ok(value) => {
                                         //TODO: refactor to use if-let chains once they are
@@ -301,12 +299,11 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
 
                                 // called like #[cookbook(display_widget_options(A, B, C, D))]
                                 // where A, B, C, D will become the options in the widget
-                            } else if secondary_meta.path.is_ident("display_widget_options"){
-                                        secondary_meta.parse_nested_meta(|tertiary_meta|{
-                                                widget_options.push(tertiary_meta.path.clone());
-                                                Ok(())
+                            } else if secondary_meta.path.is_ident("display_widget_options") {
+                                secondary_meta.parse_nested_meta(|tertiary_meta| {
+                                    widget_options.push(tertiary_meta.path.clone());
+                                    Ok(())
                                 })
-
                             } else if secondary_meta.path.is_ident("left_field") {
                                 // checking to make sure this attr is a path and doesn't have any values
                                 // associated with it
@@ -316,10 +313,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                                 // check if left_field is already set. Have to check here, rather
                                 // at the beginning as it interferes with other attribute checks
                                 if left_field.is_some() {
-                                    return Err(syn::Error::new_spanned(
-                                        f,
-                                        "The `cookbook(left_field)` attribute was specified more than once. It must only be specified on one field",
-                                    ));
+                                    return Err(syn::Error::new_spanned(f, "The `cookbook(left_field)` attribute was specified more than once. It must only be specified on one field"));
                                 }
                                 if secondary_meta.value().is_err() {
                                     left_field = Some(field_name.clone());
@@ -340,10 +334,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                                 // check if left_field is already set. Have to check here, rather
                                 // at the beginning as it interferes with other attribute checks
                                 if right_field.is_some() {
-                                    return Err(syn::Error::new_spanned(
-                                        f,
-                                        "The `cookbook(right_field)` attribute was specified more than once. It must only be specified on one field",
-                                    ));
+                                    return Err(syn::Error::new_spanned(f, "The `cookbook(right_field)` attribute was specified more than once. It must only be specified on one field"));
                                 }
                                 if secondary_meta.value().is_err() {
                                     right_field = Some(field_name.clone());
