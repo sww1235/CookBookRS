@@ -41,6 +41,8 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             comments = recipe.comments.unwrap_or_default(),
             source = recipe.source,
             author = recipe.author,
+            amount_made = recipe.amount_made,
+            num_steps = recipe.steps.len(),
         )
     );
     // Don't fully understand why Box + Cursor, but thats what Rouille used and it seems to work.

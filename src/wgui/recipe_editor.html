@@ -8,17 +8,38 @@
 	<body>
 		<form method="push">
 			<h2>{recipe_name}</h2>
-			<label for="name">Name of Recipe</label>
-			<input type="text" id="name" name="name" required value={edit_name}/>
-			<label for="description">Description</label>
-			<textarea id="description" name="description" autocomplete="off">{description}</textarea>
-			<label for="comments">Comments</label>
-			<textarea id="comments" name="comments" autocomplete="off">{comments}</textarea>
-			<label for="source">Source</label>
-			<textarea id="source" name="source">{source}</textarea>
-			<label for="author">Author</label>
-			<input type="text" id="author" name="author" value={author}/>
-
+			<fieldset>
+				<label for="name">Name of Recipe</label>
+				<input type="text" id="name" name="name" required autocomplete="off" value={edit_name}/>
+			</fieldset>
+			<fieldset>
+				<label for="description">Description</label>
+				<textarea id="description" name="description" autocomplete="off">{description}</textarea>
+			</fieldset>
+			<fieldset>
+				<label for="comments">Comments</label>
+				<textarea id="comments" name="comments" autocomplete="off">{comments}</textarea>
+			</fieldset>
+			<fieldset>
+				<label for="source">Source</label>
+				<textarea id="source" name="source" autocomplete="off" required>{source}</textarea>
+			</fieldset>
+			<fieldset>
+				<label for="author">Author</label>
+				<input type="text" id="author" name="author" autocomplete="off" required value={author}/>
+			</fieldset>
+			<fieldset>
+				<label>Amount Made</label>
+				<input type="text" id="amount_made" readonly autocomplete="off" value={amount_made}/>
+			</fieldset>
+			<fieldset>
+				<label>Number of Steps</label>
+				<input type="text" id="num_steps" readonly autocomplete="off" value={num_steps}/>
+			</fieldset>
+			<fieldset>
+				<button formaction="/save-recipe" type="submit">Save Recipe</button>
+				<button formaction="" type="submit">Create Step</button>
+			</fieldset>
 		</form>
 		{footer}
 	</body>
