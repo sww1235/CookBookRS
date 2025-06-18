@@ -111,6 +111,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
 
     /// `ThreadMessage` are messages that worker threads can send back to the processing
     /// thread.
+    #[derive(Debug)]
     enum ThreadMessage {
         /// `AllRecipes` is a request from the worker thread to send all recipes for presentation
         AllRecipes,
@@ -125,6 +126,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
         NewRecipe(Recipe),
     }
     /// `ThreadResponse` contains responses from processing thread to worker threads
+    #[derive(Debug)]
     enum ThreadResponse {
         AllRecipes(HashMap<Uuid, Recipe>),
         Recipe(Recipe),
@@ -164,33 +166,44 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
         //let mut recipes = recipes.clone();
         let mut locked_recipes: HashSet<Uuid> = HashSet::new();
         loop {
+            trace!("starting data owner thread");
             // TODO: fix usage of unwrap here
             let (thread_id, message): (usize, ThreadMessage) = rx.recv().unwrap();
             match message {
                 // TODO: fix usage of unwrap on send
-                ThreadMessage::AllRecipes => tx_channels[thread_id]
-                    .clone()
-                    .send(ThreadResponse::AllRecipes(recipes.clone()))
-                    .unwrap(),
-                // TODO: properly handle the Option of HashMap.get() rather than unwrapping
-                // TODO: fix usage of unwrap on send
-                ThreadMessage::RecipeRO(recipe_id) => tx_channels[thread_id]
-                    .clone()
-                    .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
-                    .unwrap(),
+                ThreadMessage::AllRecipes => {
+                    trace!("sending an AllRecipes response to thread id {thread_id}");
+                    tx_channels[thread_id]
+                        .clone()
+                        .send(ThreadResponse::AllRecipes(recipes.clone()))
+                        .unwrap()},
+                        // TODO: properly handle the Option of HashMap.get() rather than unwrapping
+                        // TODO: fix usage of unwrap on send
+                ThreadMessage::RecipeRO(recipe_id) => {
+                    trace!("sending a Recipe response with recipe_id {recipe_id} to thread id {thread_id}. From a RecipeRO request.");
+                    tx_channels[thread_id]
+                        .clone()
+                        .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
+                        .unwrap()},
                 ThreadMessage::RecipeRW(recipe_id) => {
-                    let already_locked = locked_recipes.insert(recipe_id);
+                    // this is a hashset. HashSet::insert() returns true if the value did not
+                    // previously exist.
+                    let not_locked = locked_recipes.insert(recipe_id);
+                    let already_locked = !not_locked;
                     if already_locked {
+                        trace!("Request from thread {thread_id} to edit recipe {recipe_id}. Recipe already locked. Sending EditingError response. From a RecipeRW request.");
+                        // TODO: fix usage of unwrap on send
                         tx_channels[thread_id]
                             .clone()
                             .send(ThreadResponse::EditingError(recipe_id))
                             .unwrap();
-                    } else {
-                        // TODO: fix usage of unwrap on send
-                        tx_channels[thread_id]
-                            .clone()
-                            .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
-                            .unwrap();
+                        } else {
+                            trace!("sending a Recipe response with recipe_id {recipe_id} to thread id {thread_id}. From a RecipeRW request.");
+                            // TODO: fix usage of unwrap on send
+                            tx_channels[thread_id]
+                                .clone()
+                                .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
+                                .unwrap();
                     }
                 }
                 ThreadMessage::EditedRecipe(recipe) => {
@@ -247,8 +260,8 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                             // parameters in use.
                             Method::GET => match request.url().path() {
                                 "/" => request.respond(root::webroot()?)?,
-                                "/database" => request.respond(error_responses::method_not_allowed())?,
-                                "/browse" =>  request.respond(error_responses::method_not_allowed())?,
+                                "/database" => request.respond(error_responses::method_not_allowed([Method::POST]))?,
+                                "/browse" =>  request.respond(error_responses::method_not_allowed([Method::POST]))?,
                                 _ => request.respond(error_responses::not_found())?,
                             },
                             Method::POST => match request.url().path() {
@@ -270,9 +283,9 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                         tx.send((i, ThreadMessage::RecipeRO(Uuid::parse_str(form_data["recipe_list"].as_str())?)))?;
                                         let recipe = match rx.recv()? {
                                             ThreadResponse::Recipe(recipe) => recipe,
-                                            _ => return Err(anyhow!("Incorrect resposne to request for RecipeRW").into()),
+                                            _ => return Err(anyhow!("Incorrect response to request for RecipeRW").into()),
                                         };
-                                            request.respond(recipe_editor::recipe_editor(recipe)?)?
+                                        request.respond(recipe_editor::recipe_editor(recipe)?)?
                                     }
                                 }
                                 "/edit-recipe" => {
@@ -282,9 +295,14 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                         tx.send((i, ThreadMessage::RecipeRW(Uuid::parse_str(form_data["recipe_list"].as_str())?)))?;
                                         let recipe = match rx.recv()? {
                                             ThreadResponse::Recipe(recipe) => recipe,
-                                            _ => return Err(anyhow!("Incorrect resposne to request for RecipeRW").into()),
+                                            //TODO: figure out how to actually provide the
+                                            //offending recipe name and id to users
+                                            ThreadResponse::EditingError(recipe_id) => return Ok(request.respond(error_responses::locked())?),
+                                            x => {
+                                                trace!("{x:?}");
+                                                return Err(anyhow!("Incorrect response to request for RecipeRW").into())},
                                         };
-                                            request.respond(recipe_editor::recipe_editor(recipe)?)?
+                                        request.respond(recipe_editor::recipe_editor(recipe)?)?
                                     }
                                 }
                                 "/save-recipe" => {
@@ -294,7 +312,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                             },
                             method => {
                                 warn!("Unsupported method: {method:?}");
-                                request.respond(error_responses::method_not_allowed())?
+                                request.respond(error_responses::method_not_allowed([Method::GET, Method::POST]))?
                             }
                         }
                     }
@@ -303,7 +321,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                 .ok()
                     //TODO: can we handle these errors better rather than unwrapping
                     .map(|e| e.unwrap());
-            }
+                }
         }));
     }
     for g in join_guards {
