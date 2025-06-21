@@ -104,10 +104,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
     use uuid::Uuid;
 
-    use cookbook_core::{
-        http_helper,
-        wgui::{browser, error_responses, recipe_editor, root},
-    };
+    use cookbook_core::wgui::{browser, error_responses, http_helper, recipe_editor, root};
 
     /// `ThreadMessage` are messages that worker threads can send back to the processing
     /// thread.

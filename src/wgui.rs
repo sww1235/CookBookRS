@@ -12,3 +12,6 @@ pub mod error_responses;
 
 /// `html_stubs` contains common HTML components used across multiple web pages
 pub mod html_stubs;
+
+/// helper functions for various tasks when handling HTTP requests
+pub mod http_helper;
