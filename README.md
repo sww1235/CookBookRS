@@ -82,3 +82,7 @@ is_owned = false
 An optional database for ingredient inventory can be specified via the config file. This is a postgreSQL database with the following schema:
 
 SCHEMA TBD
+
+## Credits
+
+Favicon generated using <https://favicon.io> from the Twemoji project. Used under the terms of the CC-BY 4.0 license.

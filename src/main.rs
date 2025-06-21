@@ -104,7 +104,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
     use uuid::Uuid;
 
-    use cookbook_core::wgui::{browser, error_responses, http_helper, recipe_editor, root};
+    use cookbook_core::wgui::{browser, error_responses, http_helper, media_responses, recipe_editor, root};
 
     /// `ThreadMessage` are messages that worker threads can send back to the processing
     /// thread.
@@ -257,6 +257,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                             // parameters in use.
                             Method::GET => match request.url().path() {
                                 "/" => request.respond(root::webroot()?)?,
+                                "/favicon.ico" => request.respond(media_responses::icon(Path::new("./favicon.ico"))?)?,
                                 "/database" => request.respond(error_responses::method_not_allowed([Method::POST]))?,
                                 "/browse" =>  request.respond(error_responses::method_not_allowed([Method::POST]))?,
                                 _ => request.respond(error_responses::not_found())?,

@@ -75,6 +75,7 @@ pub fn browser(recipes: HashMap<Uuid, Recipe>, tags: &[Tag]) -> anyhow::Result<R
             title = "Welcome to CookBookRS",
             footer = FOOTER,
             stylesheet = "",
+            favicon = "/favicon.ico",
             tag_list = tag_list,
             recipe_list = recipe_list,
             tag_list_size = tag_list_size,

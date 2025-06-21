@@ -24,7 +24,8 @@ pub fn webroot() -> anyhow::Result<Response<Box<dyn Read + Send>>> {
             include_str!("./root.html"),
             title = "Welcome to CookBookRS",
             footer = FOOTER,
-            stylesheet = ""
+            stylesheet = "",
+            favicon = "/favicon.ico",
         )
     );
     // Don't fully understand why Box + Cursor, but thats what Rouille used and it seems to work.

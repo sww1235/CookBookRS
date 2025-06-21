@@ -35,6 +35,7 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             title = "Welcome to CookBookRS",
             footer = FOOTER,
             stylesheet = "",
+            favicon = "/favicon.ico",
             recipe_name = recipe_name,
             edit_name = edit_name,
             description = recipe.description.unwrap_or_default(),
