@@ -7,35 +7,40 @@
 		<link rel="icon" type="image/x-icon" href="{favicon}">
 	</head>
 	<body>
-		<form method="push">
+		<form method="post">
 			<h2>{recipe_name}</h2>
 			<fieldset>
-				<label for="name">Name of Recipe</label>
-				<input type="text" id="name" name="name" required autocomplete="off" value={edit_name}/>
+				<legend>Recipe Name</legend>
+				<input type="text" id="name" name="name" value={edit_name} required autocomplete="off"/>
 			</fieldset>
 			<fieldset>
-				<label for="description">Description</label>
+				<legend>Description</legend>
 				<textarea id="description" name="description" autocomplete="off">{description}</textarea>
 			</fieldset>
 			<fieldset>
-				<label for="comments">Comments</label>
+				<legend>Comments</legend>
 				<textarea id="comments" name="comments" autocomplete="off">{comments}</textarea>
 			</fieldset>
 			<fieldset>
-				<label for="source">Source</label>
+				<legend>Source</legend>
 				<textarea id="source" name="source" autocomplete="off" required>{source}</textarea>
 			</fieldset>
 			<fieldset>
-				<label for="author">Author</label>
-				<input type="text" id="author" name="author" autocomplete="off" required value={author}/>
+				<legend>Author</legend>
+				<input type="text" id="author" name="author" value={author} autocomplete="off" required/>
 			</fieldset>
 			<fieldset>
-				<label>Amount Made</label>
-				<input type="text" id="amount_made" readonly autocomplete="off" value={amount_made}/>
+				<legend>Servings</legend>
+				<!-- No name attribute here so it doesn't show up in the form data unnessarily-->
+				<!-- text attribute type instead of number here, as it is read only so the up/down arrows don't show up-->
+				<input type="text" id="amount_made" value={amount_made_number} readonly autocomplete="off"/>
+				<label for="amount_made">{amount_made_units}</label>
 			</fieldset>
 			<fieldset>
-				<label>Number of Steps</label>
-				<input type="text" id="num_steps" readonly autocomplete="off" value={num_steps}/>
+				<legend>Number of Steps</legend>
+				<!-- No name attribute here so it doesn't show up in the form data unnessarily-->
+				<!-- text attribute type instead of number here, as it is read only so the up/down arrows don't show up-->
+				<input type="text" id="num_steps" value={num_steps} readonly autocomplete="off"/>
 			</fieldset>
 			<fieldset>
 				<button formaction="/save-recipe" type="submit">Save Recipe</button>
