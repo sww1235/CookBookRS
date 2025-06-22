@@ -1,11 +1,16 @@
 //! cookbook TODO: add more documentation
 
+#[cfg(any(feature = "tui", feature = "wgui"))]
 use std::error::Error;
 use std::io::{stdin, stdout, Write};
+#[cfg(feature = "wgui")]
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+#[cfg(feature = "wgui")]
 use std::panic;
+#[cfg(feature = "tui")]
 use std::panic::{set_hook, take_hook};
 use std::path::{Path, PathBuf};
+#[cfg(feature = "tui")]
 use std::time::Duration;
 
 use anyhow::Context;
@@ -15,6 +20,7 @@ use gix::{
     discover::{self, upwards},
     open,
 };
+#[cfg(any(feature = "tui", feature = "wgui"))]
 use log::{info, trace, warn};
 
 use cookbook_core::datatypes::recipe::Recipe;
@@ -73,12 +79,16 @@ fn main() -> anyhow::Result<()> {
             let output_string = toml::to_string_pretty(&recipe)?;
             println!("{output_string}");
         }
-    } else if cli.run_web_server {
+    } else if cli.run_web_server && cfg!(feature = "wgui") {
+        #[cfg(feature = "wgui")]
         //TODO: either parse this from commandline or config file
         let ip_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        #[cfg(feature = "wgui")]
         info!("running web server");
+        #[cfg(feature = "wgui")]
         run_web_server(input_dir, ip_addr, None)?;
-    } else {
+    } else if cfg!(feature = "tui") {
+        #[cfg(feature = "tui")]
         run_tui(input_dir, recipe_repo)?;
     }
 
@@ -92,7 +102,7 @@ fn main() -> anyhow::Result<()> {
 // Need a page for viewing recipes
 //
 // Also need a page for populating and viewing Ingredient database
-
+#[cfg(feature = "wgui")]
 fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
@@ -333,6 +343,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
 }
 
 //TODO: add a status message box at the bottom of the window and log some errors to it
+#[cfg(feature = "tui")]
 fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
     use cookbook_core::tui::{
         app::{self, App},
@@ -513,6 +524,7 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
 }
 
 //https://ratatui.rs/recipes/apps/panic-hooks/
+#[cfg(feature = "tui")]
 fn tui_panic_hook() {
     use cookbook_core::tui::Tui;
     let original_hook = take_hook();
@@ -534,7 +546,8 @@ struct Cli {
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
     /// Run Web Server to host a simple web gui
-    #[arg(short, long)]
+    #[cfg_attr(feature = "wgui", arg(short, long))]
+    #[cfg(feature = "wgui")]
     run_web_server: bool,
     // Enable PostGresSql features
     //#[arg(short, long)]

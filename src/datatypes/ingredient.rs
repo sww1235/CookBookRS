@@ -1,12 +1,16 @@
 use std::ops::{Add, AddAssign};
 
 use dimensioned::ucum;
+#[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
+#[cfg(feature = "tui")]
 use ranged_wrapping::RangedWrapping;
+#[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
 use uuid::Uuid;
 
+#[cfg(feature = "tui")]
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
 use super::filetypes;
@@ -22,24 +26,24 @@ use super::filetypes;
 //))
 
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef, Serialize)]
-#[cookbook(state_struct = "State")]
+#[cfg_attr(feature = "tui", derive(StatefulWidgetRef, WidgetRef), cookbook(state_struct = "State"))]
+#[derive(Default, Debug, Clone, PartialEq, Serialize)]
 pub struct Ingredient {
     /// database ID
-    #[cookbook(skip)]
+    #[cfg_attr(feature = "tui", cookbook(skip))]
     pub id: Uuid,
     /// ingredient short name
-    #[cookbook(display_order = 0)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 0))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub name: String,
     /// optional description
-    #[cookbook(display_order = 1)]
-    #[cookbook(constraint_type = "Min")]
-    #[cookbook(constraint_value = 7)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 1))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Min"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 7))]
     pub description: Option<String>,
     /// Unit and quantity of ingredient
-    #[cookbook(skip)] //TODO: unit quantity stuff
+    #[cfg_attr(feature = "tui", cookbook(skip))] //TODO: unit quantity stuff
     pub unit_quantity: UnitType,
     //TODO: inventory reference
 }
@@ -59,6 +63,7 @@ pub enum UnitType {
 }
 
 /// `State` contains the state of the Ingredient widget
+#[cfg(feature = "tui")]
 #[derive(Debug)]
 pub struct State {
     /// which field is selected in the Ingredient widget display
@@ -66,6 +71,7 @@ pub struct State {
     /// which field is being edited, if any
     pub editing_selected_field: Option<IngredientFields>,
 }
+#[cfg(feature = "tui")]
 impl Default for State {
     fn default() -> Self {
         Self {

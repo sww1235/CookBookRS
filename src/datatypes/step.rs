@@ -1,62 +1,71 @@
 use std::fmt;
 
 use dimensioned::ucum;
+#[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
+#[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
 use uuid::Uuid;
 
+#[cfg(feature = "tui")]
 use ranged_wrapping::RangedWrapping;
 
+#[cfg(feature = "tui")]
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
 use super::{equipment::Equipment, filetypes, ingredient::Ingredient};
+#[cfg(feature = "tui")]
 use crate::tui::dropdown::{Dropdown, DropdownState};
 
 /// `Step` represents a discrete step within a recipe
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef, Serialize)]
-#[cookbook(state_struct = "State")]
+#[cfg_attr(feature = "tui", derive(StatefulWidgetRef, WidgetRef), cookbook(state_struct = "State"))]
+#[derive(Default, Debug, Clone, PartialEq, Serialize)]
 pub struct Step {
     /// database ID
-    #[cookbook(skip)]
+    #[cfg_attr(feature = "tui", cookbook(skip))]
     pub id: Option<Uuid>,
     /// time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
-    #[cookbook(display_order = 0)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 0))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub time_needed: Option<ucum::Second<f64>>,
     /// cook temperature. Optional for steps that don't involve temperature or cooking
-    #[cookbook(display_order = 1)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 1))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub temperature: Option<ucum::Kelvin<f64>>,
     /// instructions for step
-    #[cookbook(display_order = 2)]
-    #[cookbook(constraint_type = "Min")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 2))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Min"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub instructions: String,
     /// ingredients used in this step
-    #[cookbook(left_field)]
-    #[cookbook(left_field_title = "Number Of Ingredients")]
+    #[cfg_attr(feature = "tui", cookbook(left_field))]
+    #[cfg_attr(feature = "tui", cookbook(left_field_title = "Number Of Ingredients"))]
     pub ingredients: Vec<Ingredient>,
     /// equipment used in this step
-    #[cookbook(right_field)]
-    #[cookbook(right_field_title = "Equipment count")]
+    #[cfg_attr(feature = "tui", cookbook(right_field))]
+    #[cfg_attr(feature = "tui", cookbook(right_field_title = "Equipment count"))]
     pub equipment: Vec<Equipment>,
     /// Step type
-    #[cookbook(display_order = 3)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
-    #[cookbook(display_widget = "Dropdown")]
-    #[cookbook(display_widget_state = "dropdown_state")]
-    #[cookbook(display_widget_options(StepType::Prep, StepType::Cook, StepType::Wait, StepType::Other))]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 3))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
+    #[cfg_attr(feature = "tui", cookbook(display_widget = "Dropdown"))]
+    #[cfg_attr(feature = "tui", cookbook(display_widget_state = "dropdown_state"))]
+    #[cfg_attr(
+        feature = "tui",
+        cookbook(display_widget_options(StepType::Prep, StepType::Cook, StepType::Wait, StepType::Other))
+    )]
     pub step_type: StepType,
 }
 
 /// `State` contains the state of the Step widget
 #[derive(Debug)]
+#[cfg(feature = "tui")]
 pub struct State {
     /// which field is selected in the Step widget display
     pub selected_field: RangedWrapping<usize>,
@@ -67,6 +76,7 @@ pub struct State {
     pub dropdown_state: DropdownState,
 }
 
+#[cfg(feature = "tui")]
 impl Default for State {
     fn default() -> Self {
         Self {

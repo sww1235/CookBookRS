@@ -4,12 +4,16 @@ use std::path::Path;
 use std::{collections::HashMap, fmt};
 
 use dimensioned::ucum;
+#[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
+#[cfg(feature = "tui")]
 use ranged_wrapping::RangedWrapping;
+#[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
 use uuid::Uuid;
 
+#[cfg(feature = "tui")]
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
 use super::{
@@ -29,55 +33,55 @@ use super::{
 //
 
 /// `Recipe` represents one recipe from start to finish
-#[derive(Default, Debug, Clone, PartialEq, StatefulWidgetRef, WidgetRef, Serialize)]
-#[cookbook(state_struct = "State")]
+#[cfg_attr(feature = "tui", derive(StatefulWidgetRef, WidgetRef), cookbook(state_struct = "State"))]
+#[derive(Default, Debug, Clone, PartialEq, Serialize)]
 pub struct Recipe {
     /// database ID
-    #[cookbook(skip)]
+    #[cfg_attr(feature = "tui", cookbook(skip))]
     pub id: Uuid,
     /// short name of recipe
-    #[cookbook(display_order = 0)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 0))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub name: String,
     /// optional description
-    #[cookbook(display_order = 1)]
-    #[cookbook(constraint_type = "Min")]
-    #[cookbook(constraint_value = 7)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 1))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Min"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 7))]
     pub description: Option<String>,
     //TODO: maybe make comments a bit more formal, want to be able to record when recipe was last
     //made
     /// recipe comments
-    #[cookbook(display_order = 2)]
-    #[cookbook(constraint_type = "Min")]
-    #[cookbook(constraint_value = 7)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 2))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Min"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 7))]
     pub comments: Option<String>,
     /// recipe source
-    #[cookbook(display_order = 3)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 3))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub source: String,
     /// recipe author
-    #[cookbook(display_order = 4)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 4))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub author: String,
     /// amount made
-    #[cookbook(display_order = 5)]
-    #[cookbook(constraint_type = "Length")]
-    #[cookbook(constraint_value = 3)]
+    #[cfg_attr(feature = "tui", cookbook(display_order = 5))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
+    #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub amount_made: AmountMade,
     /// list of steps in recipe
-    #[cookbook(left_field)]
-    #[cookbook(left_field_title = "Number Of Steps")]
+    #[cfg_attr(feature = "tui", cookbook(left_field))]
+    #[cfg_attr(feature = "tui", cookbook(left_field_title = "Number Of Steps"))]
     pub steps: Vec<Step>,
     /// list of tags on recipe
-    #[cookbook(skip)]
+    #[cfg_attr(feature = "tui", cookbook(skip))]
     pub tags: Vec<Tag>,
     //TODO: versions
     /// if the recipe has unsaved changes or not
     //TODO: figure out a save system
-    #[cookbook(skip)]
+    #[cfg_attr(feature = "tui", cookbook(skip))]
     pub saved: bool,
 }
 
@@ -279,6 +283,7 @@ impl Recipe {
 }
 
 /// `State` contains the state of the Recipe widget
+#[cfg(feature = "tui")]
 #[derive(Debug)]
 pub struct State {
     /// which field is selected in the Recipe widget display
@@ -289,6 +294,7 @@ pub struct State {
     pub editing_field_cursor_position: Option<u16>,
 }
 
+#[cfg(feature = "tui")]
 impl Default for State {
     fn default() -> Self {
         Self {
