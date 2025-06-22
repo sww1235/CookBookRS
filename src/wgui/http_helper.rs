@@ -30,3 +30,12 @@ pub fn parse_post_form_data(request: &mut Request) -> anyhow::Result<HashMap<Str
         Err(anyhow!("No form data found in request"))
     }
 }
+
+pub fn html_escape(input: &str) -> String {
+    input
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+}

@@ -11,7 +11,7 @@ use tiny_http::{
 
 use crate::datatypes::recipe::Recipe;
 
-use super::html_stubs::FOOTER;
+use super::{html_stubs::FOOTER, http_helper};
 
 /// `browser` returns the recipe browser page for the web server.
 ///
@@ -36,14 +36,15 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             footer = FOOTER,
             stylesheet = "",
             favicon = "/favicon.ico",
-            recipe_name = recipe_name,
-            edit_name = edit_name,
-            description = recipe.description.unwrap_or_default(),
-            comments = recipe.comments.unwrap_or_default(),
-            source = recipe.source,
-            author = recipe.author,
-            amount_made = recipe.amount_made,
-            num_steps = recipe.steps.len(),
+            recipe_name = http_helper::html_escape(recipe_name),
+            edit_name = http_helper::html_escape(edit_name),
+            description = http_helper::html_escape(&recipe.description.unwrap_or_default()),
+            comments = http_helper::html_escape(&recipe.comments.unwrap_or_default()),
+            source = http_helper::html_escape(&recipe.source),
+            author = http_helper::html_escape(&recipe.author),
+            amount_made_number = recipe.amount_made.quantity,
+            amount_made_units = recipe.amount_made.units.to_string(),
+            num_steps = recipe.steps.len().to_string(),
         )
     );
     // Don't fully understand why Box + Cursor, but thats what Rouille used and it seems to work.
