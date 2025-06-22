@@ -57,7 +57,7 @@ name = "cookbook_core"
 path = "src/lib.rs"
 
 [workspace.lints.rust]
-missing_docs = "warn"
+missing_docs = "deny"
 unsafe_code = "forbid"
 [workspace.lints.clippy]
 multiple_crate_versions = "warn"
