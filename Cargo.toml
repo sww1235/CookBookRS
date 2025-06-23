@@ -1,9 +1,11 @@
 [workspace]
 members = ["cookbook_macros"]
+resolver = "3"
 
 [workspace.package]
 version = "0.0.1"
-edition = "2021"
+# remember to update edition in rustfmt.toml as well
+edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["Stephen Walker-Weinshenker"]
 description = "Recipe database and browser"
@@ -23,7 +25,7 @@ keywords.workspace = true
 categories.workspace = true
 repository.workspace = true
 readme = "README.md"
-rust-version = "1.83"
+rust-version = "1.85"
 
 [features]
 default = ["wgui"]
@@ -60,7 +62,7 @@ name = "cookbook_core"
 path = "src/lib.rs"
 
 [workspace.lints.rust]
-missing_docs = "deny"
+missing_docs = "forbid"
 unsafe_code = "forbid"
 [workspace.lints.clippy]
 multiple_crate_versions = "warn"
