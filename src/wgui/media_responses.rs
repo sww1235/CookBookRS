@@ -3,11 +3,11 @@ use std::path::Path;
 
 use log::trace;
 use tiny_http::{
+    Response,
     http::{
         header::{self, HeaderMap, HeaderValue},
         status::StatusCode,
     },
-    Response,
 };
 
 // This is based on the Response<File>::from_file() function from tiny_http. I wanted more control

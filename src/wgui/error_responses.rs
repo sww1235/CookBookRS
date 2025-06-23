@@ -1,8 +1,8 @@
 use std::io::Empty;
 
 use tiny_http::{
-    http::{header, method, status::StatusCode},
     Response,
+    http::{header, method, status::StatusCode},
 };
 
 pub fn not_found() -> Response<Empty> {

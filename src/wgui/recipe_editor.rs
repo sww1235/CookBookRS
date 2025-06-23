@@ -2,11 +2,11 @@ use std::boxed::Box;
 use std::io::{Cursor, Read};
 
 use tiny_http::{
+    Response,
     http::{
         header::{self, HeaderMap, HeaderValue},
         status::StatusCode,
     },
-    Response,
 };
 
 use crate::datatypes::recipe::Recipe;

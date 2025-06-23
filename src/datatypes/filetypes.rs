@@ -1,4 +1,4 @@
-use dimensioned::{ucum, Dimensionless};
+use dimensioned::{Dimensionless, ucum};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

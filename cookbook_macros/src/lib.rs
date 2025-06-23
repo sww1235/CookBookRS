@@ -36,7 +36,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Expr, Fields, Ident, Lit, Meta, Token, Type};
+use syn::{Data, DataStruct, DeriveInput, Expr, Fields, Ident, Lit, Meta, Token, Type, parse_macro_input, spanned::Spanned};
 
 use std::collections::BTreeMap;
 use std::num::Saturating;
@@ -72,7 +72,7 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
             return Err(syn::Error::new_spanned(
                 input,
                 "This derive macro only works on structs with named fields.",
-            ))
+            ));
         }
     };
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use form_urlencoded::parse;
-use tiny_http::{http::header, Request};
+use tiny_http::{Request, http::header};
 
 /// `get_content_type()` returns the value contained in the first CONTENT_TYPE http header in a ['Request']
 pub fn get_content_type(request: &Request) -> Option<String> {

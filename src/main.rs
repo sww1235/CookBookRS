@@ -2,7 +2,7 @@
 
 #[cfg(any(feature = "tui", feature = "wgui"))]
 use std::error::Error;
-use std::io::{stdin, stdout, Write};
+use std::io::{Write, stdin, stdout};
 #[cfg(feature = "wgui")]
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 #[cfg(feature = "wgui")]
@@ -107,11 +107,11 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
     use std::collections::{HashMap, HashSet};
-    use std::sync::{mpsc, Arc};
+    use std::sync::{Arc, mpsc};
     use std::thread;
 
     use anyhow::anyhow;
-    use tiny_http::{http::method::Method, ConfigListenAddr, Server, ServerConfig};
+    use tiny_http::{ConfigListenAddr, Server, ServerConfig, http::method::Method};
     use uuid::Uuid;
 
     use cookbook_core::wgui::{browser, error_responses, http_helper, media_responses, recipe_editor, root};
@@ -305,7 +305,9 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                             ThreadResponse::Recipe(recipe) => recipe,
                                             //TODO: figure out how to actually provide the
                                             //offending recipe name and id to users
-                                            ThreadResponse::EditingError(recipe_id) => return Ok(request.respond(error_responses::locked())?),
+                                            ThreadResponse::EditingError(recipe_id) => {
+                                                return Ok(request.respond(error_responses::locked())?)
+                                            },
                                             x => {
                                                 trace!("{x:?}");
                                                 return Err(anyhow!("Incorrect response to request for RecipeRW").into())},
@@ -329,9 +331,11 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                 .ok()
                     //TODO: can we handle these errors better rather than unwrapping
                     .map(|e| e.unwrap());
-                }
+            }
         }));
     }
+    //TODO: figure out how to fix this with iterator syntax
+    #[expect(clippy::never_loop)]
     for g in join_guards {
         //TODO: try using if Err(err_val) = g.join() and then using format!("{:?"}") or .downcast()
         //to move it into an anyhow!()
@@ -346,12 +350,12 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
 #[cfg(feature = "tui")]
 fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
     use cookbook_core::tui::{
+        Tui,
         app::{self, App},
         event::{Event, EventHandler},
         key_handler,
         keybinds::Keybinds as AppKeybinds,
         style::Style as AppStyle,
-        Tui,
     };
     let events = EventHandler::new(Duration::from_millis(250));
 
@@ -409,7 +413,9 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
                         let path_string = input_dir.display();
                         println!("Git repository not detected at path {path_string}.");
                         println!("This is required for the version tracking and orginization of the cookbook.");
-                        println!("You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N).");
+                        println!(
+                            "You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N)."
+                        );
                         print!("Do you want to automatically create one? ([Y]/N)");
                         // need to flush output to screen prior to prompting for response.
                         stdout().flush()?;
@@ -459,7 +465,9 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
                         let path_string = input_dir.display();
                         println!("Git repository not detected at path {path_string}.");
                         println!("This is required for the version tracking and orginization of the cookbook.");
-                        println!("You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N).");
+                        println!(
+                            "You can either automatically have {crate_name} initialize one for you (Y) or exit and manually initialize it yourself (N)."
+                        );
                         print!("Do you want to automatically create one? ([Y]/N)");
                         // need to flush output to screen prior to prompting for response.
                         stdout().flush()?;

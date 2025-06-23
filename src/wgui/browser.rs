@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use std::io::{Cursor, Read};
 
 use tiny_http::{
+    Response,
     http::{
         header::{self, HeaderMap, HeaderValue},
         status::StatusCode,
     },
-    Response,
 };
 use uuid::Uuid;
 

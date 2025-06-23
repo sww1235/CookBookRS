@@ -217,7 +217,7 @@ impl Recipe {
                     return Err(anyhow::Error::new(io::Error::new(
                         io::ErrorKind::InvalidData,
                         "os_str failed to parse to valid utf-8",
-                    )))
+                    )));
                 }
             },
             None => "",
@@ -229,7 +229,7 @@ impl Recipe {
                     return Err(anyhow::Error::new(io::Error::new(
                         io::ErrorKind::InvalidData,
                         format! {"Parsing TOML file {} failed: {}", &inner_dir.display(), error},
-                    )))
+                    )));
                 }
             };
             recipes.insert(recipe.id, recipe);

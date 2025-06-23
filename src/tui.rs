@@ -19,14 +19,14 @@ pub mod keybinds;
 /// `style` is a central location for storing the style info for the TUI side of the application
 pub mod style;
 
-use std::io::{self, stdout, Stdout};
+use std::io::{self, Stdout, stdout};
 
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{backend::Backend, prelude::CrosstermBackend, Terminal};
+use ratatui::{Terminal, backend::Backend, prelude::CrosstermBackend};
 
 // based on the ratatui [simple
 // example](https://github.com/ratatui-org/templates/blob/main/simple/src/tui.rs)

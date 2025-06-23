@@ -8,13 +8,13 @@ use gix::Repository;
 use log::debug;
 use num_traits::ToPrimitive;
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Position},
     text::{Line, Span, Text},
     widgets::{
         Block, Borders, Clear, List, ListItem, ListState, Paragraph, ScrollbarState, StatefulWidget, StatefulWidgetRef, Widget,
         WidgetRef, Wrap,
     },
-    Frame,
 };
 use uuid::Uuid;
 
