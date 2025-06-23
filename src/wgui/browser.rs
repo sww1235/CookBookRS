@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::datatypes::{recipe::Recipe, tag::Tag};
 
-use super::html_stubs::FOOTER;
+use super::{html_stubs::FOOTER, http_helper};
 
 /// `browser` returns the recipe browser page for the web server.
 ///
@@ -33,7 +33,7 @@ pub fn browser(recipes: HashMap<Uuid, Recipe>, tags: &[Tag]) -> anyhow::Result<R
         let mut recipes_sorted = recipes.values().collect::<Vec<_>>();
         recipes_sorted.sort_unstable_by_key(|k| k.name.clone());
         for recipe in recipes_sorted {
-            let recipe_name = recipe.name.clone();
+            let recipe_name = http_helper::html_escape(&recipe.name);
             let recipe_id = if !recipe.id.is_nil() {
                 recipe.id
             } else {
@@ -47,7 +47,7 @@ pub fn browser(recipes: HashMap<Uuid, Recipe>, tags: &[Tag]) -> anyhow::Result<R
     if tags.is_empty() {
         tag_list.push_str("<option value=\"-1\">No Tags Loaded</option>");
     } else {
-        for (i, tag) in tags.iter().enumerate() {
+        for (i, tag) in tags.iter().map(|t| http_helper::html_escape(t)).enumerate() {
             tag_list.push_str(format!("<option value=\"{i}\">{tag}</option>").as_str());
         }
     }
