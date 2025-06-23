@@ -10,7 +10,7 @@
 		<form method="post">
 			<fieldset id="recipe_list">
 				<legend>Recipe List</legend>
-				<select size={recipe_list_size} name="recipe_list">
+				<select size={recipe_list_size} id="recipe_list" name="recipe_list">
 					<!-- this needs to be a list of <option> tags-->
 					{recipe_list}
 				</select>
@@ -22,7 +22,7 @@
 		<form method="post">
 			<fieldset id="tag_list">
 				<legend>Tag List</legend>
-				<select multiple size={tag_list_size} name="tag_list">
+				<select multiple size={tag_list_size} id="tag_list" name="tag_list">
 					<!-- this needs to be a list of <option> tags-->
 					{tag_list}
 				</select>
