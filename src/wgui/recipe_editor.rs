@@ -26,6 +26,15 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
 
     let recipe_name = if is_new_recipe { "New Recipe" } else { recipe.name.as_str() };
     let edit_name = if is_new_recipe { "" } else { recipe.name.as_str() };
+    let mut step_list = String::new();
+    if recipe.steps.is_empty() {
+        step_list.push_str("<option value=\"-1\">No Steps in Recipe</option>\n");
+    } else {
+        for (i, step) in recipe.steps.iter().enumerate() {
+            let step_type = step.step_type;
+            step_list.push_str(format!("<option value=\"{i}\">{i}: {step_type}</option>\n").as_str());
+        }
+    }
 
     //https://github.com/rust-lang/rust/issues/85846
     let data = format!(
@@ -36,6 +45,7 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             footer = FOOTER,
             stylesheet = "",
             favicon = "/favicon.ico",
+            recipe_id = recipe.id,
             recipe_name = http_helper::html_escape(recipe_name),
             edit_name = http_helper::html_escape(edit_name),
             description = http_helper::html_escape(&recipe.description.unwrap_or_default()),
@@ -43,8 +53,9 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             source = http_helper::html_escape(&recipe.source),
             author = http_helper::html_escape(&recipe.author),
             amount_made_number = recipe.amount_made.quantity,
-            amount_made_units = recipe.amount_made.units.to_string(),
-            num_steps = recipe.steps.len().to_string(),
+            amount_made_units = recipe.amount_made.units,
+            num_steps = recipe.steps.len(),
+            step_list = step_list,
         )
     );
     // Don't fully understand why Box + Cursor, but thats what Rouille used and it seems to work.

@@ -8,6 +8,8 @@
 	</head>
 	<body>
 		<form method="post">
+			<!-- No id since this won't be styled-->
+			<input type="hidden" name="recipe_id" value={recipe_id} readonly/>
 			<h2>{recipe_name}</h2>
 			<fieldset>
 				<legend>Recipe Name</legend>
@@ -31,10 +33,10 @@
 			</fieldset>
 			<fieldset>
 				<legend>Servings</legend>
-				<!-- No name attribute here so it doesn't show up in the form data unnessarily-->
-				<!-- text attribute type instead of number here, as it is read only so the up/down arrows don't show up-->
-				<input type="text" id="amount_made" value={amount_made_number} readonly autocomplete="off"/>
-				<label for="amount_made">{amount_made_units}</label>
+				<label for="amount_made">Numeric Quantity</label>
+				<input type="number" id="amount_made" name="amount_made" value={amount_made_number} autocomplete="off"/>
+				<label for="amount_made_units">Units</label>
+				<input type="text" id="amount_made_units" name="amount_made_units" value={amount_made_units} autocomplete="off"/>
 			</fieldset>
 			<fieldset>
 				<legend>Number of Steps</legend>
@@ -43,8 +45,14 @@
 				<input type="text" id="num_steps" value={num_steps} readonly autocomplete="off"/>
 			</fieldset>
 			<fieldset>
+				<select size={num_steps} id="step_list"name="step_list">
+					{step_list}
+				</select>
+			</fieldset>
+			<fieldset>
 				<button formaction="/save-recipe" type="submit">Save Recipe</button>
-				<button formaction="" type="submit">Create Step</button>
+				<button formaction="/save-recipe-edit" type="submit">Save Recipe and Continue Editing</button>
+				<button formaction="/insert-step" type="submit">Insert Step</button>
 			</fieldset>
 		</form>
 		{footer}

@@ -1,7 +1,5 @@
 //! cookbook TODO: add more documentation
 
-#[cfg(any(feature = "tui", feature = "wgui"))]
-use std::error::Error;
 use std::io::{Write, stdin, stdout};
 #[cfg(feature = "wgui")]
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -110,7 +108,6 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     use std::sync::{Arc, mpsc};
     use std::thread;
 
-    use anyhow::anyhow;
     use tiny_http::{ConfigListenAddr, Server, ServerConfig, http::method::Method};
     use uuid::Uuid;
 
@@ -127,8 +124,10 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
         RecipeRO(Uuid),
         /// `RecipeRW` is a request from the worker thread for a specific recipe to be edited.
         RecipeRW(Uuid),
+        /// `UpdateRecipeReq` is a request from the worker thread for a specific recipe to be updated
+        UpdateRecipeReq(Uuid),
         /// `EditedRecipe` contains the resulting edited recipe from a worker thread.
-        EditedRecipe(Recipe),
+        EditedRecipe(Recipe, bool),
         /// `NewRecipe` contains a newly created recipe from a worker thread.
         NewRecipe(Recipe),
     }
@@ -137,7 +136,6 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     enum ThreadResponse {
         AllRecipes(HashMap<Uuid, Recipe>),
         Recipe(Recipe),
-        RecipeSaved(Uuid),
         EditingError(Uuid),
     }
 
@@ -183,59 +181,89 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                     tx_channels[thread_id]
                         .clone()
                         .send(ThreadResponse::AllRecipes(recipes.clone()))
-                        .unwrap()},
-                        // TODO: properly handle the Option of HashMap.get() rather than unwrapping
-                        // TODO: fix usage of unwrap on send
+                        .unwrap()
+                }
+                // TODO: properly handle the Option of HashMap.get() rather than unwrapping
+                // TODO: fix usage of unwrap on send
                 ThreadMessage::RecipeRO(recipe_id) => {
-                    trace!("sending a Recipe response with recipe_id {recipe_id} to thread id {thread_id}. From a RecipeRO request.");
+                    trace!(
+                        "sending a Recipe response with recipe_id {recipe_id} to thread id {thread_id}. \
+                        From a RecipeRO request."
+                    );
                     tx_channels[thread_id]
                         .clone()
                         .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
-                        .unwrap()},
+                        .unwrap()
+                }
                 ThreadMessage::RecipeRW(recipe_id) => {
                     // this is a hashset. HashSet::insert() returns true if the value did not
                     // previously exist.
                     let not_locked = locked_recipes.insert(recipe_id);
                     let already_locked = !not_locked;
                     if already_locked {
-                        trace!("Request from thread {thread_id} to edit recipe {recipe_id}. Recipe already locked. Sending EditingError response. From a RecipeRW request.");
+                        trace!(
+                            "Request from thread {thread_id} to edit recipe {recipe_id}. \
+                        Recipe already locked. Sending EditingError response. From a RecipeRW request."
+                        );
                         // TODO: fix usage of unwrap on send
                         tx_channels[thread_id]
                             .clone()
                             .send(ThreadResponse::EditingError(recipe_id))
                             .unwrap();
-                        } else {
-                            trace!("sending a Recipe response with recipe_id {recipe_id} to thread id {thread_id}. From a RecipeRW request.");
-                            // TODO: fix usage of unwrap on send
-                            tx_channels[thread_id]
-                                .clone()
-                                .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
-                                .unwrap();
+                    } else {
+                        trace!(
+                            "sending a Recipe response with recipe_id {recipe_id} to \
+                            thread id {thread_id}. From a RecipeRW request."
+                        );
+                        // TODO: fix usage of unwrap on send
+                        tx_channels[thread_id]
+                            .clone()
+                            .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
+                            .unwrap();
                     }
                 }
-                ThreadMessage::EditedRecipe(recipe) => {
-                    // update old recipe with edited copy
+                ThreadMessage::UpdateRecipeReq(recipe_id) => {
+                    if locked_recipes.contains(&recipe_id) {
+                        if recipes.contains_key(&recipe_id) {
+                            tx_channels[thread_id]
+                                .clone()
+                                .send(ThreadResponse::Recipe(recipes[&recipe_id].clone()))
+                                .unwrap();
+                        } else {
+                            panic!("Recipe with id {recipe_id} not found in recipes HashMap.");
+                        }
+                    } else {
+                        panic!("Recipe with id {recipe_id} was attempted to be edited but was not locked.");
+                    }
+                }
+                ThreadMessage::EditedRecipe(recipe, keep_editing) => {
+                    let recipe_locked = locked_recipes.contains(&recipe.id);
+                    if !recipe_locked {
+                        //TODO: handle this better
+                        panic!("Edited recipe without it being locked. This shouldn't have happened.");
+                    }
+                    if recipe_locked && !keep_editing {
+                        locked_recipes.remove(&recipe.id);
+                    }
                     let recipe_present = recipes.insert(recipe.id, recipe.clone());
                     if recipe_present.is_none() {
                         //TODO: handle this better
                         panic!("Edited recipe ID not found in master recipe list. This should not have happend.");
                     } else {
-                        let recipe_locked = locked_recipes.remove(&recipe.id);
-                        if !recipe_locked {
-                            //TODO: handle this better
-                            panic!("Attempted to release recipe lock that wasn't present. This shouldn't have happened.");
-                        }
-                        tx_channels[thread_id].clone().send(ThreadResponse::RecipeSaved(recipe.id)).unwrap();
+                        tx_channels[thread_id].clone().send(ThreadResponse::Recipe(recipe)).unwrap();
                     }
-                },
+                }
                 ThreadMessage::NewRecipe(recipe) => {
                     // insert new recipe into recipes hashmap
                     let recipe_present = recipes.insert(recipe.id, recipe.clone());
                     if recipe_present.is_some() {
                         //TODO: handle this better
-                        panic!("Edited recipe ID found in master recipe list while inserting new recipe. This should not have happend.");
+                        panic!(concat!(
+                            "Edited recipe ID found in master recipe list while inserting new recipe. ",
+                            "This should not have happend."
+                        ));
                     }
-                    tx_channels[thread_id].clone().send(ThreadResponse::RecipeSaved(recipe.id)).unwrap();
+                    tx_channels[thread_id].clone().send(ThreadResponse::Recipe(recipe)).unwrap();
                 }
             };
         }
@@ -254,83 +282,184 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                 let server = server.clone();
                 let tags = tags.clone();
                 let tx = tx.clone();
-                //TODO: remove this expect and also investigate if we can eliminate the usage of .ok()
-                #[expect(clippy::option_map_unit_fn)]
-                panic::catch_unwind( || -> Result<(), Box<dyn Error>> {
-                    for mut request in server.incoming_requests() {
-                        let method = request.method().clone();
-                        let path = request.url().path();
-                        trace!("{method} request received with path {path}");
-                        match request.method().clone() {
-                            // Not using GET requests here, as the request adds a parameter flag on
-                            // the end of the URL for some reason, even though there are no
-                            // parameters in use.
-                            Method::GET => match request.url().path() {
-                                "/" => request.respond(root::webroot()?)?,
-                                "/favicon.ico" => request.respond(media_responses::icon(Path::new("./favicon.ico"))?)?,
-                                "/database" => request.respond(error_responses::method_not_allowed([Method::POST]))?,
-                                "/browse" =>  request.respond(error_responses::method_not_allowed([Method::POST]))?,
-                                _ => request.respond(error_responses::not_found())?,
-                            },
-                            Method::POST => match request.url().path() {
-                                "/database" => {
-                                    todo!()
-                                }
-                                "/browse" =>  {
-                                    tx.send((i, ThreadMessage::AllRecipes))?;
-                                    let recipes = match rx.recv()? {
-                                        ThreadResponse::AllRecipes(recipes) => recipes,
-                                        _ => return Err(anyhow!("Incorrect response to request for AllRecipes").into()),
-                                    };
-                                    request.respond(browser::browser(recipes, &tags)?)?
-                                },
-                                "/view-recipe" => {
-                                    // this data comes from the browse page
-                                    let form_data = http_helper::parse_post_form_data(&mut request)?;
-                                    if form_data.contains_key("recipe_list") {
-                                        tx.send((i, ThreadMessage::RecipeRO(Uuid::parse_str(form_data["recipe_list"].as_str())?)))?;
-                                        let recipe = match rx.recv()? {
-                                            ThreadResponse::Recipe(recipe) => recipe,
-                                            _ => return Err(anyhow!("Incorrect response to request for RecipeRW").into()),
-                                        };
-                                        request.respond(recipe_editor::recipe_editor(recipe)?)?
-                                    }
-                                }
-                                "/edit-recipe" => {
-                                    // this data comes from the browse page
-                                    let form_data = http_helper::parse_post_form_data(&mut request)?;
-                                    if form_data.contains_key("recipe_list") {
-                                        tx.send((i, ThreadMessage::RecipeRW(Uuid::parse_str(form_data["recipe_list"].as_str())?)))?;
-                                        let recipe = match rx.recv()? {
-                                            ThreadResponse::Recipe(recipe) => recipe,
-                                            //TODO: figure out how to actually provide the
-                                            //offending recipe name and id to users
-                                            ThreadResponse::EditingError(recipe_id) => {
-                                                return Ok(request.respond(error_responses::locked())?)
-                                            },
-                                            x => {
-                                                trace!("{x:?}");
-                                                return Err(anyhow!("Incorrect response to request for RecipeRW").into())},
-                                        };
-                                        request.respond(recipe_editor::recipe_editor(recipe)?)?
-                                    }
-                                }
-                                "/save-recipe" => {
-                                    let form_data = http_helper::parse_post_form_data(&mut request)?;
-                                }
-                                _ => request.respond(error_responses::bad_request())?,
-                            },
-                            method => {
-                                warn!("Unsupported method: {method:?}");
-                                request.respond(error_responses::method_not_allowed([Method::GET, Method::POST]))?
+                for mut request in server.incoming_requests() {
+                    let method = request.method().clone();
+                    let path = request.url().path();
+                    trace!("{method} request received with path {path}");
+                    match request.method().clone() {
+                        // Not using GET requests here, as the request adds a parameter flag on
+                        // the end of the URL for some reason, even though there are no
+                        // parameters in use.
+                        Method::GET => match request.url().path() {
+                            "/" => request.respond(root::webroot().unwrap()).unwrap(),
+                            "/favicon.ico" => request.respond(media_responses::icon(Path::new("./favicon.ico")).unwrap())?,
+                            "/database" => request.respond(error_responses::method_not_allowed([Method::POST]))?,
+                            "/browse" => request.respond(error_responses::method_not_allowed([Method::POST]))?,
+                            _ => request.respond(error_responses::not_found())?,
+                        },
+                        Method::POST => match request.url().path() {
+                            // from root
+                            "/database" => {
+                                todo!()
                             }
+                            // from root
+                            "/browse" => {
+                                tx.send((i, ThreadMessage::AllRecipes)).unwrap();
+                                let recipes = match rx.recv().unwrap() {
+                                    ThreadResponse::AllRecipes(recipes) => recipes,
+                                    _ => panic!("Incorrect response to request for AllRecipes"),
+                                };
+                                request.respond(browser::browser(recipes, &tags).unwrap())?
+                            }
+                            // from browse
+                            "/view-recipe" => {
+                                // this data comes from the browse page
+                                let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
+                                if form_data.contains_key("recipe_list") {
+                                    tx.send((
+                                        i,
+                                        ThreadMessage::RecipeRO(Uuid::parse_str(form_data["recipe_list"].as_str()).unwrap()),
+                                    ))
+                                    .unwrap();
+                                    let recipe = match rx.recv().unwrap() {
+                                        ThreadResponse::Recipe(recipe) => recipe,
+                                        _ => panic!("Incorrect response to request for RecipeRO"),
+                                    };
+                                    //TODO: change this to recipe_viewer page
+                                    request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
+                                }
+                            }
+                            // from browse
+                            "/edit-recipe" => {
+                                // this data comes from the browse page
+                                let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
+                                if form_data.contains_key("recipe_list") {
+                                    tx.send((
+                                        i,
+                                        ThreadMessage::RecipeRW(Uuid::parse_str(form_data["recipe_list"].as_str()).unwrap()),
+                                    ))
+                                    .unwrap();
+                                    let recipe = match rx.recv().unwrap() {
+                                        ThreadResponse::Recipe(recipe) => recipe,
+                                        //TODO: figure out how to actually provide the
+                                        //offending recipe name and id to users
+                                        ThreadResponse::EditingError(recipe_id) => {
+                                            return request.respond(error_responses::locked());
+                                        }
+                                        x => {
+                                            trace!("{x:?}");
+                                            panic!("Incorrect response to request for RecipeRW")
+                                        }
+                                    };
+                                    request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
+                                }
+                            }
+                            // from browse
+                            "/new-recipe" => {
+                                // TODO: do we want to allow editing new recipe after creation or just dump
+                                // the user to a viewer page or browser page
+                                todo!()
+                            }
+                            // from browse
+                            "/filter-tags" => todo!(),
+                            // from browse
+                            "/reset-tags" => todo!(),
+                            // from recipe_editor
+                            // from recipe_editor
+                            "/save-recipe-edit" | "/save-recipe" => {
+                                let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
+                                trace!("{form_data:?}");
+                                // Requesting the whole recipe here, helps make sure that we
+                                // keep things like steps, etc together rather than just
+                                // passing around IDs the whole time.
+                                //
+                                // It would be ideal to get a mutable reference to the recipe,
+                                // rather than passing around clones and manually locking but
+                                // thats tricky with threads
+                                tx.send((
+                                    i,
+                                    ThreadMessage::UpdateRecipeReq(Uuid::parse_str(form_data["recipe_id"].as_str()).unwrap()),
+                                ))
+                                .unwrap();
+                                let mut recipe = match rx.recv().unwrap() {
+                                    ThreadResponse::Recipe(recipe) => recipe,
+                                    x => {
+                                        trace!("{x:?}");
+                                        panic!("Incorrect response to request for UpdateRecipeReq");
+                                    }
+                                };
+                                let name = &form_data["name"];
+                                let description = &form_data["description"];
+                                let comments = &form_data["comments"];
+                                let source = &form_data["source"];
+                                let author = &form_data["author"];
+                                let amount_made = str::parse(&form_data["amount_made"]).unwrap();
+                                let amount_made_units = &form_data["amount_made_units"];
+
+                                if recipe.name != *name {
+                                    recipe.name = name.clone()
+                                }
+                                if recipe.description != Some(description.clone()) {
+                                    recipe.description = Some(description.clone())
+                                }
+                                if recipe.comments != Some(comments.clone()) {
+                                    recipe.comments = Some(comments.clone())
+                                }
+                                if recipe.source != *source {
+                                    recipe.source = source.clone()
+                                }
+                                if recipe.author != *author {
+                                    recipe.author = author.clone()
+                                }
+                                if recipe.amount_made.quantity != amount_made {
+                                    recipe.amount_made.quantity = amount_made
+                                }
+                                if recipe.amount_made.units != *amount_made_units {
+                                    recipe.amount_made.units = amount_made_units.clone()
+                                }
+                                if request.url().path() == "/save-recipe-edit" {
+                                    // keeping edit lock in place
+                                    tx.send((i, ThreadMessage::EditedRecipe(recipe, true))).unwrap();
+                                    let recipe = match rx.recv().unwrap() {
+                                        ThreadResponse::Recipe(recipe) => recipe,
+                                        x => {
+                                            trace!("{x:?}");
+                                            panic!("Incorrect response to request for EditedRecipe");
+                                        }
+                                    };
+                                    request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
+                                } else {
+                                    // not keeping edit lock in place
+                                    tx.send((i, ThreadMessage::EditedRecipe(recipe, false))).unwrap();
+                                    let recipe = match rx.recv().unwrap() {
+                                        ThreadResponse::Recipe(recipe) => recipe,
+                                        x => {
+                                            trace!("{x:?}");
+                                            panic!("Incorrect response to request for EditedRecipe");
+                                        }
+                                    };
+                                    todo!();
+                                    //TODO: use recipe_viewer here
+                                    //request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
+                                }
+                            }
+                            // from recipe_editor
+                            "/insert-step" => {
+                                todo!()
+                            }
+                            // from recipe_editor
+                            "/edit-step" => {
+                                todo!()
+                            }
+                            //TODO: have this maybe return the bad request?
+                            _ => request.respond(error_responses::bad_request())?,
+                        },
+                        method => {
+                            warn!("Unsupported method: {method:?}");
+                            request.respond(error_responses::method_not_allowed([Method::GET, Method::POST]))?
                         }
                     }
-                    Ok(())
-                })
-                .ok()
-                    //TODO: can we handle these errors better rather than unwrapping
-                    .map(|e| e.unwrap());
+                }
             }
         }));
     }
