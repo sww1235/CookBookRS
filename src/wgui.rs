@@ -7,6 +7,9 @@ pub mod browser;
 /// `recipe_editor` contains the code for the recipe editor and creator webpage
 pub mod recipe_editor;
 
+/// `recipe_viewer` contains the code for the recipe editor and creator webpage
+pub mod recipe_viewer;
+
 /// `error_responses` contains methods that return error responses
 pub mod error_responses;
 

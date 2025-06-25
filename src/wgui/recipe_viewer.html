@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en-US">
+	<head>
+		<meta charset="utf-8"/>
+		<title>{title}</title>
+		<link rel="stylesheet" href="{stylesheet}">
+		<link rel="icon" type="image/x-icon" href="{favicon}">
+	</head>
+	<body>
+		<main>
+			<article>
+				<h1>{recipe_name}</h1>
+				<p>By {author}</p>
+				<p>Makes {amount_made_number} {amount_made_units}</p>
+				<p>{description}</p>
+				<h2>Ingredients</h2>
+				{ingredient_list}
+				<h2>Equipment</h2>
+				{equipment_list}
+				<h2>Instructions</h2>
+				{step_list}
+				<h2>Comments</h2>
+				<p>{comments}</p>
+				<p>Recipe from {source}</p>
+			</article>
+		</main>
+		{footer}
+	</body>
+</html>
