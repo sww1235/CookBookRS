@@ -86,3 +86,8 @@ SCHEMA TBD
 ## Credits
 
 Favicon generated using <https://favicon.io> from the Twemoji project. Used under the terms of the CC-BY 4.0 license.
+- Graphics Title: 1f37d.svg
+- Graphics Author: Copyright 2020 Twitter, Inc and other contributors (https://github.com/twitter/twemoji)
+- Graphics Source: https://github.com/twitter/twemoji/blob/master/assets/svg/1f37d.svg
+- Graphics License: CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
