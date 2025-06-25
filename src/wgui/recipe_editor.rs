@@ -13,7 +13,7 @@ use crate::datatypes::recipe::Recipe;
 
 use super::{html_stubs::FOOTER, http_helper};
 
-/// `browser` returns the recipe browser page for the web server.
+/// `recipe_editor` returns the recipe browser page for the web server.
 ///
 /// This is the main page for the Cookbook. This page allows users to select a specific recipe
 /// or filter the recipe list via selecting tags.
