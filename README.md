@@ -22,9 +22,9 @@ Recipes are stored as TOML files, with the following general format.
 # Optional. If not defined in file, will be defined and written out when files are saved.
 id = '1ae4f773-e08a-4a5d-b8bc-6be9404269aa'
 name = "Recipe Name"
-# Optional. This supports newlines so a multi-line string is acceptable here instead
+# Optional. This supports newlines so a multi-line string is acceptable here
 description = "This is a description."
-# Optional. This supports newlines so a multi-line string is acceptable here instead
+# Optional. This supports newlines so a multi-line string is acceptable here
 comments = "Here is a comment."
 # The source should be a descriptive reference of where the recipe was found. If unknown, put Unknown.
 source = "Where this recipe was from."
@@ -55,7 +55,7 @@ step_type = "Other"
 # This is a database key.
 id = '03f5f051-fbe4-494c-ba97-88ed914a5b1b'
 name = "Ingredient Name"
-# Optional. This supports newlines so a multi-line string is acceptable here instead
+# Optional. This supports newlines so a multi-line string is acceptable here
 description = "This is a description."
 
 # Only specify one of Quantity, Mass or Volume
@@ -70,7 +70,7 @@ unit_quantity = {Quantity = 25.4}
 # This is a database key.
 id = '47b7c070-c89a-4c39-abd1-a3a416b0d04f'
 name = "Equipment Name"
-# Optional. This supports newlines so a multi-line string is acceptable here instead
+# Optional. This supports newlines so a multi-line string is acceptable here
 description = "This is a description."
 is_owned = false
 
