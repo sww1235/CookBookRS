@@ -1,11 +1,15 @@
 use std::fmt;
 
-use dimensioned::ucum;
 #[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
 #[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
+use uom::si::{
+    rational64::{TemperatureInterval, Time},
+    temperature_interval::degree_celsius,
+    time::second,
+};
 use uuid::Uuid;
 
 #[cfg(feature = "tui")]
@@ -31,12 +35,12 @@ pub struct Step {
     #[cfg_attr(feature = "tui", cookbook(display_order = 0))]
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
     #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
-    pub time_needed: Option<ucum::Second<f64>>,
+    pub time_needed: Option<Time>,
     /// cook temperature. Optional for steps that don't involve temperature or cooking
     #[cfg_attr(feature = "tui", cookbook(display_order = 1))]
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
     #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
-    pub temperature: Option<ucum::Kelvin<f64>>,
+    pub temperature: Option<TemperatureInterval>,
     /// instructions for step
     #[cfg_attr(feature = "tui", cookbook(display_order = 2))]
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Min"))]
@@ -122,8 +126,8 @@ impl From<filetypes::Step> for Step {
     fn from(input: filetypes::Step) -> Self {
         Self {
             id: input.id,
-            time_needed: input.time_needed.map(|tn| tn * ucum::S),
-            temperature: input.temperature.map(|t| t * ucum::K),
+            time_needed: input.time_needed.map(|tn| Time::new::<second>(tn)),
+            temperature: input.temperature.map(|t| TemperatureInterval::new::<degree_celsius>(t)),
             instructions: input.instructions,
             ingredients: if input.ingredients.is_some() {
                 input.ingredients.unwrap().into_iter().map(Into::into).collect()

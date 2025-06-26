@@ -1,13 +1,18 @@
 use std::ops::{Add, AddAssign};
 
-use dimensioned::ucum;
 #[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
+use num_rational::Rational64;
 #[cfg(feature = "tui")]
 use ranged_wrapping::RangedWrapping;
 #[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
+use uom::si::{
+    mass::gram,
+    rational64::{Mass, Volume},
+    volume::cubic_meter,
+};
 use uuid::Uuid;
 
 #[cfg(feature = "tui")]
@@ -55,11 +60,11 @@ pub struct Ingredient {
 pub enum UnitType {
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.
-    Quantity(f64),
+    Quantity(Rational64),
     /// Mass of an `Ingredient`
-    Mass(ucum::Gram<f64>),
+    Mass(Mass),
     /// Volume of an `Ingredent`
-    Volume(ucum::Meter3<f64>),
+    Volume(Volume),
 }
 
 /// `State` contains the state of the Ingredient widget
@@ -106,7 +111,7 @@ impl AddAssign for UnitType {
 }
 impl Default for UnitType {
     fn default() -> Self {
-        Self::Quantity(0.0_f64)
+        Self::Quantity(Rational64::default())
     }
 }
 
@@ -125,8 +130,8 @@ impl From<filetypes::UnitType> for UnitType {
     fn from(input: filetypes::UnitType) -> Self {
         match input {
             filetypes::UnitType::Quantity(q) => Self::Quantity(q),
-            filetypes::UnitType::Mass(m) => Self::Mass(m * ucum::G),
-            filetypes::UnitType::Volume(v) => Self::Volume(v * ucum::M3),
+            filetypes::UnitType::Mass(m) => Self::Mass(Mass::new::<gram>(m)),
+            filetypes::UnitType::Volume(v) => Self::Volume(Volume::new::<cubic_meter>(v)),
         }
     }
 }

@@ -1,5 +1,6 @@
-use dimensioned::{Dimensionless, ucum};
+use num_rational::Rational64;
 use serde::{Deserialize, Serialize};
+use uom::si::{mass::gram, temperature_interval::degree_celsius, time::second, volume::cubic_meter};
 use uuid::Uuid;
 
 use super::{equipment, ingredient, recipe, step};
@@ -65,6 +66,7 @@ pub struct Ingredient {
     //TODO: inventory reference
 }
 
+//TODO: allow specifying alternate units
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
@@ -72,16 +74,16 @@ pub struct Ingredient {
 pub enum UnitType {
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.
-    Quantity(f64),
+    Quantity(Rational64),
     /// Mass of an `Ingredient`, specified in grams
-    Mass(f64),
+    Mass(Rational64),
     /// Volume of an `Ingredent`, specified in m^3
-    Volume(f64),
+    Volume(Rational64),
 }
 
 impl Default for UnitType {
     fn default() -> Self {
-        Self::Quantity(0.0_f64)
+        Self::Quantity(Rational64::default())
     }
 }
 /// `Step` represents a discrete step within a recipe
@@ -93,10 +95,10 @@ pub struct Step {
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
     /// Specified in seconds
-    pub time_needed: Option<f64>,
+    pub time_needed: Option<Rational64>,
     /// cook temperature. Optional for steps that don't involve temperature or cooking
     /// Specified in K
-    pub temperature: Option<f64>,
+    pub temperature: Option<Rational64>,
     /// instructions for step
     pub instructions: String,
     /// ingredients used in this step
@@ -145,8 +147,8 @@ impl From<step::Step> for Step {
     fn from(input: step::Step) -> Self {
         Self {
             id: input.id,
-            time_needed: input.time_needed.map(|tn| *(tn / ucum::S).value()),
-            temperature: input.temperature.map(|t| *(t / ucum::K).value()),
+            time_needed: input.time_needed.map(|tn| tn.get::<second>()),
+            temperature: input.temperature.map(|t| t.get::<degree_celsius>()),
             instructions: input.instructions,
             ingredients: if input.ingredients.is_empty() {
                 None
@@ -200,8 +202,8 @@ impl From<ingredient::UnitType> for UnitType {
     fn from(input: ingredient::UnitType) -> Self {
         match input {
             ingredient::UnitType::Quantity(q) => Self::Quantity(q),
-            ingredient::UnitType::Mass(m) => Self::Mass(*(m / ucum::G).value()),
-            ingredient::UnitType::Volume(v) => Self::Volume(*(v / ucum::M3).value()),
+            ingredient::UnitType::Mass(m) => Self::Mass(m.get::<gram>()),
+            ingredient::UnitType::Volume(v) => Self::Volume(v.get::<cubic_meter>()),
         }
     }
 }

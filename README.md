@@ -44,7 +44,7 @@ tags = ["tag1", "tag2"]
 id = '628c0a92-44e4-4d92-93b1-21c3aa391592'
 # Optional. Specified in Seconds.
 time_needed = 300.5
-# Optional. Specified in Kelvin
+# Optional. Specified in Degrees Centigrade
 temperature = 400.2
 instructions = "Example Step Instructions"
 # Step Type should be selected from the following list: ["Prep", "Cook", "Wait", "Other"].

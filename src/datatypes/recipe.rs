@@ -3,7 +3,6 @@ use std::io;
 use std::path::Path;
 use std::{collections::HashMap, fmt};
 
-use dimensioned::ucum;
 #[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
 #[cfg(feature = "tui")]
@@ -11,6 +10,7 @@ use ranged_wrapping::RangedWrapping;
 #[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
+use uom::si::rational64::Time;
 use uuid::Uuid;
 
 #[cfg(feature = "tui")]
@@ -127,12 +127,12 @@ impl Recipe {
 
     /// `step_time_totals` provides the time required for each type of step as a `HashMap`
     #[must_use]
-    pub fn step_time_totals(&self) -> HashMap<StepType, Option<ucum::Second<f64>>> {
-        let mut out_map: HashMap<StepType, Option<ucum::Second<f64>>> = HashMap::new();
+    pub fn step_time_totals(&self) -> HashMap<StepType, Option<Time>> {
+        let mut out_map: HashMap<StepType, Option<Time>> = HashMap::new();
         for step in &self.steps {
             out_map
                 .entry(step.step_type)
-                .and_modify(|e: &mut Option<ucum::Second<f64>>| {
+                .and_modify(|e: &mut Option<Time>| {
                     add(e, step.time_needed);
                 })
                 .or_insert(step.time_needed);
@@ -141,10 +141,10 @@ impl Recipe {
     }
     /// `total_time` returns the total time required for a recipe
     #[must_use]
-    pub fn total_time(&self) -> ucum::Second<f64> {
-        let mut time = 0.0_f64 * ucum::S;
+    pub fn total_time(&self) -> Time {
+        let mut time: Time = Time::default();
         for step in &self.steps {
-            time += step.time_needed.unwrap_or(0.0_f64 * ucum::S);
+            time += step.time_needed.unwrap_or(Time::default());
         }
         time
     }
@@ -311,7 +311,7 @@ impl Default for State {
 
 //https://www.reddit.com/r/learnrust/comments/1b1xwci/best_way_to_add_an_optiont_to_an_optiont/
 /// helper function for `step_time_totals` to allow adding an option and an option togther
-fn add(lhs: &mut Option<ucum::Second<f64>>, rhs: Option<ucum::Second<f64>>) -> Option<ucum::Second<f64>> {
+fn add(lhs: &mut Option<Time>, rhs: Option<Time>) -> Option<Time> {
     #[expect(clippy::arithmetic_side_effects)] //TODO: change this to saturating
     match (lhs, rhs) {
         (Some(l), Some(r)) => Some(*l + r),
