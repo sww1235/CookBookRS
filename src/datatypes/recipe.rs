@@ -157,8 +157,8 @@ impl Recipe {
         let mut out: HashSet<Ingredient> = HashSet::new();
         for step in &self.steps {
             for ingredient in &step.ingredients {
-                if out.get(&ingredient).is_some() {
-                    let mut new_ingredient = out.get(&ingredient).unwrap().clone();
+                if out.contains(ingredient) {
+                    let mut new_ingredient = out.get(ingredient).unwrap().clone();
                     new_ingredient.unit_quantity += ingredient.unit_quantity;
                     out.remove(ingredient);
                     out.insert(new_ingredient);

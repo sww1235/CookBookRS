@@ -126,8 +126,8 @@ impl From<filetypes::Step> for Step {
     fn from(input: filetypes::Step) -> Self {
         Self {
             id: input.id,
-            time_needed: input.time_needed.map(|tn| Time::new::<second>(tn)),
-            temperature: input.temperature.map(|t| TemperatureInterval::new::<degree_celsius>(t)),
+            time_needed: input.time_needed.map(Time::new::<second>),
+            temperature: input.temperature.map(TemperatureInterval::new::<degree_celsius>),
             instructions: input.instructions,
             ingredients: if input.ingredients.is_some() {
                 input.ingredients.unwrap().into_iter().map(Into::into).collect()
