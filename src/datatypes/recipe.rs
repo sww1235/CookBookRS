@@ -1,7 +1,10 @@
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 #[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -150,15 +153,18 @@ impl Recipe {
     }
     /// `ingredient_list` returns the total amount of ingredients required to make the recipe
     #[must_use]
-    pub fn ingredient_list(&self) -> HashMap<String, Ingredient> {
-        let mut out: HashMap<String, Ingredient> = HashMap::new();
+    pub fn ingredient_list(&self) -> HashSet<Ingredient> {
+        let mut out: HashSet<Ingredient> = HashSet::new();
         for step in &self.steps {
             for ingredient in &step.ingredients {
-                if let Some(i) = out.get_mut(&ingredient.name) {
-                    i.unit_quantity += ingredient.unit_quantity;
+                if out.get(&ingredient).is_some() {
+                    let mut new_ingredient = out.get(&ingredient).unwrap().clone();
+                    new_ingredient.unit_quantity += ingredient.unit_quantity;
+                    out.remove(ingredient);
+                    out.insert(new_ingredient);
                 } else {
                     //TODO: figure out if ingredients should be tracked using RC or not
-                    out.insert(ingredient.name.clone(), ingredient.clone());
+                    out.insert(ingredient.clone());
                 }
             }
         }

@@ -32,7 +32,7 @@ use super::filetypes;
 
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
 #[cfg_attr(feature = "tui", derive(StatefulWidgetRef, WidgetRef), cookbook(state_struct = "State"))]
-#[derive(Default, Debug, Clone, PartialEq, Serialize)]
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Hash)]
 pub struct Ingredient {
     /// database ID
     #[cfg_attr(feature = "tui", cookbook(skip))]
@@ -56,7 +56,7 @@ pub struct Ingredient {
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Hash)]
 pub enum UnitType {
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.
