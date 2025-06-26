@@ -111,7 +111,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
     use tiny_http::{ConfigListenAddr, Server, ServerConfig, http::method::Method};
     use uuid::Uuid;
 
-    use cookbook_core::wgui::{browser, error_responses, http_helper, media_responses, recipe_editor, root};
+    use cookbook_core::wgui::{browser, error_responses, http_helper, media_responses, recipe_editor, recipe_viewer, root};
 
     /// `ThreadMessage` are messages that worker threads can send back to the processing
     /// thread.
@@ -326,7 +326,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                         _ => panic!("Incorrect response to request for RecipeRO"),
                                     };
                                     //TODO: change this to recipe_viewer page
-                                    request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
+                                    request.respond(recipe_viewer::recipe_viewer(recipe).unwrap())?
                                 }
                             }
                             // from browse
@@ -438,9 +438,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                             panic!("Incorrect response to request for EditedRecipe");
                                         }
                                     };
-                                    todo!();
-                                    //TODO: use recipe_viewer here
-                                    //request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
+                                    request.respond(recipe_viewer::recipe_viewer(recipe).unwrap())?
                                 }
                             }
                             // from recipe_editor
