@@ -343,7 +343,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                         ThreadResponse::Recipe(recipe) => recipe,
                                         //TODO: figure out how to actually provide the
                                         //offending recipe name and id to users
-                                        ThreadResponse::EditingError(recipe_id) => {
+                                        ThreadResponse::EditingError(_recipe_id) => {
                                             return request.respond(error_responses::locked());
                                         }
                                         x => {
@@ -366,7 +366,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                             "/reset-tags" => todo!(),
                             // from recipe_editor
                             // from recipe_editor
-                            "/save-recipe-edit" | "/save-recipe" => {
+                            "/save-recipe-edit" | "/save-recipe" | "/save-new-recipe" => {
                                 let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
                                 trace!("{form_data:?}");
                                 // Requesting the whole recipe here, helps make sure that we
@@ -428,7 +428,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                         }
                                     };
                                     request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
-                                } else {
+                                } else if request.url().path() == "/save-recipe" {
                                     // not keeping edit lock in place
                                     tx.send((i, ThreadMessage::EditedRecipe(recipe, false))).unwrap();
                                     let recipe = match rx.recv().unwrap() {
@@ -439,11 +439,41 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                         }
                                     };
                                     request.respond(recipe_viewer::recipe_viewer(recipe).unwrap())?
+                                } else if request.url().path() == "/save-new-recipe" {
+                                    tx.send((i, ThreadMessage::NewRecipe(recipe))).unwrap();
+                                    let recipe = match rx.recv().unwrap() {
+                                        ThreadResponse::Recipe(recipe) => recipe,
+                                        x => {
+                                            trace!("{x:?}");
+                                            panic!("Incorrect response to request for NewRecipe");
+                                        }
+                                    };
+                                    request.respond(recipe_viewer::recipe_viewer(recipe).unwrap())?
                                 }
                             }
                             // from recipe_editor
                             "/insert-step" => {
-                                todo!()
+                                let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
+                                trace!("{form_data:?}");
+                                // Requesting the whole recipe here, helps make sure that we
+                                // keep things like steps, etc together rather than just
+                                // passing around IDs the whole time.
+                                //
+                                // It would be ideal to get a mutable reference to the recipe,
+                                // rather than passing around clones and manually locking but
+                                // thats tricky with threads
+                                tx.send((
+                                    i,
+                                    ThreadMessage::UpdateRecipeReq(Uuid::parse_str(form_data["recipe_id"].as_str()).unwrap()),
+                                ))
+                                .unwrap();
+                                let mut recipe = match rx.recv().unwrap() {
+                                    ThreadResponse::Recipe(recipe) => recipe,
+                                    x => {
+                                        trace!("{x:?}");
+                                        panic!("Incorrect response to request for UpdateRecipeReq");
+                                    }
+                                };
                             }
                             // from recipe_editor
                             "/edit-step" => {
@@ -462,12 +492,11 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
         }));
     }
     //TODO: figure out how to fix this with iterator syntax
-    #[expect(clippy::never_loop)]
     for g in join_guards {
         //TODO: try using if Err(err_val) = g.join() and then using format!("{:?"}") or .downcast()
         //to move it into an anyhow!()
         //per the suggestions in https://users.rust-lang.org/t/avoiding-usage-of-unwrap-with-joinhandle/130280/12
-        g.join().unwrap();
+        g.join().unwrap().unwrap();
     }
 
     Ok(())
