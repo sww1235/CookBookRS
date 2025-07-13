@@ -1,6 +1,10 @@
 use num_rational::Rational64;
 use serde::{Deserialize, Serialize};
-use uom::si::{mass::gram, temperature_interval::degree_celsius, time::second, volume::cubic_meter};
+use uom::{
+    Conversion,
+    fmt::DisplayStyle,
+    si::{Unit, temperature_interval::degree_celsius, time::second},
+};
 use uuid::Uuid;
 
 use super::{equipment, ingredient, recipe, step};
@@ -55,13 +59,13 @@ pub struct Equipment {
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Ingredient {
-    /// database ID
+    /// Database ID
     pub id: Uuid,
-    /// ingredient short name
+    /// Ingredient short name
     pub name: String,
-    /// optional description
+    /// Optional description
     pub description: Option<String>,
-    /// quantity of ingredient
+    /// Quantity of ingredient
     pub unit_quantity: UnitType,
     //TODO: inventory reference
 }
@@ -70,20 +74,20 @@ pub struct Ingredient {
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum UnitType {
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.
-    Quantity(Rational64),
-    /// Mass of an `Ingredient`, specified in grams
-    Mass(Rational64),
-    /// Volume of an `Ingredent`, specified in m^3
-    Volume(Rational64),
+    Quantity(String),
+    /// Mass of an `Ingredient`
+    Mass(String),
+    /// Volume of an `Ingredent`
+    Volume(String),
 }
 
 impl Default for UnitType {
     fn default() -> Self {
-        Self::Quantity(Rational64::default())
+        Self::Quantity(String::new())
     }
 }
 /// `Step` represents a discrete step within a recipe
@@ -95,10 +99,10 @@ pub struct Step {
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
     /// Specified in seconds
-    pub time_needed: Option<Rational64>,
+    pub time_needed: Option<String>,
     /// cook temperature. Optional for steps that don't involve temperature or cooking
     /// Specified in K
-    pub temperature: Option<Rational64>,
+    pub temperature: Option<String>,
     /// instructions for step
     pub instructions: String,
     /// ingredients used in this step
@@ -143,8 +147,13 @@ impl From<recipe::Recipe> for Recipe {
     }
 }
 
-impl From<step::Step> for Step {
-    fn from(input: step::Step) -> Self {
+impl<T, U, V> From<step::Step<T, U, V>> for Step
+where
+    T: Unit + Conversion<Rational64>,
+    U: Unit + Conversion<Rational64>,
+    V: Unit + Conversion<Rational64>,
+{
+    fn from(input: step::Step<T, U, V>) -> Self {
         Self {
             id: input.id,
             time_needed: input.time_needed.map(|tn| tn.get::<second>()),
@@ -187,8 +196,11 @@ impl From<equipment::Equipment> for Equipment {
     }
 }
 
-impl From<ingredient::Ingredient> for Ingredient {
-    fn from(input: ingredient::Ingredient) -> Self {
+impl<T> From<ingredient::Ingredient<T>> for Ingredient
+where
+    T: Unit + Conversion<Rational64>,
+{
+    fn from(input: ingredient::Ingredient<T>) -> Self {
         Self {
             id: input.id,
             name: input.name,
@@ -198,12 +210,21 @@ impl From<ingredient::Ingredient> for Ingredient {
     }
 }
 
-impl From<ingredient::UnitType> for UnitType {
-    fn from(input: ingredient::UnitType) -> Self {
+impl<T> From<ingredient::UnitType<T>> for UnitType
+where
+    T: Unit + Conversion<Rational64>,
+{
+    fn from(input: ingredient::UnitType<T>) -> Self {
         match input {
-            ingredient::UnitType::Quantity(q) => Self::Quantity(q),
-            ingredient::UnitType::Mass(m) => Self::Mass(m.get::<gram>()),
-            ingredient::UnitType::Volume(v) => Self::Volume(v.get::<cubic_meter>()),
+            ingredient::UnitType::Quantity(q) => Self::Quantity(format!("{q}")),
+            ingredient::UnitType::Mass { value: m, file_unit: u } => Self::Mass({
+                let format_args = m.into_format_args(u, DisplayStyle::Abbreviation);
+                format!("{}", format_args)
+            }),
+            ingredient::UnitType::Volume { value: v, file_unit: u } => Self::Volume({
+                let format_args = v.into_format_args(u, DisplayStyle::Abbreviation);
+                format!("{}", format_args)
+            }),
         }
     }
 }

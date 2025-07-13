@@ -1,4 +1,5 @@
 use std::ops::{Add, AddAssign};
+use std::str::FromStr;
 
 #[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -9,6 +10,7 @@ use ranged_wrapping::RangedWrapping;
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
 use uom::si::{
+    Unit,
     mass::gram,
     rational64::{Mass, Volume},
     volume::cubic_meter,
@@ -33,7 +35,7 @@ use super::filetypes;
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
 #[cfg_attr(feature = "tui", derive(StatefulWidgetRef, WidgetRef), cookbook(state_struct = "State"))]
 #[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Hash)]
-pub struct Ingredient {
+pub struct Ingredient<T: Unit> {
     /// database ID
     #[cfg_attr(feature = "tui", cookbook(skip))]
     pub id: Uuid,
@@ -49,7 +51,7 @@ pub struct Ingredient {
     pub description: Option<String>,
     /// Unit and quantity of ingredient
     #[cfg_attr(feature = "tui", cookbook(skip))] //TODO: unit quantity stuff
-    pub unit_quantity: UnitType,
+    pub unit_quantity: UnitType<T>,
     //TODO: inventory reference
 }
 
@@ -57,14 +59,17 @@ pub struct Ingredient {
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Hash)]
-pub enum UnitType {
+pub enum UnitType<T>
+where
+    T: Unit,
+{
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.
     Quantity(Rational64),
     /// Mass of an `Ingredient`
-    Mass(Mass),
+    Mass { value: Mass, file_unit: T },
     /// Volume of an `Ingredent`
-    Volume(Volume),
+    Volume { value: Volume, file_unit: T },
 }
 
 /// `State` contains the state of the Ingredient widget
@@ -90,32 +95,56 @@ impl Default for State {
     }
 }
 
-impl Add for UnitType {
+impl<T> Add for UnitType<T>
+where
+    T: Unit,
+{
     type Output = Self;
 
     #[expect(clippy::arithmetic_side_effects)] //TODO: fix this
     fn add(self, other: Self) -> Self {
         match (self, other) {
             (Self::Quantity(l), Self::Quantity(r)) => Self::Quantity(l + r),
-            (Self::Mass(l), Self::Mass(r)) => Self::Mass(l + r),
-            (Self::Volume(l), Self::Volume(r)) => Self::Volume(l + r),
+            (Self::Mass { value: l, file_unit: lu }, Self::Mass { value: r, file_unit: ru }) => {
+                let value = l + r;
+                if lu.abbreviation() != ru.abbreviation::<T>() {
+                    panic!("attempted to add two unit types together with different file units")
+                }
+                Self::Mass { value, file_unit: lu }
+            }
+            (Self::Volume { value: l, file_unit: lu }, Self::Volume { value: r, file_unit: ru }) => {
+                let value = l + r;
+                if lu.abbreviation() != ru.abbreviation::<T>() {
+                    panic!("attempted to add two unit types together with different file units")
+                }
+                Self::Volume { value, file_unit: lu }
+            }
             _ => panic!("Attempted to add different unit types together. This should not have happened"),
         }
     }
 }
-impl AddAssign for UnitType {
+impl<T> AddAssign for UnitType<T>
+where
+    T: Unit,
+{
     #[expect(clippy::arithmetic_side_effects)] //TODO: fix this
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
-impl Default for UnitType {
+impl<T> Default for UnitType<T>
+where
+    T: Unit,
+{
     fn default() -> Self {
         Self::Quantity(Rational64::default())
     }
 }
 
-impl From<filetypes::Ingredient> for Ingredient {
+impl<T> From<filetypes::Ingredient> for Ingredient<T>
+where
+    T: Unit,
+{
     fn from(input: filetypes::Ingredient) -> Self {
         Self {
             id: input.id,
@@ -126,12 +155,28 @@ impl From<filetypes::Ingredient> for Ingredient {
     }
 }
 
-impl From<filetypes::UnitType> for UnitType {
+impl<T> From<filetypes::UnitType> for UnitType<T>
+where
+    T: Unit,
+{
+    // panicing on parsing errors here is fine
     fn from(input: filetypes::UnitType) -> Self {
         match input {
-            filetypes::UnitType::Quantity(q) => Self::Quantity(q),
-            filetypes::UnitType::Mass(m) => Self::Mass(Mass::new::<gram>(m)),
-            filetypes::UnitType::Volume(v) => Self::Volume(Volume::new::<cubic_meter>(v)),
+            filetypes::UnitType::Quantity(q) => Self::Quantity(Rational64::from_str(q.as_str()).unwrap()),
+            filetypes::UnitType::Mass(m) => {
+                let unit_value = Mass::from_str(m.as_str()).unwrap();
+                Self::Mass {
+                    value: unit_value,
+                    file_unit: unit_value.units,
+                }
+            }
+            filetypes::UnitType::Volume(v) => {
+                let unit_value = Volume::from_str(v.as_str()).unwrap();
+                Self::Volume {
+                    value: unit_value,
+                    file_unit: unit_value.units,
+                }
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 #[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -6,6 +7,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
 use uom::si::{
+    Unit,
     rational64::{TemperatureInterval, Time},
     temperature_interval::degree_celsius,
     time::second,
@@ -25,7 +27,12 @@ use crate::tui::dropdown::{Dropdown, DropdownState};
 /// `Step` represents a discrete step within a recipe
 #[cfg_attr(feature = "tui", derive(StatefulWidgetRef, WidgetRef), cookbook(state_struct = "State"))]
 #[derive(Default, Debug, Clone, PartialEq, Serialize)]
-pub struct Step {
+pub struct Step<T, U, V>
+where
+    T: Unit,
+    U: Unit,
+    V: Unit,
+{
     /// database ID
     #[cfg_attr(feature = "tui", cookbook(skip))]
     pub id: Option<Uuid>,
@@ -36,11 +43,17 @@ pub struct Step {
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
     #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub time_needed: Option<Time>,
+    /// storing original units specified in file
+    #[cfg_attr(feature = "tui", cookbook(skip))]
+    pub time_file_unit: Option<U>,
     /// cook temperature. Optional for steps that don't involve temperature or cooking
     #[cfg_attr(feature = "tui", cookbook(display_order = 1))]
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
     #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub temperature: Option<TemperatureInterval>,
+    /// storing original units specified in file
+    #[cfg_attr(feature = "tui", cookbook(skip))]
+    pub temperature_file_unit: Option<V>,
     /// instructions for step
     #[cfg_attr(feature = "tui", cookbook(display_order = 2))]
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Min"))]
@@ -49,7 +62,7 @@ pub struct Step {
     /// ingredients used in this step
     #[cfg_attr(feature = "tui", cookbook(left_field))]
     #[cfg_attr(feature = "tui", cookbook(left_field_title = "Number Of Ingredients"))]
-    pub ingredients: Vec<Ingredient>,
+    pub ingredients: Vec<Ingredient<T>>,
     /// equipment used in this step
     #[cfg_attr(feature = "tui", cookbook(right_field))]
     #[cfg_attr(feature = "tui", cookbook(right_field_title = "Equipment count"))]
@@ -122,12 +135,22 @@ impl fmt::Display for StepType {
     }
 }
 
-impl From<filetypes::Step> for Step {
+impl<T, U, V> From<filetypes::Step> for Step<T, U, V>
+where
+    T: Unit,
+    U: Unit,
+    V: Unit,
+{
+    // panicing on parsing here is fine
     fn from(input: filetypes::Step) -> Self {
+        let time_needed = Time::from_str(input.time_needed.unwrap().as_str()).unwrap();
+        let temperature = TemperatureInterval::from_str(input.temperature.unwrap().as_str()).unwrap();
         Self {
             id: input.id,
-            time_needed: input.time_needed.map(Time::new::<second>),
-            temperature: input.temperature.map(TemperatureInterval::new::<degree_celsius>),
+            time_needed: Some(time_needed),
+            time_file_unit: time_needed.units,
+            temperature: Some(temperature),
+            temperature_file_unit: temperature.units,
             instructions: input.instructions,
             ingredients: if input.ingredients.is_some() {
                 input.ingredients.unwrap().into_iter().map(Into::into).collect()

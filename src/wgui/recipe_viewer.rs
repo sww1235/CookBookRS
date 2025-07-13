@@ -10,7 +10,7 @@ use tiny_http::{
 };
 use uom::{
     fmt::DisplayStyle::{Abbreviation, Description},
-    si::{mass::gram, rational64::Time, temperature_interval::degree_celsius, time::minute, volume::cubic_meter},
+    si::{rational64::Time, temperature_interval::degree_celsius, time::minute},
 };
 
 use crate::datatypes::{ingredient::UnitType, recipe::Recipe, step::StepType};
@@ -57,8 +57,8 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
                     let unit_string = match ingredient.unit_quantity {
                         UnitType::Quantity(q) => &format!("{q}"),
                         //TODO: need to be able to specify which units to use for mass and volume
-                        UnitType::Mass(m) => &format!("{}", m.into_format_args(gram, Abbreviation)),
-                        UnitType::Volume(v) => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
+                        UnitType::Mass { value: m, file_unit: u } => &format!("{}", m.into_format_args(u, Abbreviation)),
+                        UnitType::Volume { value: v, file_unit: u } => &format!("{}", v.into_format_args(u, Abbreviation)),
                     };
                     step_list.push_str(format!("<li>{}: {}</li>", ingredient.name, unit_string).as_str());
                 }
@@ -89,8 +89,8 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             let unit_string = match ingredient.unit_quantity {
                 UnitType::Quantity(q) => &format!("{q}"),
                 //TODO: need to be able to specify which units to use for mass and volume
-                UnitType::Mass(m) => &format!("{}", m.into_format_args(gram, Abbreviation)),
-                UnitType::Volume(v) => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
+                UnitType::Mass { value: m, file_unit: u } => &format!("{}", m.into_format_args(u, Abbreviation)),
+                UnitType::Volume { value: v, file_unit: u } => &format!("{}", v.into_format_args(u, Abbreviation)),
             };
             step_list.push_str(format!("<li>{}: {}</li>", ingredient.name, unit_string).as_str());
         }
