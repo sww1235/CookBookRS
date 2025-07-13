@@ -21,7 +21,7 @@ use gix::{
 #[cfg(any(feature = "tui", feature = "wgui"))]
 use log::{info, trace, warn};
 
-use cookbook_core::datatypes::recipe::Recipe;
+use cookbook_core::datatypes::{recipe::Recipe, step::Step};
 
 //TODO: allow specification of alternate ingredients
 
@@ -474,6 +474,18 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
                                         panic!("Incorrect response to request for UpdateRecipeReq");
                                     }
                                 };
+                                // add step
+                                recipe.steps.push(Step::default());
+                                // keeping edit lock in place
+                                tx.send((i, ThreadMessage::EditedRecipe(recipe, true))).unwrap();
+                                let recipe = match rx.recv().unwrap() {
+                                    ThreadResponse::Recipe(recipe) => recipe,
+                                    x => {
+                                        trace!("{x:?}");
+                                        panic!("Incorrect response to request for EditedRecipe");
+                                    }
+                                };
+                                request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
                             }
                             // from recipe_editor
                             "/edit-step" => {
