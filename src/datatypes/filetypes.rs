@@ -8,30 +8,30 @@ use super::{equipment, ingredient, recipe, step};
 /// `Recipe` represents one recipe from start to finish
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Recipe {
-    /// database ID
+    /// Database ID
     pub id: Option<Uuid>,
-    /// short name of recipe
+    /// Short name of recipe
     pub name: String,
-    /// optional description
+    /// Optional description
     pub description: Option<String>,
-    /// recipe comments
+    /// Recipe comments
     pub comments: Option<String>,
-    /// recipe source
+    /// Recipe source
     pub source: String,
-    /// recipe author
+    /// Recipe author
     pub author: String,
-    /// amount made
+    /// Amount made
     pub amount_made: u64,
-    /// units for amount made.
+    /// Units for amount made.
     ///
-    /// Thse are not type checked at all and are treated as a base quantity internally.
+    /// These are not type checked at all and are treated as a base quantity internally.
     /// This is just a representation of the units to display.
     /// There may be a future addition that automatically calculates calories, or serving
     /// sizes based on calories.
     pub amount_made_units: String,
-    /// list of steps in recipe
+    /// List of steps in recipe
     pub steps: Vec<Step>,
-    /// tags
+    /// Tags
     pub tags: Vec<String>,
     //TODO: versions
     //TODO: maybe make comments a bit more formal, want to be able to record when recipe was last
@@ -41,11 +41,11 @@ pub struct Recipe {
 /// from a stove, to a microwave, to a stand mixer, to a potato peeler
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Equipment {
-    /// database unique ID
+    /// Database unique ID
     pub id: Uuid,
-    /// short name of item
+    /// Short name of item
     pub name: String,
-    /// longer description of item
+    /// Longer description of item
     pub description: Option<String>,
     /// If item is owned. Allows filtering out recipes that require equipment you don't own so you
     /// don't get half way through a recipe and realize it needs some specialized piece of
@@ -55,13 +55,13 @@ pub struct Equipment {
 /// `Ingredient` is a unique item that represents the quantity of a particular ingredient
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Ingredient {
-    /// database ID
+    /// Database ID
     pub id: Uuid,
-    /// ingredient short name
+    /// Ingredient short name
     pub name: String,
-    /// optional description
+    /// Optional description
     pub description: Option<String>,
-    /// quantity of ingredient
+    /// Quantity of ingredient
     pub unit_quantity: UnitType,
     //TODO: inventory reference
 }
@@ -89,9 +89,9 @@ impl Default for UnitType {
 /// `Step` represents a discrete step within a recipe
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Step {
-    /// database ID
+    /// Database ID
     pub id: Option<Uuid>,
-    /// time needed to perform this step in the recipe
+    /// Time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
     /// don't traditionally have durations associated
     /// Specified in seconds
@@ -101,9 +101,9 @@ pub struct Step {
     pub temperature: Option<Rational64>,
     /// instructions for step
     pub instructions: String,
-    /// ingredients used in this step
+    /// Ingredients used in this step
     pub ingredients: Option<Vec<Ingredient>>,
-    /// equipment used in this step
+    /// Equipment used in this step
     pub equipment: Option<Vec<Equipment>>,
     /// Step type
     #[allow(clippy::struct_field_names)]
