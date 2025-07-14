@@ -201,8 +201,11 @@ impl Recipe {
     /// - reading any of the individual recipes fails
     /// - the specified path is not a directory
     /// - [`OsStr`](std::ffi::OsStr) failed to parse to UTF-8
-    pub fn load_recipes_from_directory(dir: &Path) -> anyhow::Result<HashMap<Uuid, Self>> {
-        if dir.is_dir() {
+    pub fn load_recipes_from_directory<T>(dir: T) -> anyhow::Result<HashMap<Uuid, Self>>
+    where
+        T: AsRef<Path>,
+    {
+        if dir.as_ref().is_dir() {
             let mut recipes: HashMap<Uuid, Self> = HashMap::new();
             Self::load_recipes_from_directory_inner(dir, &mut recipes)?;
             //recipes.sort_unstable_by_key(|r| r.id);
@@ -210,13 +213,16 @@ impl Recipe {
         } else {
             Err(anyhow::Error::new(io::Error::new(
                 io::ErrorKind::NotADirectory,
-                format! {"Provided filepath not a directory {}", dir.display()},
+                format! {"Provided filepath not a directory {}", dir.as_ref().display()},
             )))
         }
     }
 
-    fn load_recipes_from_directory_inner(inner_dir: &Path, recipes: &mut HashMap<Uuid, Self>) -> anyhow::Result<()> {
-        let ext = match inner_dir.extension() {
+    fn load_recipes_from_directory_inner<T>(inner_dir: T, recipes: &mut HashMap<Uuid, Self>) -> anyhow::Result<()>
+    where
+        T: AsRef<Path>,
+    {
+        let ext = match inner_dir.as_ref().extension() {
             Some(ext) => match ext.to_str() {
                 Some(ext) => ext,
                 None => {
@@ -228,23 +234,23 @@ impl Recipe {
             },
             None => "",
         };
-        if inner_dir.is_file() && ext == "toml" {
-            let recipe = match Self::parse_recipe(inner_dir) {
+        if inner_dir.as_ref().is_file() && ext == "toml" {
+            let recipe = match Self::parse_recipe(inner_dir.as_ref()) {
                 Ok(r) => r,
                 Err(error) => {
                     return Err(anyhow::Error::new(io::Error::new(
                         io::ErrorKind::InvalidData,
-                        format! {"Parsing TOML file {} failed: {}", &inner_dir.display(), error},
+                        format! {"Parsing TOML file {} failed: {}", &inner_dir.as_ref().display(), error},
                     )));
                 }
             };
             recipes.insert(recipe.id, recipe);
             Ok(())
-        } else if inner_dir.is_dir() {
+        } else if inner_dir.as_ref().is_dir() {
             for entry in fs::read_dir(inner_dir)? {
                 let entry = entry?; // read_dir returns result
                 let path = entry.path();
-                Self::load_recipes_from_directory_inner(&path, recipes)?;
+                Self::load_recipes_from_directory_inner(path, recipes)?;
             }
             Ok(())
         } else {
@@ -253,7 +259,10 @@ impl Recipe {
         }
     }
 
-    fn parse_recipe(recipe_file: &Path) -> anyhow::Result<Self> {
+    fn parse_recipe<T>(recipe_file: T) -> anyhow::Result<Self>
+    where
+        T: AsRef<Path>,
+    {
         let contents = fs::read_to_string(recipe_file)?;
         let output: filetypes::Recipe = toml::from_str(contents.as_str())?;
         let mut output: Self = output.into();
@@ -263,7 +272,10 @@ impl Recipe {
         Ok(output)
     }
     /// `write_recipe` writes an individual recipe to a toml file
-    pub fn write_recipe(recipe: Recipe, out_path: &Path) -> anyhow::Result<()> {
+    pub fn write_recipe<T>(recipe: Recipe, out_path: T) -> anyhow::Result<()>
+    where
+        T: AsRef<Path>,
+    {
         let output = toml::to_string_pretty(&filetypes::Recipe::from(recipe))?;
         fs::write(out_path, output)?;
         Ok(())

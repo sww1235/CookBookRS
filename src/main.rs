@@ -101,7 +101,10 @@ fn main() -> anyhow::Result<()> {
 //
 // Also need a page for populating and viewing Ingredient database
 #[cfg(feature = "wgui")]
-fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()> {
+fn run_web_server<T>(input_dir: T, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()>
+where
+    T: AsRef<Path>,
+{
     // A lot of this borrowed from https://github.com/tomaka/example-tiny-http/blob/master/src/lib.rs
     // as the official multi-thread example is borked
     use std::collections::{HashMap, HashSet};
@@ -516,7 +519,7 @@ fn run_web_server(input_dir: &Path, addrs: SocketAddr, ssl_conf: Option<tiny_htt
 
 //TODO: add a status message box at the bottom of the window and log some errors to it
 #[cfg(feature = "tui")]
-fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()> {
+fn run_tui(input_dir: AsRef<Path>, recipe_repo: gix::Repository) -> anyhow::Result<()> {
     use cookbook_core::tui::{
         Tui,
         app::{self, App},
@@ -562,12 +565,15 @@ fn run_tui(input_dir: &Path, recipe_repo: gix::Repository) -> anyhow::Result<()>
     Ok(())
 }
 
-fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
+fn load_git_repo<T>(input_dir: T) -> anyhow::Result<gix::Repository>
+where
+    T: AsRef<Path>,
+{
     //TODO: need to verify all recipe files are tracked in git repo
     //
     // first try to load git repo if present
     let recipe_repo: gix::Repository;
-    match gix::discover(input_dir) {
+    match gix::discover(input_dir.as_ref()) {
         Ok(repo) => recipe_repo = repo,
         Err(e) => {
             match e {
@@ -578,7 +584,7 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
                         // if git repo is not detected, then prompt to create one.
                         // TODO: provide a command line argument to always create a git repo
                         let crate_name = clap::crate_name!();
-                        let path_string = input_dir.display();
+                        let path_string = input_dir.as_ref().display();
                         println!("Git repository not detected at path {path_string}.");
                         println!("This is required for the version tracking and orginization of the cookbook.");
                         println!(
@@ -630,7 +636,7 @@ fn load_git_repo(input_dir: &Path) -> anyhow::Result<gix::Repository> {
                         // if git repo is not detected, then prompt to create one.
                         // TODO: provide a command line argument to always create a git repo
                         let crate_name = clap::crate_name!();
-                        let path_string = input_dir.display();
+                        let path_string = input_dir.as_ref().display();
                         println!("Git repository not detected at path {path_string}.");
                         println!("This is required for the version tracking and orginization of the cookbook.");
                         println!(
