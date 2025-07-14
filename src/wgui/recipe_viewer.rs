@@ -57,8 +57,8 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
                     let unit_string = match ingredient.unit_quantity {
                         UnitType::Quantity(q) => &format!("{q}"),
                         //TODO: need to be able to specify which units to use for mass and volume
-                        UnitType::Mass(m) => &format!("{}", m.into_format_args(gram, Abbreviation)),
-                        UnitType::Volume(v) => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
+                        UnitType::Mass { value: m, unit: _ } => &format!("{}", m.into_format_args(gram, Abbreviation)),
+                        UnitType::Volume { value: v, unit: _ } => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
                     };
                     step_list.push_str(format!("<li>{}: {}</li>", ingredient.name, unit_string).as_str());
                 }
@@ -89,8 +89,8 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             let unit_string = match ingredient.unit_quantity {
                 UnitType::Quantity(q) => &format!("{q}"),
                 //TODO: need to be able to specify which units to use for mass and volume
-                UnitType::Mass(m) => &format!("{}", m.into_format_args(gram, Abbreviation)),
-                UnitType::Volume(v) => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
+                UnitType::Mass { value: m, unit: _ } => &format!("{}", m.into_format_args(gram, Abbreviation)),
+                UnitType::Volume { value: v, unit: _ } => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
             };
             step_list.push_str(format!("<li>{}: {}</li>", ingredient.name, unit_string).as_str());
         }

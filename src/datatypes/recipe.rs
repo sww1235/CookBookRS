@@ -159,7 +159,7 @@ impl Recipe {
             for ingredient in &step.ingredients {
                 if out.contains(ingredient) {
                     let mut new_ingredient = out.get(ingredient).unwrap().clone();
-                    new_ingredient.unit_quantity += ingredient.unit_quantity;
+                    new_ingredient.unit_quantity += ingredient.unit_quantity.clone();
                     out.remove(ingredient);
                     out.insert(new_ingredient);
                 } else {

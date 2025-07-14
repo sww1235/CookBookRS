@@ -2,13 +2,20 @@ use std::fmt;
 
 #[cfg(feature = "tui")]
 use num_derive::{FromPrimitive, ToPrimitive};
+use num_rational::Rational64;
 #[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
 use uom::si::{
     rational64::{TemperatureInterval, Time},
-    temperature_interval::degree_celsius,
-    time::second,
+    temperature_interval::{
+        centikelvin, decakelvin, decikelvin, degree_celsius, degree_fahrenheit, degree_rankine, gigakelvin, hectokelvin, kelvin,
+        kilokelvin, megakelvin, microkelvin, millikelvin, nanokelvin, picokelvin, terakelvin,
+    },
+    time::{
+        centisecond, day, decasecond, decisecond, gigasecond, hectosecond, hour, kilosecond, megasecond, microsecond,
+        millisecond, minute, nanosecond, picosecond, second, terasecond, year,
+    },
 };
 use uuid::Uuid;
 
@@ -36,11 +43,17 @@ pub struct Step {
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
     #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub time_needed: Option<Time>,
+    /// Units for time_needed.
+    #[cfg_attr(feature = "tui", cookbook(skip))]
+    pub time_needed_unit: Option<String>,
     /// cook temperature. Optional for steps that don't involve temperature or cooking
     #[cfg_attr(feature = "tui", cookbook(display_order = 1))]
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Length"))]
     #[cfg_attr(feature = "tui", cookbook(constraint_value = 3))]
     pub temperature: Option<TemperatureInterval>,
+    /// Units for temperature.
+    #[cfg_attr(feature = "tui", cookbook(skip))]
+    pub temperature_unit: Option<String>,
     /// instructions for step
     #[cfg_attr(feature = "tui", cookbook(display_order = 2))]
     #[cfg_attr(feature = "tui", cookbook(constraint_type = "Min"))]
@@ -126,8 +139,14 @@ impl From<filetypes::Step> for Step {
     fn from(input: filetypes::Step) -> Self {
         Self {
             id: input.id,
-            time_needed: input.time_needed.map(Time::new::<second>),
-            temperature: input.temperature.map(TemperatureInterval::new::<degree_celsius>),
+            time_needed: input
+                .time_needed
+                .map(|x| time_unit_parser(x, &input.time_needed_unit.clone().unwrap_or("placeholder".to_string()))),
+            time_needed_unit: input.time_needed_unit,
+            temperature: input
+                .temperature
+                .map(|x| temp_interval_unit_parser(x, &input.temperature_unit.clone().unwrap_or("placeholder".to_string()))),
+            temperature_unit: input.temperature_unit,
             instructions: input.instructions,
             ingredients: if input.ingredients.is_some() {
                 input.ingredients.unwrap().into_iter().map(Into::into).collect()
@@ -152,5 +171,53 @@ impl From<filetypes::StepType> for StepType {
             filetypes::StepType::Wait => Self::Wait,
             filetypes::StepType::Other => Self::Other,
         }
+    }
+}
+
+/// takes in a value and unit string and returns a `uom` time value.
+fn time_unit_parser(value: Rational64, unit_string: &str) -> Time {
+    match unit_string {
+        "Ts" => Time::new::<terasecond>(value),
+        "Gs" => Time::new::<gigasecond>(value),
+        "Ms" => Time::new::<megasecond>(value),
+        "ks" => Time::new::<kilosecond>(value),
+        "hs" => Time::new::<hectosecond>(value),
+        "das" => Time::new::<decasecond>(value),
+        "s" => Time::new::<second>(value),
+        "ds" => Time::new::<decisecond>(value),
+        "cs" => Time::new::<centisecond>(value),
+        "ms" => Time::new::<millisecond>(value),
+        "µs" => Time::new::<microsecond>(value),
+        "ns" => Time::new::<nanosecond>(value),
+        "ps" => Time::new::<picosecond>(value),
+        "d" => Time::new::<day>(value),
+        "h" => Time::new::<hour>(value),
+        "min" => Time::new::<minute>(value),
+        "a" => Time::new::<year>(value),
+        "placeholder" => panic!("Unit not specified for time_needed"),
+        x => panic!("{x} not recognized as a supported time unit abbreviation"),
+    }
+}
+
+fn temp_interval_unit_parser(value: Rational64, unit_string: &str) -> TemperatureInterval {
+    match unit_string {
+        "TK" => TemperatureInterval::new::<terakelvin>(value),
+        "GK" => TemperatureInterval::new::<gigakelvin>(value),
+        "MK" => TemperatureInterval::new::<megakelvin>(value),
+        "kK" => TemperatureInterval::new::<kilokelvin>(value),
+        "hK" => TemperatureInterval::new::<hectokelvin>(value),
+        "daK" => TemperatureInterval::new::<decakelvin>(value),
+        "K" => TemperatureInterval::new::<kelvin>(value),
+        "dK" => TemperatureInterval::new::<decikelvin>(value),
+        "cK" => TemperatureInterval::new::<centikelvin>(value),
+        "mK" => TemperatureInterval::new::<millikelvin>(value),
+        "µK" => TemperatureInterval::new::<microkelvin>(value),
+        "nK" => TemperatureInterval::new::<nanokelvin>(value),
+        "pK" => TemperatureInterval::new::<picokelvin>(value),
+        "°C" => TemperatureInterval::new::<degree_celsius>(value),
+        "°F" => TemperatureInterval::new::<degree_fahrenheit>(value),
+        "°R" => TemperatureInterval::new::<degree_rankine>(value),
+        "placeholder" => panic!("Unit not specified for temperature"),
+        x => panic!("{x} not recognized as a supported temperature interval abbreviation"),
     }
 }

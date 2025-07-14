@@ -70,15 +70,15 @@ pub struct Ingredient {
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum UnitType {
     /// Represents a count or physical quantity of an `Ingredient`:
     /// Ex: 30 chocolate chips, 5 bananas, 10 carrots etc.
     Quantity(Rational64),
-    /// Mass of an `Ingredient`, specified in grams
-    Mass(Rational64),
-    /// Volume of an `Ingredent`, specified in m^3
-    Volume(Rational64),
+    /// Mass of an `Ingredient`. Unit specified with abbreviation
+    Mass { value: Rational64, unit: String },
+    /// Volume of an `Ingredent`. Unit specified with abbreviation
+    Volume { value: Rational64, unit: String },
 }
 
 impl Default for UnitType {
@@ -93,13 +93,16 @@ pub struct Step {
     pub id: Option<Uuid>,
     /// Time needed to perform this step in the recipe
     /// Optional for informational steps, or steps that
-    /// don't traditionally have durations associated
-    /// Specified in seconds
+    /// don't traditionally have durations associated.
     pub time_needed: Option<Rational64>,
-    /// cook temperature. Optional for steps that don't involve temperature or cooking
+    /// Units for time_needed.
+    pub time_needed_unit: Option<String>,
+    /// Cook temperature. Optional for steps that don't involve temperature or cooking
     /// Specified in K
     pub temperature: Option<Rational64>,
-    /// instructions for step
+    /// Units for temperature.
+    pub temperature_unit: Option<String>,
+    /// Instructions for step
     pub instructions: String,
     /// Ingredients used in this step
     pub ingredients: Option<Vec<Ingredient>>,
@@ -147,8 +150,12 @@ impl From<step::Step> for Step {
     fn from(input: step::Step) -> Self {
         Self {
             id: input.id,
+            //TODO: need to fix this so it outputs in file_units
             time_needed: input.time_needed.map(|tn| tn.get::<second>()),
+            time_needed_unit: input.time_needed_unit,
+            //TODO: need to fix this so it outputs in file_units
             temperature: input.temperature.map(|t| t.get::<degree_celsius>()),
+            temperature_unit: input.temperature_unit,
             instructions: input.instructions,
             ingredients: if input.ingredients.is_empty() {
                 None
@@ -202,8 +209,16 @@ impl From<ingredient::UnitType> for UnitType {
     fn from(input: ingredient::UnitType) -> Self {
         match input {
             ingredient::UnitType::Quantity(q) => Self::Quantity(q),
-            ingredient::UnitType::Mass(m) => Self::Mass(m.get::<gram>()),
-            ingredient::UnitType::Volume(v) => Self::Volume(v.get::<cubic_meter>()),
+            //TODO: need to fix this so it outputs in file_units
+            ingredient::UnitType::Mass { value: m, unit: u } => Self::Mass {
+                value: m.get::<gram>(),
+                unit: u,
+            },
+            //TODO: need to fix this so it outputs in file_units
+            ingredient::UnitType::Volume { value: v, unit: u } => Self::Volume {
+                value: v.get::<cubic_meter>(),
+                unit: u,
+            },
         }
     }
 }
