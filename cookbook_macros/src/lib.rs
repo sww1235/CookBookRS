@@ -112,8 +112,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             if secondary_meta.path.is_ident("state_struct") {
                                 match secondary_meta.value() {
                                     Ok(value) => {
-                                        //TODO: refactor to use if-let chains once they are
-                                        //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
                                             return Err(secondary_meta.error(
                                                 "The `cookbook(state_struct)` attribute must be set equal to a literal value",
@@ -186,7 +184,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                                 // if the = is not present.
                                 match secondary_meta.value() {
                                     Ok(value) => {
-                                        //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
                                             return Err(secondary_meta.error("The `cookbook(display_order)` attribute must be set equal to a literal value"));
@@ -246,7 +243,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             } else if secondary_meta.path.is_ident("constraint_value") {
                                 match secondary_meta.value() {
                                     Ok(value) => {
-                                        //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
                                             return Err(secondary_meta.error("The `cookbook(constraint_value)` attribute must be set equal to a literal value"));
@@ -263,7 +259,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             } else if secondary_meta.path.is_ident("display_widget") {
                                 match secondary_meta.value() {
                                     Ok(value) => {
-                                        //TODO: refactor to use if-let chains once they are
                                         //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
                                             return Err(secondary_meta.error("The `cookbook(display_widget)` attribute must be set equal to a literal value"));
@@ -282,8 +277,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             } else if secondary_meta.path.is_ident("display_widget_state") {
                                 match secondary_meta.value() {
                                     Ok(value) => {
-                                        //TODO: refactor to use if-let chains once they are
-                                        //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
                                             return Err(secondary_meta.error("The `cookbook(display_widget_state)` attribute must be set equal to a literal value"));
                                         };
@@ -346,8 +339,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             } else if secondary_meta.path.is_ident("left_field_title") {
                                 match secondary_meta.value() {
                                     Ok(value) => {
-                                        //TODO: refactor to use if-let chains once they are
-                                        //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
                                             return Err(secondary_meta.error("The `cookbook(left_field_title)` attribute must be set equal to a literal value"));
                                         };
@@ -363,8 +354,6 @@ fn widget_ref_expand(input: DeriveInput, stateful: bool) -> syn::Result<TokenStr
                             } else if secondary_meta.path.is_ident("right_field_title") {
                                 match secondary_meta.value() {
                                     Ok(value) => {
-                                        //TODO: refactor to use if-let chains once they are
-                                        //stablized
                                         let Expr::Lit(ref lit) = value.parse()? else {
                                             return Err(secondary_meta.error("The `cookbook(right_field_title)` attribute must be set equal to a literal value"));
                                         };
