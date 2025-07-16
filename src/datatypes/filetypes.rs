@@ -63,6 +63,7 @@ pub struct Ingredient {
     /// Quantity of ingredient
     pub unit_quantity: UnitType,
     //TODO: inventory reference
+    //TODO: allow ingredient to be marked as optional
 }
 
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than

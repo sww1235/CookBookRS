@@ -18,4 +18,4 @@ mod filetypes;
 
 /// functions to help work around issues with uom crate
 /// not easily supporting selectable input and output units
-mod unit_helper;
+pub(super) mod unit_helper;

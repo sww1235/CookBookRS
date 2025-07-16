@@ -43,7 +43,7 @@ tags = ["tag1", "tag2"]
 [[steps]]
 id = '628c0a92-44e4-4d92-93b1-21c3aa391592'
 # Optional. Specified as rational number (fraction). Numerator over Denominator.
-# Numerator and Denominator must each fit within a u64.
+# Numerator and Denominator must each fit within a i64.
 # 5 minutes as an example
 time_needed = [5,1]
 # Optional. Units for time_needed. Must be specified if time_needed is specified.
@@ -52,7 +52,7 @@ time_needed = [5,1]
 # Run this program with the --print-units option to see all supported units and their abbreviations.
 time_needed_unit = "m"
 # Optional. Specified as rational number (fraction). Numerator over Denominator.
-# Numerator and Denominator must each fit within a u64.
+# Numerator and Denominator must each fit within a i64.
 # 400.2°C as an example
 temperature = [2001,5]
 # Optional. Units for temperature. Must be specified if temperature is specified.
@@ -75,7 +75,7 @@ description = "This is a description."
 # for example purposes only
 #
 # Each value here is specified as rational number (fraction). Numerator over Denominator.
-# Numerator and Denominator must each fit within a u64.
+# Numerator and Denominator must each fit within a i64.
 #
 # Units for Volume and Mass are specified as abbreviations. Abbreviations follow NIST and SI standards.
 # Only Volume units can be specified for Volume and Only Mass units can be specified for Mass.

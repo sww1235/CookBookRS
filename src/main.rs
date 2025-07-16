@@ -284,8 +284,9 @@ where
         let tags = tags.clone();
         let tx = tx.clone();
         let rx = rx_channels.pop().unwrap();
+        let builder = thread::Builder::new().name(i.to_string());
 
-        join_guards.push(thread::spawn(move || {
+        join_guards.push(builder.spawn(move || {
             loop {
                 let server = server.clone();
                 let tags = tags.clone();
@@ -324,11 +325,10 @@ where
                                 // this data comes from the browse page
                                 let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
                                 if form_data.contains_key("recipe_list") {
-                                    tx.send((
-                                        i,
-                                        ThreadMessage::RecipeRO(Uuid::parse_str(form_data["recipe_list"].as_str()).unwrap()),
-                                    ))
-                                    .unwrap();
+                                    let uuid_string = form_data["recipe_list"].as_str();
+                                    trace!("Attempting to view recipe with UUID: {uuid_string}");
+                                    tx.send((i, ThreadMessage::RecipeRO(Uuid::parse_str(uuid_string).unwrap())))
+                                        .unwrap();
                                     let recipe = match rx.recv().unwrap() {
                                         ThreadResponse::Recipe(recipe) => recipe,
                                         _ => panic!("Incorrect response to request for RecipeRO"),
@@ -510,7 +510,7 @@ where
                     }
                 }
             }
-        }));
+        })?);
     }
     //TODO: figure out how to fix this with iterator syntax
     for g in join_guards {
