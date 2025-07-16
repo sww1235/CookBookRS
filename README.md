@@ -42,10 +42,24 @@ tags = ["tag1", "tag2"]
 
 [[steps]]
 id = '628c0a92-44e4-4d92-93b1-21c3aa391592'
-# Optional. Specified in Seconds.
-time_needed = 300.5
-# Optional. Specified in Degrees Centigrade
-temperature = 400.2
+# Optional. Specified as rational number (fraction). Numerator over Denominator.
+# Numerator and Denominator must each fit within a u64.
+# 5 minutes as an example
+time_needed = [5,1]
+# Optional. Units for time_needed. Must be specified if time_needed is specified.
+# Specified with abbreviations only. Abbreviations follow NIST and SI standards.
+# Only time units can be specified here.
+# Run this program with the --print-units option to see all supported units and their abbreviations.
+time_needed_unit = "m"
+# Optional. Specified as rational number (fraction). Numerator over Denominator.
+# Numerator and Denominator must each fit within a u64.
+# 400.2°C as an example
+temperature = [2001,5]
+# Optional. Units for temperature. Must be specified if temperature is specified.
+# Specified with abbreviations only. Abbreviations follow NIST and SI standards.
+# Only temperature units can be specified here.
+# Run this program with the --print-units option to see all supported units and their abbreviations.
+temperature_unit = "°C"
 instructions = "Example Step Instructions"
 # Step Type should be selected from the following list: ["Prep", "Cook", "Wait", "Other"].
 step_type = "Other"
@@ -57,13 +71,25 @@ id = '03f5f051-fbe4-494c-ba97-88ed914a5b1b'
 name = "Ingredient Name"
 # Optional. This supports newlines so a multi-line string is acceptable here
 description = "This is a description."
-
-# Only specify one of Quantity, Mass or Volume
+# Only specify one of Quantity, Mass or Volume. Option showed more than once here
+# for example purposes only
+#
+# Each value here is specified as rational number (fraction). Numerator over Denominator.
+# Numerator and Denominator must each fit within a u64.
+#
+# Units for Volume and Mass are specified as abbreviations. Abbreviations follow NIST and SI standards.
+# Only Volume units can be specified for Volume and Only Mass units can be specified for Mass.
+# Run this program with the --print-units option to see all supported units and their abbreviations.
+#
 # Quantity represents a count or physical quantity of an Ingredient
 # Ex: 30 chocolate chips
-# Mass represents the mass of an Ingredient, specified in grams
-# Volume represents the volume of an Ingredient, specified in m^3
-unit_quantity = {Quantity = 25.4}
+# Mass represents the mass of an Ingredient
+# Volume represents the volume of an Ingredient
+unit_quantity = {Quantity = [127,5]} #25.4
+# OR
+unit_quantity = {Volume.value = [2,3], Volume.unit = "cup"}
+# OR
+unit_quantity = {Mass.value = [5,1], Mass.unit = "g"}
 
 # repeat this for each piece of equipment in a step
 [[steps.equipment]]

@@ -57,6 +57,11 @@ fn main() -> anyhow::Result<()> {
 
     // TODO: parse config file
 
+    if cli.print_units {
+        todo!()
+        // TODO: print all supported unit abbreviations
+    }
+
     // either use directory passed in or current directory
     let cwd = std::env::current_dir();
     let input_dir = match cli.input_directory {
@@ -747,6 +752,10 @@ struct Cli {
     /// Check recipe files for errors or bad formatting
     #[arg(short, long)]
     print_recipe_files: bool,
+    /// Print Units and Abbreviations that can be used in
+    /// recipe files
+    #[arg(long)]
+    print_units: bool,
     // Export complete PDF
     //#[arg(short, long)]
     //export_pdf: bool,
