@@ -128,12 +128,15 @@ impl From<filetypes::Step> for Step {
     fn from(input: filetypes::Step) -> Self {
         Self {
             id: input.id,
-            time_needed: input
-                .time_needed
-                .map(|x| unit_helper::time_unit_parser(x, &input.time_needed_unit.clone().unwrap_or("placeholder".to_string()))),
+            time_needed: input.time_needed.map(|x| {
+                unit_helper::time_unit_input_parser(x, &input.time_needed_unit.clone().unwrap_or("placeholder".to_string()))
+            }),
             time_needed_unit: input.time_needed_unit,
             temperature: input.temperature.map(|x| {
-                unit_helper::temp_interval_unit_parser(x, &input.temperature_unit.clone().unwrap_or("placeholder".to_string()))
+                unit_helper::temp_interval_unit_input_parser(
+                    x,
+                    &input.temperature_unit.clone().unwrap_or("placeholder".to_string()),
+                )
             }),
             temperature_unit: input.temperature_unit,
             instructions: input.instructions,

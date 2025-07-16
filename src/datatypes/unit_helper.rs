@@ -24,7 +24,7 @@ use uom::si::{
 };
 
 /// takes in a value and unit string and returns a `[uom::si::Time]` value.
-pub fn time_unit_parser(value: Rational64, unit_string: &str) -> Time {
+pub fn time_unit_input_parser(value: Rational64, unit_string: &str) -> Time {
     match unit_string {
         "Ts" => Time::new::<terasecond>(value),
         "Gs" => Time::new::<gigasecond>(value),
@@ -48,8 +48,34 @@ pub fn time_unit_parser(value: Rational64, unit_string: &str) -> Time {
     }
 }
 
+/// takes in a `[uom::si::Time]` value and unit string and returns the raw value at the
+/// specified unit for display or output to file.
+pub fn time_unit_output_parser(value: Time, unit_string: &str) -> Rational64 {
+    match unit_string {
+        "Ts" => value.get::<terasecond>(),
+        "Gs" => value.get::<gigasecond>(),
+        "Ms" => value.get::<megasecond>(),
+        "ks" => value.get::<kilosecond>(),
+        "hs" => value.get::<hectosecond>(),
+        "das" => value.get::<decasecond>(),
+        "s" => value.get::<second>(),
+        "ds" => value.get::<decisecond>(),
+        "cs" => value.get::<centisecond>(),
+        "ms" => value.get::<millisecond>(),
+        "µs" => value.get::<microsecond>(),
+        "ns" => value.get::<nanosecond>(),
+        "ps" => value.get::<picosecond>(),
+        "d" => value.get::<day>(),
+        "h" => value.get::<hour>(),
+        "min" => value.get::<minute>(),
+        "a" => value.get::<year>(),
+        "placeholder" => panic!("Unit not specified for time_needed"),
+        x => panic!("{x} not recognized as a supported time unit abbreviation"),
+    }
+}
+
 /// takes a value and unit string and returns a `[uom::si::TemperatureInterval]` value.
-pub fn temp_interval_unit_parser(value: Rational64, unit_string: &str) -> TemperatureInterval {
+pub fn temp_interval_unit_input_parser(value: Rational64, unit_string: &str) -> TemperatureInterval {
     match unit_string {
         "TK" => TemperatureInterval::new::<terakelvin>(value),
         "GK" => TemperatureInterval::new::<gigakelvin>(value),
@@ -72,8 +98,33 @@ pub fn temp_interval_unit_parser(value: Rational64, unit_string: &str) -> Temper
     }
 }
 
+/// takes a `[uom::si::TemperatureInterval]` and unit string and returns the raw value at the
+/// specified unit for display or output to file.
+pub fn temp_interval_unit_output_parser(value: TemperatureInterval, unit_string: &str) -> Rational64 {
+    match unit_string {
+        "TK" => value.get::<terakelvin>(),
+        "GK" => value.get::<gigakelvin>(),
+        "MK" => value.get::<megakelvin>(),
+        "kK" => value.get::<kilokelvin>(),
+        "hK" => value.get::<hectokelvin>(),
+        "daK" => value.get::<decakelvin>(),
+        "K" => value.get::<kelvin>(),
+        "dK" => value.get::<decikelvin>(),
+        "cK" => value.get::<centikelvin>(),
+        "mK" => value.get::<millikelvin>(),
+        "µK" => value.get::<microkelvin>(),
+        "nK" => value.get::<nanokelvin>(),
+        "pK" => value.get::<picokelvin>(),
+        "°C" => value.get::<degree_celsius>(),
+        "°F" => value.get::<degree_fahrenheit>(),
+        "°R" => value.get::<degree_rankine>(),
+        "placeholder" => panic!("Unit not specified for temperature"),
+        x => panic!("{x} not recognized as a supported temperature interval abbreviation"),
+    }
+}
+
 /// takes a value and unit string and returns a `[uom::si::Mass]` value.
-pub fn mass_unit_parser(value: Rational64, unit_string: &str) -> Mass {
+pub fn mass_unit_input_parser(value: Rational64, unit_string: &str) -> Mass {
     match unit_string {
         "Tg" => Mass::new::<teragram>(value),
         "Gg" => Mass::new::<gigagram>(value),
@@ -95,8 +146,32 @@ pub fn mass_unit_parser(value: Rational64, unit_string: &str) -> Mass {
     }
 }
 
+/// takes a `[uom::si::Mass]` value and unit string and returns the raw value at the
+/// specified unit for display or output to file.
+pub fn mass_unit_output_parser(value: Mass, unit_string: &str) -> Rational64 {
+    match unit_string {
+        "Tg" => value.get::<teragram>(),
+        "Gg" => value.get::<gigagram>(),
+        "Mg" => value.get::<megagram>(),
+        "kg" => value.get::<kilogram>(),
+        "hg" => value.get::<hectogram>(),
+        "dag" => value.get::<decagram>(),
+        "g" => value.get::<gram>(),
+        "dg" => value.get::<decigram>(),
+        "cg" => value.get::<centigram>(),
+        "mg" => value.get::<milligram>(),
+        "µg" => value.get::<microgram>(),
+        "ng" => value.get::<nanogram>(),
+        "pg" => value.get::<picogram>(),
+        "oz" => value.get::<ounce>(),
+        "lb" => value.get::<pound>(),
+        "placeholder" => panic!("Unit not specified for ingredient mass"),
+        x => panic!("{x} not recognized as a supported mass unit abbreviation"),
+    }
+}
+
 /// takes a value and unit string and returns a `[uom::si::Volume]` value.
-pub fn volume_unit_parser(value: Rational64, unit_string: &str) -> Volume {
+pub fn volume_unit_input_parser(value: Rational64, unit_string: &str) -> Volume {
     match unit_string {
         "Tm³" => Volume::new::<cubic_terameter>(value),
         "Gm³" => Volume::new::<cubic_gigameter>(value),
@@ -146,6 +221,63 @@ pub fn volume_unit_parser(value: Rational64, unit_string: &str) -> Volume {
         "liq qt" => Volume::new::<quart_liquid>(value),
         "tbsp" => Volume::new::<tablespoon>(value),
         "tsp" => Volume::new::<teaspoon>(value),
+        "placeholder" => panic!("Unit not specified for ingredient mass"),
+        x => panic!("{x} not recognized as a supported mass unit abbreviation"),
+    }
+}
+
+/// takes a `[uom::si::Volume]` value and unit string and returns the raw value at the
+/// specified unit for display or output to file.
+pub fn volume_unit_output_parser(value: Volume, unit_string: &str) -> Rational64 {
+    match unit_string {
+        "Tm³" => value.get::<cubic_terameter>(),
+        "Gm³" => value.get::<cubic_gigameter>(),
+        "Mm³" => value.get::<cubic_megameter>(),
+        "km³" => value.get::<cubic_kilometer>(),
+        "hm³" => value.get::<cubic_hectometer>(),
+        "dam³" => value.get::<cubic_decameter>(),
+        "m³" => value.get::<cubic_meter>(),
+        "dm³" => value.get::<cubic_decimeter>(),
+        "cm³" => value.get::<cubic_centimeter>(),
+        "mm³" => value.get::<cubic_millimeter>(),
+        "µm³" => value.get::<cubic_micrometer>(),
+        "nm³" => value.get::<cubic_nanometer>(),
+        "pm³" => value.get::<cubic_picometer>(),
+        "ac · ft" => value.get::<acre_foot>(),
+        "bbl" => value.get::<barrel>(),
+        "bu" => value.get::<bushel>(),
+        "cords" => value.get::<cord>(),
+        "ft³" => value.get::<cubic_foot>(),
+        "in³" => value.get::<cubic_inch>(),
+        "mi³" => value.get::<cubic_mile>(),
+        "yd³" => value.get::<cubic_yard>(),
+        "cup" => value.get::<cup>(),
+        "fl oz" => value.get::<fluid_ounce>(),
+        "fl oz (UK)" => value.get::<fluid_ounce_imperial>(),
+        "gal (UK)" => value.get::<gallon_imperial>(),
+        "gal" => value.get::<gallon>(),
+        "gi (UK)" => value.get::<gill_imperial>(),
+        "gi" => value.get::<gill>(),
+        "TL" => value.get::<teraliter>(),
+        "GL" => value.get::<gigaliter>(),
+        "ML" => value.get::<megaliter>(),
+        "kL" => value.get::<kiloliter>(),
+        "hL" => value.get::<hectoliter>(),
+        "daL" => value.get::<decaliter>(),
+        "L" => value.get::<liter>(),
+        "dL" => value.get::<deciliter>(),
+        "cL" => value.get::<centiliter>(),
+        "mL" => value.get::<milliliter>(),
+        "µL" => value.get::<microliter>(),
+        "nL" => value.get::<nanoliter>(),
+        "pL" => value.get::<picoliter>(),
+        "pk" => value.get::<peck>(),
+        "dry pt" => value.get::<pint_dry>(),
+        "liq pt" => value.get::<pint_liquid>(),
+        "dry qt" => value.get::<quart_dry>(),
+        "liq qt" => value.get::<quart_liquid>(),
+        "tbsp" => value.get::<tablespoon>(),
+        "tsp" => value.get::<teaspoon>(),
         "placeholder" => panic!("Unit not specified for ingredient mass"),
         x => panic!("{x} not recognized as a supported mass unit abbreviation"),
     }

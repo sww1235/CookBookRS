@@ -146,11 +146,11 @@ impl From<filetypes::UnitType> for UnitType {
         match input {
             filetypes::UnitType::Quantity(q) => Self::Quantity(q),
             filetypes::UnitType::Mass { value: m, unit: u } => Self::Mass {
-                value: unit_helper::mass_unit_parser(m, u.as_str()),
+                value: unit_helper::mass_unit_input_parser(m, u.as_str()),
                 unit: u,
             },
             filetypes::UnitType::Volume { value: v, unit: u } => Self::Volume {
-                value: unit_helper::volume_unit_parser(v, u.as_str()),
+                value: unit_helper::volume_unit_input_parser(v, u.as_str()),
                 unit: u,
             },
         }

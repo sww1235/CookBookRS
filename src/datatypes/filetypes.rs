@@ -1,9 +1,8 @@
 use num_rational::Rational64;
 use serde::{Deserialize, Serialize};
-use uom::si::{mass::gram, temperature_interval::degree_celsius, time::second, volume::cubic_meter};
 use uuid::Uuid;
 
-use super::{equipment, ingredient, recipe, step};
+use super::{equipment, ingredient, recipe, step, unit_helper};
 
 /// `Recipe` represents one recipe from start to finish
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -66,7 +65,6 @@ pub struct Ingredient {
     //TODO: inventory reference
 }
 
-//TODO: allow specifying alternate units
 /// `UnitType` handles different unit types for an ingredient and allows flexibility rather than
 /// needing to have 1 ingredient type per unit type
 #[non_exhaustive]
@@ -150,11 +148,27 @@ impl From<step::Step> for Step {
     fn from(input: step::Step) -> Self {
         Self {
             id: input.id,
-            //TODO: need to fix this so it outputs in file_units
-            time_needed: input.time_needed.map(|tn| tn.get::<second>()),
+            time_needed: input.time_needed.map(|tn| {
+                unit_helper::time_unit_output_parser(
+                    tn,
+                    input
+                        .time_needed_unit
+                        .clone()
+                        .expect("time_needed value specified without unit")
+                        .as_ref(),
+                )
+            }),
             time_needed_unit: input.time_needed_unit,
-            //TODO: need to fix this so it outputs in file_units
-            temperature: input.temperature.map(|t| t.get::<degree_celsius>()),
+            temperature: input.temperature.map(|t| {
+                unit_helper::temp_interval_unit_output_parser(
+                    t,
+                    input
+                        .temperature_unit
+                        .clone()
+                        .expect("temperature value specified without unit")
+                        .as_ref(),
+                )
+            }),
             temperature_unit: input.temperature_unit,
             instructions: input.instructions,
             ingredients: if input.ingredients.is_empty() {
@@ -209,14 +223,12 @@ impl From<ingredient::UnitType> for UnitType {
     fn from(input: ingredient::UnitType) -> Self {
         match input {
             ingredient::UnitType::Quantity(q) => Self::Quantity(q),
-            //TODO: need to fix this so it outputs in file_units
             ingredient::UnitType::Mass { value: m, unit: u } => Self::Mass {
-                value: m.get::<gram>(),
+                value: unit_helper::mass_unit_output_parser(m, u.as_ref()),
                 unit: u,
             },
-            //TODO: need to fix this so it outputs in file_units
             ingredient::UnitType::Volume { value: v, unit: u } => Self::Volume {
-                value: v.get::<cubic_meter>(),
+                value: unit_helper::volume_unit_output_parser(v, u.as_ref()),
                 unit: u,
             },
         }
