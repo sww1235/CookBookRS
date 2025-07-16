@@ -8,27 +8,13 @@ use ranged_wrapping::RangedWrapping;
 #[cfg(feature = "tui")]
 use ratatui::{style::Stylize, widgets::Widget};
 use serde::Serialize;
-use uom::si::{
-    mass::{
-        centigram, decagram, decigram, gigagram, gram, hectogram, kilogram, megagram, microgram, milligram, nanogram, ounce,
-        picogram, pound, teragram,
-    },
-    rational64::{Mass, Volume},
-    volume::{
-        acre_foot, barrel, bushel, centiliter, cord, cubic_centimeter, cubic_decameter, cubic_decimeter, cubic_foot,
-        cubic_gigameter, cubic_hectometer, cubic_inch, cubic_kilometer, cubic_megameter, cubic_meter, cubic_micrometer,
-        cubic_mile, cubic_millimeter, cubic_nanometer, cubic_picometer, cubic_terameter, cubic_yard, cup, decaliter, deciliter,
-        fluid_ounce, fluid_ounce_imperial, gallon, gallon_imperial, gigaliter, gill, gill_imperial, hectoliter, kiloliter, liter,
-        megaliter, microliter, milliliter, nanoliter, peck, picoliter, pint_dry, pint_liquid, quart_dry, quart_liquid,
-        tablespoon, teaspoon, teraliter,
-    },
-};
+use uom::si::rational64::{Mass, Volume};
 use uuid::Uuid;
 
 #[cfg(feature = "tui")]
 use cookbook_macros::{StatefulWidgetRef, WidgetRef};
 
-use super::filetypes;
+use super::{filetypes, unit_helper};
 
 //let unit_block = Block::default()
 //    .borders(Borders::ALL)
@@ -160,90 +146,13 @@ impl From<filetypes::UnitType> for UnitType {
         match input {
             filetypes::UnitType::Quantity(q) => Self::Quantity(q),
             filetypes::UnitType::Mass { value: m, unit: u } => Self::Mass {
-                value: mass_unit_parser(m, u.as_str()),
+                value: unit_helper::mass_unit_parser(m, u.as_str()),
                 unit: u,
             },
             filetypes::UnitType::Volume { value: v, unit: u } => Self::Volume {
-                value: volume_unit_parser(v, u.as_str()),
+                value: unit_helper::volume_unit_parser(v, u.as_str()),
                 unit: u,
             },
         }
-    }
-}
-
-fn mass_unit_parser(value: Rational64, unit_string: &str) -> Mass {
-    match unit_string {
-        "Tg" => Mass::new::<teragram>(value),
-        "Gg" => Mass::new::<gigagram>(value),
-        "Mg" => Mass::new::<megagram>(value),
-        "kg" => Mass::new::<kilogram>(value),
-        "hg" => Mass::new::<hectogram>(value),
-        "dag" => Mass::new::<decagram>(value),
-        "g" => Mass::new::<gram>(value),
-        "dg" => Mass::new::<decigram>(value),
-        "cg" => Mass::new::<centigram>(value),
-        "mg" => Mass::new::<milligram>(value),
-        "µg" => Mass::new::<microgram>(value),
-        "ng" => Mass::new::<nanogram>(value),
-        "pg" => Mass::new::<picogram>(value),
-        "oz" => Mass::new::<ounce>(value),
-        "lb" => Mass::new::<pound>(value),
-        "placeholder" => panic!("Unit not specified for ingredient mass"),
-        x => panic!("{x} not recognized as a supported mass unit abbreviation"),
-    }
-}
-
-fn volume_unit_parser(value: Rational64, unit_string: &str) -> Volume {
-    match unit_string {
-        "Tm³" => Volume::new::<cubic_terameter>(value),
-        "Gm³" => Volume::new::<cubic_gigameter>(value),
-        "Mm³" => Volume::new::<cubic_megameter>(value),
-        "km³" => Volume::new::<cubic_kilometer>(value),
-        "hm³" => Volume::new::<cubic_hectometer>(value),
-        "dam³" => Volume::new::<cubic_decameter>(value),
-        "m³" => Volume::new::<cubic_meter>(value),
-        "dm³" => Volume::new::<cubic_decimeter>(value),
-        "cm³" => Volume::new::<cubic_centimeter>(value),
-        "mm³" => Volume::new::<cubic_millimeter>(value),
-        "µm³" => Volume::new::<cubic_micrometer>(value),
-        "nm³" => Volume::new::<cubic_nanometer>(value),
-        "pm³" => Volume::new::<cubic_picometer>(value),
-        "ac · ft" => Volume::new::<acre_foot>(value),
-        "bbl" => Volume::new::<barrel>(value),
-        "bu" => Volume::new::<bushel>(value),
-        "cords" => Volume::new::<cord>(value),
-        "ft³" => Volume::new::<cubic_foot>(value),
-        "in³" => Volume::new::<cubic_inch>(value),
-        "mi³" => Volume::new::<cubic_mile>(value),
-        "yd³" => Volume::new::<cubic_yard>(value),
-        "cup" => Volume::new::<cup>(value),
-        "fl oz" => Volume::new::<fluid_ounce>(value),
-        "fl oz (UK)" => Volume::new::<fluid_ounce_imperial>(value),
-        "gal (UK)" => Volume::new::<gallon_imperial>(value),
-        "gal" => Volume::new::<gallon>(value),
-        "gi (UK)" => Volume::new::<gill_imperial>(value),
-        "gi" => Volume::new::<gill>(value),
-        "TL" => Volume::new::<teraliter>(value),
-        "GL" => Volume::new::<gigaliter>(value),
-        "ML" => Volume::new::<megaliter>(value),
-        "kL" => Volume::new::<kiloliter>(value),
-        "hL" => Volume::new::<hectoliter>(value),
-        "daL" => Volume::new::<decaliter>(value),
-        "L" => Volume::new::<liter>(value),
-        "dL" => Volume::new::<deciliter>(value),
-        "cL" => Volume::new::<centiliter>(value),
-        "mL" => Volume::new::<milliliter>(value),
-        "µL" => Volume::new::<microliter>(value),
-        "nL" => Volume::new::<nanoliter>(value),
-        "pL" => Volume::new::<picoliter>(value),
-        "pk" => Volume::new::<peck>(value),
-        "dry pt" => Volume::new::<pint_dry>(value),
-        "liq pt" => Volume::new::<pint_liquid>(value),
-        "dry qt" => Volume::new::<quart_dry>(value),
-        "liq qt" => Volume::new::<quart_liquid>(value),
-        "tbsp" => Volume::new::<tablespoon>(value),
-        "tsp" => Volume::new::<teaspoon>(value),
-        "placeholder" => panic!("Unit not specified for ingredient mass"),
-        x => panic!("{x} not recognized as a supported mass unit abbreviation"),
     }
 }
