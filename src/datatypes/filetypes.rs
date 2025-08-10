@@ -150,7 +150,7 @@ impl From<step::Step> for Step {
         Self {
             id: input.id,
             time_needed: input.time_needed.map(|tn| {
-                unit_helper::time_unit_output_parser(
+                unit_helper::time_unit_raw_output(
                     tn,
                     input
                         .time_needed_unit
@@ -161,7 +161,7 @@ impl From<step::Step> for Step {
             }),
             time_needed_unit: input.time_needed_unit,
             temperature: input.temperature.map(|t| {
-                unit_helper::temp_interval_unit_output_parser(
+                unit_helper::temp_interval_unit_raw_output(
                     t,
                     input
                         .temperature_unit
@@ -225,11 +225,11 @@ impl From<ingredient::UnitType> for UnitType {
         match input {
             ingredient::UnitType::Quantity(q) => Self::Quantity(q),
             ingredient::UnitType::Mass { value: m, unit: u } => Self::Mass {
-                value: unit_helper::mass_unit_output_parser(m, u.as_ref()),
+                value: unit_helper::mass_unit_raw_output(m, u.as_ref()),
                 unit: u,
             },
             ingredient::UnitType::Volume { value: v, unit: u } => Self::Volume {
-                value: unit_helper::volume_unit_output_parser(v, u.as_ref()),
+                value: unit_helper::volume_unit_raw_output(v, u.as_ref()),
                 unit: u,
             },
         }

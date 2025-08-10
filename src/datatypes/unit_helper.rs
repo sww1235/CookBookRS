@@ -1,25 +1,28 @@
 use num_rational::Rational64;
-use uom::si::{
-    mass::{
-        centigram, decagram, decigram, gigagram, gram, hectogram, kilogram, megagram, microgram, milligram, nanogram, ounce,
-        picogram, pound, teragram,
-    },
-    rational64::{Mass, TemperatureInterval, Time, Volume},
-    temperature_interval::{
-        centikelvin, decakelvin, decikelvin, degree_celsius, degree_fahrenheit, degree_rankine, gigakelvin, hectokelvin, kelvin,
-        kilokelvin, megakelvin, microkelvin, millikelvin, nanokelvin, picokelvin, terakelvin,
-    },
-    time::{
-        centisecond, day, decasecond, decisecond, gigasecond, hectosecond, hour, kilosecond, megasecond, microsecond,
-        millisecond, minute, nanosecond, picosecond, second, terasecond, year,
-    },
-    volume::{
-        acre_foot, barrel, bushel, centiliter, cord, cubic_centimeter, cubic_decameter, cubic_decimeter, cubic_foot,
-        cubic_gigameter, cubic_hectometer, cubic_inch, cubic_kilometer, cubic_megameter, cubic_meter, cubic_micrometer,
-        cubic_mile, cubic_millimeter, cubic_nanometer, cubic_picometer, cubic_terameter, cubic_yard, cup, decaliter, deciliter,
-        fluid_ounce, fluid_ounce_imperial, gallon, gallon_imperial, gigaliter, gill, gill_imperial, hectoliter, kiloliter, liter,
-        megaliter, microliter, milliliter, nanoliter, peck, picoliter, pint_dry, pint_liquid, quart_dry, quart_liquid,
-        tablespoon, teaspoon, teraliter,
+use uom::{
+    fmt::DisplayStyle,
+    si::{
+        mass::{
+            centigram, decagram, decigram, gigagram, gram, hectogram, kilogram, megagram, microgram, milligram, nanogram, ounce,
+            picogram, pound, teragram,
+        },
+        rational64::{Mass, TemperatureInterval, Time, Volume},
+        temperature_interval::{
+            centikelvin, decakelvin, decikelvin, degree_celsius, degree_fahrenheit, degree_rankine, gigakelvin, hectokelvin,
+            kelvin, kilokelvin, megakelvin, microkelvin, millikelvin, nanokelvin, picokelvin, terakelvin,
+        },
+        time::{
+            centisecond, day, decasecond, decisecond, gigasecond, hectosecond, hour, kilosecond, megasecond, microsecond,
+            millisecond, minute, nanosecond, picosecond, second, terasecond, year,
+        },
+        volume::{
+            acre_foot, barrel, bushel, centiliter, cord, cubic_centimeter, cubic_decameter, cubic_decimeter, cubic_foot,
+            cubic_gigameter, cubic_hectometer, cubic_inch, cubic_kilometer, cubic_megameter, cubic_meter, cubic_micrometer,
+            cubic_mile, cubic_millimeter, cubic_nanometer, cubic_picometer, cubic_terameter, cubic_yard, cup, decaliter,
+            deciliter, fluid_ounce, fluid_ounce_imperial, gallon, gallon_imperial, gigaliter, gill, gill_imperial, hectoliter,
+            kiloliter, liter, megaliter, microliter, milliliter, nanoliter, peck, picoliter, pint_dry, pint_liquid, quart_dry,
+            quart_liquid, tablespoon, teaspoon, teraliter,
+        },
     },
 };
 
@@ -48,9 +51,9 @@ pub fn time_unit_input_parser(value: Rational64, unit_string: &str) -> Time {
     }
 }
 
-/// takes in a `[uom::si::Time]` value and unit string and returns the raw value at the
+/// takes in a `[uom::si::Time]` value and unit string and returns the raw value in the
 /// specified unit for display or output to file.
-pub fn time_unit_output_parser(value: Time, unit_string: &str) -> Rational64 {
+pub fn time_unit_raw_output(value: Time, unit_string: &str) -> Rational64 {
     match unit_string {
         "Ts" => value.get::<terasecond>(),
         "Gs" => value.get::<gigasecond>(),
@@ -69,6 +72,32 @@ pub fn time_unit_output_parser(value: Time, unit_string: &str) -> Rational64 {
         "h" => value.get::<hour>(),
         "min" => value.get::<minute>(),
         "a" => value.get::<year>(),
+        "placeholder" => panic!("Unit not specified for time_needed"),
+        x => panic!("{x} not recognized as a supported time unit abbreviation"),
+    }
+}
+
+/// takes in a `[uom::si::Time]` value, unit string and `[uom::fmt::DisplayStyle]` and returns a formatted string in the
+/// specified unit for display or output to file.
+pub fn time_unit_format_output(value: Time, unit_string: &str, style: DisplayStyle) -> String {
+    match unit_string {
+        "Ts" => format!("{}", value.into_format_args(terasecond, style)),
+        "Gs" => format!("{}", value.into_format_args(gigasecond, style)),
+        "Ms" => format!("{}", value.into_format_args(megasecond, style)),
+        "ks" => format!("{}", value.into_format_args(kilosecond, style)),
+        "hs" => format!("{}", value.into_format_args(hectosecond, style)),
+        "das" => format!("{}", value.into_format_args(decasecond, style)),
+        "s" => format!("{}", value.into_format_args(second, style)),
+        "ds" => format!("{}", value.into_format_args(decisecond, style)),
+        "cs" => format!("{}", value.into_format_args(centisecond, style)),
+        "ms" => format!("{}", value.into_format_args(millisecond, style)),
+        "µs" => format!("{}", value.into_format_args(microsecond, style)),
+        "ns" => format!("{}", value.into_format_args(nanosecond, style)),
+        "ps" => format!("{}", value.into_format_args(picosecond, style)),
+        "d" => format!("{}", value.into_format_args(day, style)),
+        "h" => format!("{}", value.into_format_args(hour, style)),
+        "min" => format!("{}", value.into_format_args(minute, style)),
+        "a" => format!("{}", value.into_format_args(year, style)),
         "placeholder" => panic!("Unit not specified for time_needed"),
         x => panic!("{x} not recognized as a supported time unit abbreviation"),
     }
@@ -98,9 +127,9 @@ pub fn temp_interval_unit_input_parser(value: Rational64, unit_string: &str) -> 
     }
 }
 
-/// takes a `[uom::si::TemperatureInterval]` and unit string and returns the raw value at the
+/// takes a `[uom::si::TemperatureInterval]` and unit string and returns the raw value in the
 /// specified unit for display or output to file.
-pub fn temp_interval_unit_output_parser(value: TemperatureInterval, unit_string: &str) -> Rational64 {
+pub fn temp_interval_unit_raw_output(value: TemperatureInterval, unit_string: &str) -> Rational64 {
     match unit_string {
         "TK" => value.get::<terakelvin>(),
         "GK" => value.get::<gigakelvin>(),
@@ -118,6 +147,31 @@ pub fn temp_interval_unit_output_parser(value: TemperatureInterval, unit_string:
         "°C" => value.get::<degree_celsius>(),
         "°F" => value.get::<degree_fahrenheit>(),
         "°R" => value.get::<degree_rankine>(),
+        "placeholder" => panic!("Unit not specified for temperature"),
+        x => panic!("{x} not recognized as a supported temperature interval abbreviation"),
+    }
+}
+
+/// takes a `[uom::si::TemperatureInterval]` and unit string and returns a formatted string in the
+/// specified unit for display or output to file.
+pub fn temp_interval_unit_format_output(value: TemperatureInterval, unit_string: &str, style: DisplayStyle) -> String {
+    match unit_string {
+        "TK" => format!("{}", value.into_format_args(terakelvin, style)),
+        "GK" => format!("{}", value.into_format_args(gigakelvin, style)),
+        "MK" => format!("{}", value.into_format_args(megakelvin, style)),
+        "kK" => format!("{}", value.into_format_args(kilokelvin, style)),
+        "hK" => format!("{}", value.into_format_args(hectokelvin, style)),
+        "daK" => format!("{}", value.into_format_args(decakelvin, style)),
+        "K" => format!("{}", value.into_format_args(kelvin, style)),
+        "dK" => format!("{}", value.into_format_args(decikelvin, style)),
+        "cK" => format!("{}", value.into_format_args(centikelvin, style)),
+        "mK" => format!("{}", value.into_format_args(millikelvin, style)),
+        "µK" => format!("{}", value.into_format_args(microkelvin, style)),
+        "nK" => format!("{}", value.into_format_args(nanokelvin, style)),
+        "pK" => format!("{}", value.into_format_args(picokelvin, style)),
+        "°C" => format!("{}", value.into_format_args(degree_celsius, style)),
+        "°F" => format!("{}", value.into_format_args(degree_fahrenheit, style)),
+        "°R" => format!("{}", value.into_format_args(degree_rankine, style)),
         "placeholder" => panic!("Unit not specified for temperature"),
         x => panic!("{x} not recognized as a supported temperature interval abbreviation"),
     }
@@ -146,9 +200,9 @@ pub fn mass_unit_input_parser(value: Rational64, unit_string: &str) -> Mass {
     }
 }
 
-/// takes a `[uom::si::Mass]` value and unit string and returns the raw value at the
+/// takes a `[uom::si::Mass]` value and unit string and returns the raw value in the
 /// specified unit for display or output to file.
-pub fn mass_unit_output_parser(value: Mass, unit_string: &str) -> Rational64 {
+pub fn mass_unit_raw_output(value: Mass, unit_string: &str) -> Rational64 {
     match unit_string {
         "Tg" => value.get::<teragram>(),
         "Gg" => value.get::<gigagram>(),
@@ -165,6 +219,30 @@ pub fn mass_unit_output_parser(value: Mass, unit_string: &str) -> Rational64 {
         "pg" => value.get::<picogram>(),
         "oz" => value.get::<ounce>(),
         "lb" => value.get::<pound>(),
+        "placeholder" => panic!("Unit not specified for ingredient mass"),
+        x => panic!("{x} not recognized as a supported mass unit abbreviation"),
+    }
+}
+
+/// takes a `[uom::si::Mass]` value and unit string and returns a formatted string in the
+/// specified unit for display or output to file.
+pub fn mass_unit_format_output(value: Mass, unit_string: &str, style: DisplayStyle) -> String {
+    match unit_string {
+        "Tg" => format!("{}", value.into_format_args(teragram, style)),
+        "Gg" => format!("{}", value.into_format_args(gigagram, style)),
+        "Mg" => format!("{}", value.into_format_args(megagram, style)),
+        "kg" => format!("{}", value.into_format_args(kilogram, style)),
+        "hg" => format!("{}", value.into_format_args(hectogram, style)),
+        "dag" => format!("{}", value.into_format_args(decagram, style)),
+        "g" => format!("{}", value.into_format_args(gram, style)),
+        "dg" => format!("{}", value.into_format_args(decigram, style)),
+        "cg" => format!("{}", value.into_format_args(centigram, style)),
+        "mg" => format!("{}", value.into_format_args(milligram, style)),
+        "µg" => format!("{}", value.into_format_args(microgram, style)),
+        "ng" => format!("{}", value.into_format_args(nanogram, style)),
+        "pg" => format!("{}", value.into_format_args(picogram, style)),
+        "oz" => format!("{}", value.into_format_args(ounce, style)),
+        "lb" => format!("{}", value.into_format_args(pound, style)),
         "placeholder" => panic!("Unit not specified for ingredient mass"),
         x => panic!("{x} not recognized as a supported mass unit abbreviation"),
     }
@@ -226,9 +304,9 @@ pub fn volume_unit_input_parser(value: Rational64, unit_string: &str) -> Volume 
     }
 }
 
-/// takes a `[uom::si::Volume]` value and unit string and returns the raw value at the
+/// takes a `[uom::si::Volume]` value and unit string and returns the raw value in the
 /// specified unit for display or output to file.
-pub fn volume_unit_output_parser(value: Volume, unit_string: &str) -> Rational64 {
+pub fn volume_unit_raw_output(value: Volume, unit_string: &str) -> Rational64 {
     match unit_string {
         "Tm³" => value.get::<cubic_terameter>(),
         "Gm³" => value.get::<cubic_gigameter>(),
@@ -278,6 +356,63 @@ pub fn volume_unit_output_parser(value: Volume, unit_string: &str) -> Rational64
         "liq qt" => value.get::<quart_liquid>(),
         "tbsp" => value.get::<tablespoon>(),
         "tsp" => value.get::<teaspoon>(),
+        "placeholder" => panic!("Unit not specified for ingredient mass"),
+        x => panic!("{x} not recognized as a supported mass unit abbreviation"),
+    }
+}
+
+/// takes a `[uom::si::Volume]` value and unit string and returns a formatted string in the
+/// specified unit for display or output to file.
+pub fn volume_unit_format_output(value: Volume, unit_string: &str, style: DisplayStyle) -> String {
+    match unit_string {
+        "Tm³" => format!("{}", value.into_format_args(cubic_terameter, style)),
+        "Gm³" => format!("{}", value.into_format_args(cubic_gigameter, style)),
+        "Mm³" => format!("{}", value.into_format_args(cubic_megameter, style)),
+        "km³" => format!("{}", value.into_format_args(cubic_kilometer, style)),
+        "hm³" => format!("{}", value.into_format_args(cubic_hectometer, style)),
+        "dam³" => format!("{}", value.into_format_args(cubic_decameter, style)),
+        "m³" => format!("{}", value.into_format_args(cubic_meter, style)),
+        "dm³" => format!("{}", value.into_format_args(cubic_decimeter, style)),
+        "cm³" => format!("{}", value.into_format_args(cubic_centimeter, style)),
+        "mm³" => format!("{}", value.into_format_args(cubic_millimeter, style)),
+        "µm³" => format!("{}", value.into_format_args(cubic_micrometer, style)),
+        "nm³" => format!("{}", value.into_format_args(cubic_nanometer, style)),
+        "pm³" => format!("{}", value.into_format_args(cubic_picometer, style)),
+        "ac · ft" => format!("{}", value.into_format_args(acre_foot, style)),
+        "bbl" => format!("{}", value.into_format_args(barrel, style)),
+        "bu" => format!("{}", value.into_format_args(bushel, style)),
+        "cords" => format!("{}", value.into_format_args(cord, style)),
+        "ft³" => format!("{}", value.into_format_args(cubic_foot, style)),
+        "in³" => format!("{}", value.into_format_args(cubic_inch, style)),
+        "mi³" => format!("{}", value.into_format_args(cubic_mile, style)),
+        "yd³" => format!("{}", value.into_format_args(cubic_yard, style)),
+        "cup" => format!("{}", value.into_format_args(cup, style)),
+        "fl oz" => format!("{}", value.into_format_args(fluid_ounce, style)),
+        "fl oz (UK)" => format!("{}", value.into_format_args(fluid_ounce_imperial, style)),
+        "gal (UK)" => format!("{}", value.into_format_args(gallon_imperial, style)),
+        "gal" => format!("{}", value.into_format_args(gallon, style)),
+        "gi (UK)" => format!("{}", value.into_format_args(gill_imperial, style)),
+        "gi" => format!("{}", value.into_format_args(gill, style)),
+        "TL" => format!("{}", value.into_format_args(teraliter, style)),
+        "GL" => format!("{}", value.into_format_args(gigaliter, style)),
+        "ML" => format!("{}", value.into_format_args(megaliter, style)),
+        "kL" => format!("{}", value.into_format_args(kiloliter, style)),
+        "hL" => format!("{}", value.into_format_args(hectoliter, style)),
+        "daL" => format!("{}", value.into_format_args(decaliter, style)),
+        "L" => format!("{}", value.into_format_args(liter, style)),
+        "dL" => format!("{}", value.into_format_args(deciliter, style)),
+        "cL" => format!("{}", value.into_format_args(centiliter, style)),
+        "mL" => format!("{}", value.into_format_args(milliliter, style)),
+        "µL" => format!("{}", value.into_format_args(microliter, style)),
+        "nL" => format!("{}", value.into_format_args(nanoliter, style)),
+        "pL" => format!("{}", value.into_format_args(picoliter, style)),
+        "pk" => format!("{}", value.into_format_args(peck, style)),
+        "dry pt" => format!("{}", value.into_format_args(pint_dry, style)),
+        "liq pt" => format!("{}", value.into_format_args(pint_liquid, style)),
+        "dry qt" => format!("{}", value.into_format_args(quart_dry, style)),
+        "liq qt" => format!("{}", value.into_format_args(quart_liquid, style)),
+        "tbsp" => format!("{}", value.into_format_args(tablespoon, style)),
+        "tsp" => format!("{}", value.into_format_args(teaspoon, style)),
         "placeholder" => panic!("Unit not specified for ingredient mass"),
         x => panic!("{x} not recognized as a supported mass unit abbreviation"),
     }

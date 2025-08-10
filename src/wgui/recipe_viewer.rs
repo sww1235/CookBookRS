@@ -10,7 +10,7 @@ use tiny_http::{
 };
 use uom::{
     fmt::DisplayStyle::{Abbreviation, Description},
-    si::{mass::gram, rational64::Time, temperature_interval::degree_celsius, time::minute, volume::cubic_meter},
+    si::rational64::Time,
 };
 
 use crate::datatypes::{ingredient::UnitType, recipe::Recipe, step::StepType, unit_helper};
@@ -27,8 +27,6 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
     headers.append(header::CONTENT_TYPE, HeaderValue::try_from("text/html; charset=utf-8")?);
 
     //TODO: want to be able to change unit based on configuration options and sigfigs
-    let minute_formatter = Time::format_args(minute, Description);
-
     let is_new_recipe = recipe == Recipe::new();
 
     let recipe_name = if is_new_recipe { "New Recipe" } else { recipe.name.as_str() };
@@ -45,26 +43,32 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             // equipment
             step_list.push_str("<li>\n");
             step_list.push_str("<section>\n");
-            step_list.push_str(format!("<h3>{}</h3>\n", step.step_type).as_str());
+            step_list.push_str(&format!("<h3>{}</h3>\n", step.step_type));
             if let Some(time) = step.time_needed {
                 //TODO: fix units
                 //TODO: print this using approximate_float method
-                step_list.push_str(format!("<p>Takes: {}</p>\n", time.into_format_args(minute, Abbreviation)).as_str());
+                step_list.push_str(&format!(
+                    "<p>Takes: {}</p>\n",
+                    unit_helper::time_unit_format_output(time, "min", Abbreviation)
+                ));
             }
             if let Some(temp) = step.temperature {
                 //TODO: fix units
                 //TODO: print this using approximate_float method
-                step_list.push_str(format!("<p>Cook at: {}</p>\n", temp.into_format_args(degree_celsius, Abbreviation)).as_str());
+                step_list.push_str(&format!(
+                    "<p>Cook at: {}</p>\n",
+                    unit_helper::temp_interval_unit_format_output(temp, "°C", Abbreviation)
+                ));
             }
             if !step.ingredients.is_empty() {
                 step_list.push_str("<ul>");
                 for ingredient in &step.ingredients {
                     let unit_string = match ingredient.unit_quantity {
-                        UnitType::Quantity(q) => &format!("{q}"),
+                        UnitType::Quantity(q) => q.to_string(),
                         //TODO: need to be able to specify which units to use for mass and volume
                         //TODO: print this using approximate_float method
-                        UnitType::Mass { value: m, unit: _ } => &format!("{}", m.into_format_args(gram, Abbreviation)),
-                        UnitType::Volume { value: v, unit: _ } => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
+                        UnitType::Mass { value: m, unit: _ } => unit_helper::mass_unit_format_output(m, "g", Abbreviation),
+                        UnitType::Volume { value: v, unit: _ } => unit_helper::volume_unit_format_output(v, "m³", Abbreviation),
                     };
                     step_list.push_str(format!("<li>{}: {}</li>", ingredient.name, unit_string).as_str());
                 }
@@ -93,11 +97,11 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
         for ingredient in recipe.ingredient_list() {
             // TODO: description
             let unit_string = match ingredient.unit_quantity {
-                UnitType::Quantity(q) => &format!("{q}"),
+                UnitType::Quantity(q) => q.to_string(),
                 //TODO: need to be able to specify which units to use for mass and volume
                 //TODO: print this using approximate_float method
-                UnitType::Mass { value: m, unit: _ } => &format!("{}", m.into_format_args(gram, Abbreviation)),
-                UnitType::Volume { value: v, unit: _ } => &format!("{}", v.into_format_args(cubic_meter, Abbreviation)),
+                UnitType::Mass { value: m, unit: _ } => unit_helper::mass_unit_format_output(m, "g", Abbreviation),
+                UnitType::Volume { value: v, unit: _ } => unit_helper::volume_unit_format_output(v, "m³", Abbreviation),
             };
             ingredient_list.push_str(format!("<li>{}: {}</li>", ingredient.name, unit_string).as_str());
         }
@@ -119,6 +123,11 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
         equipment_list.push_str("</ul>\n");
     }
     let step_type_time_totals = recipe.step_time_totals();
+    let prep_time_unit = "min";
+    let cook_time_unit = "min";
+    let wait_time_unit = "min";
+    let other_time_unit = "min";
+    let total_time_unit = "min";
     //https://github.com/rust-lang/rust/issues/85846
     let data = format!(
         "{}",
@@ -138,43 +147,59 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             amount_made_units = recipe.amount_made.units,
             //TODO: adjust these units depending on total time
             //TODO: print this using approximate_float method
-            prep_time = minute_formatter.with(
-                if let Some(prep_time_total) = step_type_time_totals.get(&StepType::Prep)
-                    && let Some(prep_time_value) = *prep_time_total
+            prep_time = unit_helper::time_unit_format_output(
                 {
-                    prep_time_value
-                } else {
-                    Time::default()
-                }
+                    if let Some(prep_time_total) = step_type_time_totals.get(&StepType::Prep)
+                        && let Some(prep_time_value) = *prep_time_total
+                    {
+                        prep_time_value
+                    } else {
+                        Time::default()
+                    }
+                },
+                prep_time_unit,
+                Description
             ),
-            cook_time = minute_formatter.with(
-                if let Some(cook_time_total) = step_type_time_totals.get(&StepType::Cook)
-                    && let Some(cook_time_value) = *cook_time_total
+            cook_time = unit_helper::time_unit_format_output(
                 {
-                    cook_time_value
-                } else {
-                    Time::default()
-                }
+                    if let Some(cook_time_total) = step_type_time_totals.get(&StepType::Cook)
+                        && let Some(cook_time_value) = *cook_time_total
+                    {
+                        cook_time_value
+                    } else {
+                        Time::default()
+                    }
+                },
+                cook_time_unit,
+                Description
             ),
-            wait_time = minute_formatter.with(
-                if let Some(wait_time_total) = step_type_time_totals.get(&StepType::Wait)
-                    && let Some(wait_time_value) = *wait_time_total
+            wait_time = unit_helper::time_unit_format_output(
                 {
-                    wait_time_value
-                } else {
-                    Time::default()
-                }
+                    if let Some(wait_time_total) = step_type_time_totals.get(&StepType::Wait)
+                        && let Some(wait_time_value) = *wait_time_total
+                    {
+                        wait_time_value
+                    } else {
+                        Time::default()
+                    }
+                },
+                wait_time_unit,
+                Description
             ),
-            other_time = minute_formatter.with(
-                if let Some(other_time_total) = step_type_time_totals.get(&StepType::Other)
-                    && let Some(other_time_value) = *other_time_total
+            other_time = unit_helper::time_unit_format_output(
                 {
-                    other_time_value
-                } else {
-                    Time::default()
-                }
+                    if let Some(other_time_total) = step_type_time_totals.get(&StepType::Other)
+                        && let Some(other_time_value) = *other_time_total
+                    {
+                        other_time_value
+                    } else {
+                        Time::default()
+                    }
+                },
+                other_time_unit,
+                Description
             ),
-            total_time = minute_formatter.with(recipe.total_time()),
+            total_time = unit_helper::time_unit_format_output(recipe.total_time(), total_time_unit, Description),
             step_list = step_list,
             equipment_list = equipment_list,
             ingredient_list = ingredient_list,
