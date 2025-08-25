@@ -2,6 +2,7 @@ use num_rational::Rational64;
 use uom::{
     fmt::DisplayStyle,
     si::{
+        Unit,
         mass::{
             centigram, decagram, decigram, gigagram, gram, hectogram, kilogram, megagram, microgram, milligram, nanogram, ounce,
             picogram, pound, teragram,
@@ -416,4 +417,130 @@ pub fn volume_unit_format_output(value: Volume, unit_string: &str, style: Displa
         "placeholder" => panic!("Unit not specified for ingredient mass"),
         x => panic!("{x} not recognized as a supported mass unit abbreviation"),
     }
+}
+
+/// `print_units` prints all unit names and abbreviations that are usable
+/// in configuration and recipe files.
+pub fn print_units() {
+    // Time units
+    println!("Only abbreviations are allowed in config files and recipe files for now");
+    println!("Mass Units");
+
+    println!("{}: {}", terasecond::singular(), terasecond::abbreviation());
+    println!("{}: {}", gigasecond::singular(), gigasecond::abbreviation());
+    println!("{}: {}", megasecond::singular(), megasecond::abbreviation());
+    println!("{}: {}", kilosecond::singular(), kilosecond::abbreviation());
+    println!("{}: {}", hectosecond::singular(), hectosecond::abbreviation());
+    println!("{}: {}", decasecond::singular(), decasecond::abbreviation());
+    println!("{}: {}", second::singular(), second::abbreviation());
+    println!("{}: {}", decisecond::singular(), decisecond::abbreviation());
+    println!("{}: {}", centisecond::singular(), centisecond::abbreviation());
+    println!("{}: {}", millisecond::singular(), millisecond::abbreviation());
+    println!("{}: {}", microsecond::singular(), microsecond::abbreviation());
+    println!("{}: {}", nanosecond::singular(), nanosecond::abbreviation());
+    println!("{}: {}", picosecond::singular(), picosecond::abbreviation());
+    println!("{}: {}", day::singular(), day::abbreviation());
+    println!("{}: {}", hour::singular(), hour::abbreviation());
+    println!("{}: {}", minute::singular(), minute::abbreviation());
+    println!("{}: {}", year::singular(), year::abbreviation());
+
+    // Temp units
+    println!("Only abbreviations are allowed in config files and recipe files for now");
+    println!("Temperature Interval Units");
+
+    println!("{}: {}", terakelvin::singular(), terakelvin::abbreviation());
+    println!("{}: {}", gigakelvin::singular(), gigakelvin::abbreviation());
+    println!("{}: {}", megakelvin::singular(), megakelvin::abbreviation());
+    println!("{}: {}", kilokelvin::singular(), kilokelvin::abbreviation());
+    println!("{}: {}", hectokelvin::singular(), hectokelvin::abbreviation());
+    println!("{}: {}", decakelvin::singular(), decakelvin::abbreviation());
+    println!("{}: {}", kelvin::singular(), kelvin::abbreviation());
+    println!("{}: {}", decikelvin::singular(), decikelvin::abbreviation());
+    println!("{}: {}", centikelvin::singular(), centikelvin::abbreviation());
+    println!("{}: {}", millikelvin::singular(), millikelvin::abbreviation());
+    println!("{}: {}", microkelvin::singular(), microkelvin::abbreviation());
+    println!("{}: {}", nanokelvin::singular(), nanokelvin::abbreviation());
+    println!("{}: {}", picokelvin::singular(), picokelvin::abbreviation());
+    println!("{}: {}", degree_celsius::singular(), degree_celsius::abbreviation());
+    println!("{}: {}", degree_fahrenheit::singular(), degree_fahrenheit::abbreviation());
+    println!("{}: {}", degree_rankine::singular(), degree_rankine::abbreviation());
+
+    // Mass units
+    println!("Only abbreviations are allowed in config files and recipe files for now");
+    println!("Mass Units");
+
+    println!("{}: {}", teragram::singular(), teragram::abbreviation());
+    println!("{}: {}", gigagram::singular(), gigagram::abbreviation());
+    println!("{}: {}", megagram::singular(), megagram::abbreviation());
+    println!("{}: {}", kilogram::singular(), kilogram::abbreviation());
+    println!("{}: {}", hectogram::singular(), hectogram::abbreviation());
+    println!("{}: {}", decagram::singular(), decagram::abbreviation());
+    println!("{}: {}", gram::singular(), gram::abbreviation());
+    println!("{}: {}", decigram::singular(), decigram::abbreviation());
+    println!("{}: {}", centigram::singular(), centigram::abbreviation());
+    println!("{}: {}", milligram::singular(), milligram::abbreviation());
+    println!("{}: {}", microgram::singular(), microgram::abbreviation());
+    println!("{}: {}", nanogram::singular(), nanogram::abbreviation());
+    println!("{}: {}", picogram::singular(), picogram::abbreviation());
+    println!("{}: {}", ounce::singular(), ounce::abbreviation());
+    println!("{}: {}", pound::singular(), pound::abbreviation());
+
+    // Volume Units
+    println!("Only abbreviations are allowed in config files and recipe files for now");
+    println!("Volume Units");
+
+    println!("{}: {}", cubic_terameter::singular(), cubic_terameter::abbreviation());
+    println!("{}: {}", cubic_gigameter::singular(), cubic_gigameter::abbreviation());
+    println!("{}: {}", cubic_megameter::singular(), cubic_megameter::abbreviation());
+    println!("{}: {}", cubic_kilometer::singular(), cubic_kilometer::abbreviation());
+    println!("{}: {}", cubic_hectometer::singular(), cubic_hectometer::abbreviation());
+    println!("{}: {}", cubic_decameter::singular(), cubic_decameter::abbreviation());
+    println!("{}: {}", cubic_meter::singular(), cubic_meter::abbreviation());
+    println!("{}: {}", cubic_decimeter::singular(), cubic_decimeter::abbreviation());
+    println!("{}: {}", cubic_centimeter::singular(), cubic_centimeter::abbreviation());
+    println!("{}: {}", cubic_millimeter::singular(), cubic_millimeter::abbreviation());
+    println!("{}: {}", cubic_micrometer::singular(), cubic_micrometer::abbreviation());
+    println!("{}: {}", cubic_nanometer::singular(), cubic_nanometer::abbreviation());
+    println!("{}: {}", cubic_picometer::singular(), cubic_picometer::abbreviation());
+    println!("{}: {}", acre_foot::singular(), acre_foot::abbreviation());
+    println!("{}: {}", barrel::singular(), barrel::abbreviation());
+    println!("{}: {}", bushel::singular(), bushel::abbreviation());
+    println!("{}: {}", cord::singular(), cord::abbreviation());
+    println!("{}: {}", cubic_foot::singular(), cubic_foot::abbreviation());
+    println!("{}: {}", cubic_inch::singular(), cubic_inch::abbreviation());
+    println!("{}: {}", cubic_mile::singular(), cubic_mile::abbreviation());
+    println!("{}: {}", cubic_yard::singular(), cubic_yard::abbreviation());
+    println!("{}: {}", cup::singular(), cup::abbreviation());
+    println!("{}: {}", fluid_ounce::singular(), fluid_ounce::abbreviation());
+    println!(
+        "{}: {}",
+        fluid_ounce_imperial::singular(),
+        fluid_ounce_imperial::abbreviation()
+    );
+    println!("{}: {}", gallon_imperial::singular(), gallon_imperial::abbreviation());
+    println!("{}: {}", gallon::singular(), gallon::abbreviation());
+    println!("{}: {}", gill_imperial::singular(), gill_imperial::abbreviation());
+    println!("{}: {}", gill::singular(), gill::abbreviation());
+    println!("{}: {}", teraliter::singular(), teraliter::abbreviation());
+    println!("{}: {}", gigaliter::singular(), gigaliter::abbreviation());
+    println!("{}: {}", megaliter::singular(), megaliter::abbreviation());
+    println!("{}: {}", kiloliter::singular(), kiloliter::abbreviation());
+    println!("{}: {}", hectoliter::singular(), hectoliter::abbreviation());
+    println!("{}: {}", decaliter::singular(), decaliter::abbreviation());
+    println!("{}: {}", liter::singular(), liter::abbreviation());
+    println!("{}: {}", deciliter::singular(), deciliter::abbreviation());
+    println!("{}: {}", centiliter::singular(), centiliter::abbreviation());
+    println!("{}: {}", milliliter::singular(), milliliter::abbreviation());
+    println!("{}: {}", microliter::singular(), microliter::abbreviation());
+    println!("{}: {}", nanoliter::singular(), nanoliter::abbreviation());
+    println!("{}: {}", picoliter::singular(), picoliter::abbreviation());
+    println!("{}: {}", peck::singular(), peck::abbreviation());
+    println!("{}: {}", pint_dry::singular(), pint_dry::abbreviation());
+    println!("{}: {}", pint_liquid::singular(), pint_liquid::abbreviation());
+    println!("{}: {}", quart_dry::singular(), quart_dry::abbreviation());
+    println!("{}: {}", quart_liquid::singular(), quart_liquid::abbreviation());
+    println!("{}: {}", tablespoon::singular(), tablespoon::abbreviation());
+    println!("{}: {}", teaspoon::singular(), teaspoon::abbreviation());
+
+    println!("Only abbreviations are allowed in config files and recipe files for now");
 }

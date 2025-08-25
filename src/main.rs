@@ -13,6 +13,10 @@ use std::time::Duration;
 
 use anyhow::Context;
 use clap::{self, Parser};
+use figment::{
+    Figment,
+    providers::{Format, Serialized, Toml},
+};
 use flexi_logger::{FileSpec, LogSpecification, Logger};
 use gix::{
     discover::{self, upwards},
@@ -20,8 +24,9 @@ use gix::{
 };
 #[cfg(any(feature = "tui", feature = "wgui"))]
 use log::{info, trace, warn};
+use serde::{Deserialize, Serialize};
 
-use cookbook_core::datatypes::{recipe::Recipe, step::Step};
+use cookbook_core::datatypes::{recipe::Recipe, step::Step, unit_helper};
 
 //TODO: allow specification of alternate ingredients
 
@@ -29,8 +34,29 @@ use cookbook_core::datatypes::{recipe::Recipe, step::Step};
 //
 
 fn main() -> anyhow::Result<()> {
-    // parse command line flags
-    let cli = Cli::parse();
+    // parse command line flags and config files
+
+    // check for config file in various locations first
+
+    // {NAME_SCREAMING_SNAKE_CASE}_CONFIG envitonment variable
+    // ~/.config/{name}/config.toml
+    // /etc/{name}/config.toml
+    // /usr/local/etc/{name}/config.toml
+    // ~/Library/Preferences/{name}/config.toml
+
+    // Doesn't work on windows
+    // Figment will silently ignore missing files
+    // Once the fix in the below issue is released, re-evaluate
+    // https://github.com/SergioBenitez/Figment/issues/110
+    let config: Config = Figment::new()
+        .merge(Serialized::defaults(Config::default()))
+        .merge(Toml::file("~/.config/CookBookRS/config.toml"))
+        .merge(Toml::file("/etc/CookBookRS/config.toml"))
+        .merge(Toml::file("/usr/local/etc/CookBookRS/config.toml"))
+        .merge(Toml::file("~/Library/Preferences/CookBookRS/config.toml"))
+        .merge(Toml::file("config.toml"))
+        .merge(Serialized::globals(Config::parse()))
+        .extract()?;
 
     // init logger
     #[allow(clippy::unwrap_used)]
@@ -42,29 +68,27 @@ fn main() -> anyhow::Result<()> {
         .start()
         .unwrap();
     // match on how many times verbose flag is present in commandline
-    match cli.verbose {
+    match config.verbose {
         0 => logger.set_new_spec(LogSpecification::info()),
         1 => logger.set_new_spec(LogSpecification::debug()),
         _ => logger.set_new_spec(LogSpecification::trace()),
     };
 
     // match on how many times quiet flag is present in commandline
-    match cli.quiet {
+    match config.quiet {
         0 => {} // do nothing
         1 => logger.set_new_spec(LogSpecification::error()),
         _ => logger.set_new_spec(LogSpecification::off()),
     };
 
-    // TODO: parse config file
-
-    if cli.print_units {
-        todo!()
-        // TODO: print all supported unit abbreviations
+    if config.print_units {
+        unit_helper::print_units();
+        return Ok(());
     }
 
     // either use directory passed in or current directory
     let cwd = std::env::current_dir();
-    let input_dir = match cli.input_directory {
+    let input_dir = match config.input_directory {
         Some(ref i) => i.as_path(),
         None => match cwd {
             Ok(ref cwd) => cwd.as_path(),
@@ -75,21 +99,20 @@ fn main() -> anyhow::Result<()> {
 
     let recipe_repo = load_git_repo(input_dir)?;
 
-    if cli.check_recipe_files {
+    if config.check_recipe_files {
         _ = Recipe::load_recipes_from_directory(input_dir)?;
-    } else if cli.print_recipe_files {
+    } else if config.print_recipe_files {
         for recipe in Recipe::load_recipes_from_directory(input_dir)? {
             let output_string = toml::to_string_pretty(&recipe)?;
             println!("{output_string}");
         }
-    } else if cli.run_web_server && cfg!(feature = "wgui") {
+    } else if config.run_web_server && cfg!(feature = "wgui") {
         #[cfg(feature = "wgui")]
-        //TODO: either parse this from commandline or config file
-        let ip_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let ip_addr = SocketAddr::new(config.server_address, config.server_port);
         #[cfg(feature = "wgui")]
         info!("running web server");
         #[cfg(feature = "wgui")]
-        run_web_server(input_dir, ip_addr, None)?;
+        run_web_server(input_dir, ip_addr, None, config.num_threads)?;
     } else if cfg!(feature = "tui") {
         #[cfg(feature = "tui")]
         run_tui(input_dir, recipe_repo)?;
@@ -106,7 +129,12 @@ fn main() -> anyhow::Result<()> {
 //
 // Also need a page for populating and viewing Ingredient database
 #[cfg(feature = "wgui")]
-fn run_web_server<T>(input_dir: T, addrs: SocketAddr, ssl_conf: Option<tiny_http::SslConfig>) -> anyhow::Result<()>
+fn run_web_server<T>(
+    input_dir: T,
+    addrs: SocketAddr,
+    ssl_conf: Option<tiny_http::SslConfig>,
+    num_threads: usize,
+) -> anyhow::Result<()>
 where
     T: AsRef<Path>,
 {
@@ -157,8 +185,6 @@ where
     let server = Arc::new(Server::new(server_config).unwrap());
     info!("starting web server on {addrs}");
 
-    // TODO: add this into the config file
-    let num_threads: usize = 4;
     let mut join_guards = Vec::with_capacity(num_threads + 1);
     let mut tx_channels: Vec<mpsc::Sender<ThreadResponse>> = Vec::with_capacity(num_threads);
     let mut rx_channels: Vec<mpsc::Receiver<ThreadResponse>> = Vec::with_capacity(num_threads);
@@ -724,10 +750,11 @@ fn tui_panic_hook() {
         original_hook(panic_info);
     }))
 }
-/// `Cli` holds the defintions for command line arguments used in this binary
-#[derive(Parser)]
+/// `Config` holds the application configuration file, including
+/// defintions for command line arguments used in this binary
+#[derive(Parser, Debug, Serialize, Deserialize)]
 #[command(author, version, about, long_about = None)]
-struct Cli {
+struct Config {
     /// Directory that cookbook lives in
     input_directory: Option<PathBuf>,
     /// Increase verbosity of program by adding more v
@@ -749,8 +776,8 @@ struct Cli {
     /// Check recipe files for errors or bad formatting
     #[arg(short, long)]
     check_recipe_files: bool,
-    /// Check recipe files for errors or bad formatting
-    #[arg(short, long)]
+    /// Prints all recipe files to console
+    #[arg(long)]
     print_recipe_files: bool,
     /// Print Units and Abbreviations that can be used in
     /// recipe files
@@ -759,4 +786,36 @@ struct Cli {
     // Export complete PDF
     //#[arg(short, long)]
     //export_pdf: bool,
+    /// IP address for web server to bind to
+    #[cfg_attr(feature = "wgui", arg(long))]
+    #[cfg(feature = "wgui")]
+    server_address: IpAddr,
+    /// IP address for web server to bind to
+    #[cfg_attr(feature = "wgui", arg(long))]
+    #[cfg(feature = "wgui")]
+    server_port: u16,
+    /// Number of threads for the webgui. Only configurable via configuration file
+    #[cfg(feature = "wgui")]
+    num_threads: usize,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            input_directory: None,
+            verbose: 0_u8,
+            #[cfg(feature = "wgui")]
+            run_web_server: false,
+            quiet: 0_u8,
+            check_recipe_files: false,
+            print_recipe_files: false,
+            print_units: false,
+            #[cfg(feature = "wgui")]
+            server_address: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+            #[cfg(feature = "wgui")]
+            server_port: 8080,
+            #[cfg(feature = "wgui")]
+            num_threads: 4,
+        }
+    }
 }

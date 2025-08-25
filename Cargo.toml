@@ -39,6 +39,7 @@ uuid = { version = "~1.17", features = ["v4", "serde"] }
 log = { version = "~0" }
 serde = { version = "~1", features = ["derive"] }
 toml = { version = "~0" }
+figment = { version = "~0.10", features = ["toml"] }
 uom = { version = "~0.37", default-features = false, features = ["autoconvert", "std", "rational64", "rational32", "bigrational", "try-from", "serde", "si"] }
 num-rational = { version = "~0.4", features = ["std", "serde", "num-bigint"] }
 strum = { version = "~0.27", features = ["derive"] }
