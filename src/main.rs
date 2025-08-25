@@ -55,7 +55,7 @@ fn main() -> anyhow::Result<()> {
         .merge(Toml::file("/usr/local/etc/CookBookRS/config.toml"))
         .merge(Toml::file("~/Library/Preferences/CookBookRS/config.toml"))
         .merge(Toml::file("config.toml"))
-        .merge(Serialized::globals(Config::parse()))
+        .merge(Serialized::globals(Cli::parse()))
         .extract()?;
 
     // init logger
@@ -384,8 +384,8 @@ where
                             "/edit-recipe-from-viewer" => {
                                 // this data comes from the browse page
                                 let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
-                                if form_data.contains_key("recipe_list") {
-                                    let uuid_string = form_data["recipe_list"].as_str();
+                                if form_data.contains_key("recipe_id") {
+                                    let uuid_string = form_data["recipe_id"].as_str();
                                     trace!("Attempting to view recipe with UUID: {uuid_string}");
                                     tx.send((i, ThreadMessage::RecipeRW(Uuid::parse_str(uuid_string).unwrap())))
                                         .unwrap();
@@ -406,13 +406,16 @@ where
                             }
                             // from browse
                             "/new-recipe" => {
-                                // TODO: do we want to allow editing new recipe after creation or just dump
-                                // the user to a viewer page or browser page
                                 let recipe = Recipe::new();
                                 request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
                             }
                             // from browse
-                            "/filter-tags" => todo!(),
+                            "/filter-tags" => {
+                                let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
+                                trace!("{form_data:?}");
+                                println!("{form_data:?}");
+                                //todo!()
+                            }
                             // from browse
                             "/reset-tags" => todo!(),
                             // from recipe_editor
@@ -778,10 +781,74 @@ fn tui_panic_hook() {
 }
 /// `Config` holds the application configuration file, including
 /// defintions for command line arguments used in this binary
-#[derive(Parser, Debug, Serialize, Deserialize)]
-#[command(author, version, about, long_about = None)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Config {
     /// Directory that cookbook lives in
+    input_directory: Option<PathBuf>,
+    /// Increase verbosity of program by adding more v
+    verbose: u8,
+    /// Run Web Server to host a simple web gui
+    #[cfg(feature = "wgui")]
+    run_web_server: bool,
+    // Enable PostGresSql features
+    //#[arg(short, long)]
+    //enable_post_gres: bool,
+    // PostGres DSN (optional)
+    //#[arg(short, long)]
+    //post_gres_dsn: Option<String>,
+    /// Only shows log messages with `Error` level. Use twice to completely eliminate output. Takes precidence over verbose
+    quiet: u8,
+    /// Check recipe files for errors or bad formatting
+    check_recipe_files: bool,
+    /// Prints all recipe files to console
+    print_recipe_files: bool,
+    /// Print Units and Abbreviations that can be used in
+    /// recipe files
+    print_units: bool,
+    // Export complete PDF
+    //#[arg(short, long)]
+    //export_pdf: bool,
+    /// IP address for web server to bind to
+    #[cfg(feature = "wgui")]
+    server_address: IpAddr,
+    /// IP address for web server to bind to
+    #[cfg(feature = "wgui")]
+    server_port: u16,
+    /// Number of threads for the webgui. Only configurable via configuration file
+    #[cfg(feature = "wgui")]
+    num_threads: usize,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            input_directory: None,
+            verbose: 0_u8,
+            #[cfg(feature = "wgui")]
+            run_web_server: false,
+            quiet: 0_u8,
+            check_recipe_files: false,
+            print_recipe_files: false,
+            print_units: false,
+            #[cfg(feature = "wgui")]
+            server_address: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+            #[cfg(feature = "wgui")]
+            server_port: 8080,
+            #[cfg(feature = "wgui")]
+            num_threads: 4,
+        }
+    }
+}
+
+/// `CLI` holds the definition for commandline arguments. This needs to be separate
+/// due to slight issues with Figment processing and ability to support default configuration
+/// values
+/// see https://steezeburger.com/2023/03/rust-hierarchical-configuration/ for more info
+#[derive(Parser, Debug, Serialize)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Directory that cookbook lives in
+    #[serde(skip_serializing_if = "::std::option::Option::is_none")]
     input_directory: Option<PathBuf>,
     /// Increase verbosity of program by adding more v
     #[arg(short, long, action = clap::ArgAction::Count)]
@@ -814,34 +881,12 @@ struct Config {
     //export_pdf: bool,
     /// IP address for web server to bind to
     #[cfg_attr(feature = "wgui", arg(long))]
+    #[cfg_attr(feature = "wgui", serde(skip_serializing_if = "::std::option::Option::is_none"))]
     #[cfg(feature = "wgui")]
-    server_address: IpAddr,
+    server_address: Option<IpAddr>,
     /// IP address for web server to bind to
     #[cfg_attr(feature = "wgui", arg(long))]
+    #[cfg_attr(feature = "wgui", serde(skip_serializing_if = "::std::option::Option::is_none"))]
     #[cfg(feature = "wgui")]
-    server_port: u16,
-    /// Number of threads for the webgui. Only configurable via configuration file
-    #[cfg(feature = "wgui")]
-    num_threads: usize,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            input_directory: None,
-            verbose: 0_u8,
-            #[cfg(feature = "wgui")]
-            run_web_server: false,
-            quiet: 0_u8,
-            check_recipe_files: false,
-            print_recipe_files: false,
-            print_units: false,
-            #[cfg(feature = "wgui")]
-            server_address: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-            #[cfg(feature = "wgui")]
-            server_port: 8080,
-            #[cfg(feature = "wgui")]
-            num_threads: 4,
-        }
-    }
+    server_port: Option<u16>,
 }
