@@ -176,6 +176,7 @@ where
     }
 
     let mut recipes = Recipe::load_recipes_from_directory(input_dir)?;
+    // this is a pre-sorted list
     let tags = Recipe::compile_tag_list(recipes.clone());
 
     let server_config = ServerConfig {
@@ -331,13 +332,16 @@ where
                             "/database" => {
                                 todo!()
                             }
-                            // from root
-                            "/browse" => {
+                            // from root or browse
+                            // reset tags is just pulling the full list of recipes again at this
+                            // point
+                            "/browse" | "/reset-tags" => {
                                 tx.send((i, ThreadMessage::AllRecipes)).unwrap();
                                 let recipes = match rx.recv().unwrap() {
                                     ThreadResponse::AllRecipes(recipes) => recipes,
                                     _ => panic!("Incorrect response to request for AllRecipes"),
                                 };
+                                // tags is a pre-sorted list
                                 request.respond(browser::browser(recipes, &tags).unwrap())?
                             }
                             // from browse
@@ -412,12 +416,17 @@ where
                             // from browse
                             "/filter-tags" => {
                                 let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
+                                //TODO: process form data into tag vector.
                                 trace!("{form_data:?}");
-                                println!("{form_data:?}");
-                                //todo!()
+                                tx.send((i, ThreadMessage::AllRecipes)).unwrap();
+                                let recipes = match rx.recv().unwrap() {
+                                    ThreadResponse::AllRecipes(recipes) => recipes,
+                                    _ => panic!("Incorrect response to request for AllRecipes"),
+                                };
+                                let filtered_recipes = Recipe::filter_recipes_by_tags(recipes, &tags);
+                                // tags is a pre-sorted list
+                                request.respond(browser::browser(filtered_recipes, &tags).unwrap())?
                             }
-                            // from browse
-                            "/reset-tags" => todo!(),
                             // from recipe_editor
                             "/save-recipe-edit" | "/save-recipe" | "/save-new-recipe" => {
                                 let form_data = http_helper::parse_post_form_data(&mut request).unwrap();

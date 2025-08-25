@@ -298,6 +298,22 @@ impl Recipe {
         tags.shrink_to_fit();
         tags
     }
+
+    /// `filter_recipes_by_tags` accepts a list of tags, and a HashMap of recipes and outputs a
+    /// filtered HashMap of recipes, where the included recipes include at least one of the tags
+    /// listed.
+    pub fn filter_recipes_by_tags(recipes: HashMap<Uuid, Self>, tags: &[Tag]) -> HashMap<Uuid, Self> {
+        recipes
+            .into_iter()
+            .filter(|recipe| {
+                let mut tag_in_recipe = false;
+                for tag in tags {
+                    tag_in_recipe = recipe.1.tags.contains(tag);
+                }
+                tag_in_recipe
+            })
+            .collect()
+    }
 }
 
 /// `State` contains the state of the Recipe widget
