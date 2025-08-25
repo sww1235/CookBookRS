@@ -8,6 +8,7 @@ use tiny_http::{
         status::StatusCode,
     },
 };
+use uuid::Uuid;
 
 use crate::datatypes::recipe::Recipe;
 
@@ -26,6 +27,8 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
 
     let recipe_name = if is_new_recipe { "New Recipe" } else { recipe.name.as_str() };
     let edit_name = if is_new_recipe { "" } else { recipe.name.as_str() };
+
+    let recipe_id = if is_new_recipe { Uuid::new_v4() } else { recipe.id };
     let mut step_list = String::new();
     if recipe.steps.is_empty() {
         step_list.push_str("<option value=\"-1\">No Steps in Recipe</option>\n");
@@ -45,7 +48,7 @@ pub fn recipe_editor(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
             footer = FOOTER,
             stylesheet = "",
             favicon = "/favicon.ico",
-            recipe_id = recipe.id,
+            recipe_id = recipe_id,
             recipe_name = http_helper::html_escape(recipe_name),
             edit_name = http_helper::html_escape(edit_name),
             description = http_helper::html_escape(&recipe.description.unwrap_or_default()),

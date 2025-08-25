@@ -133,6 +133,7 @@ pub fn recipe_viewer(recipe: Recipe) -> anyhow::Result<Response<Box<dyn Read + S
         "{}",
         format_args!(
             include_str!("./recipe_viewer.html"),
+            recipe_id = recipe.id,
             title = "Welcome to CookBookRS",
             footer = FOOTER,
             stylesheet = "",

@@ -67,7 +67,7 @@ pub fn browser(recipes: HashMap<Uuid, Recipe>, tags: &[Tag]) -> anyhow::Result<R
         recipes.len()
     };
 
-    //https://github.com/rust-lang/rust/issues/85846
+    // https://github.com/rust-lang/rust/issues/85846
     let data = format!(
         "{}",
         format_args!(

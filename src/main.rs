@@ -202,14 +202,11 @@ where
 
     // spawn data owner thread
     join_guards.push(thread::spawn(move || {
-        //let mut recipes = recipes.clone();
         let mut locked_recipes: HashSet<Uuid> = HashSet::new();
         loop {
             trace!("starting data owner thread");
-            // TODO: fix usage of unwrap here
             let (thread_id, message): (usize, ThreadMessage) = rx.recv().unwrap();
             match message {
-                // TODO: fix usage of unwrap on send
                 ThreadMessage::AllRecipes => {
                     trace!("sending an AllRecipes response to thread id {thread_id}");
                     tx_channels[thread_id]
@@ -218,7 +215,6 @@ where
                         .unwrap()
                 }
                 // TODO: properly handle the Option of HashMap.get() rather than unwrapping
-                // TODO: fix usage of unwrap on send
                 ThreadMessage::RecipeRO(recipe_id) => {
                     trace!(
                         "sending a Recipe response with recipe_id {recipe_id} to thread id {thread_id}. \
@@ -239,7 +235,6 @@ where
                             "Request from thread {thread_id} to edit recipe {recipe_id}. \
                         Recipe already locked. Sending EditingError response. From a RecipeRW request."
                         );
-                        // TODO: fix usage of unwrap on send
                         tx_channels[thread_id]
                             .clone()
                             .send(ThreadResponse::EditingError(recipe_id))
@@ -249,7 +244,6 @@ where
                             "sending a Recipe response with recipe_id {recipe_id} to \
                             thread id {thread_id}. From a RecipeRW request."
                         );
-                        // TODO: fix usage of unwrap on send
                         tx_channels[thread_id]
                             .clone()
                             .send(ThreadResponse::Recipe(recipes.get(&recipe_id).unwrap().clone()))
@@ -359,7 +353,6 @@ where
                                         ThreadResponse::Recipe(recipe) => recipe,
                                         _ => panic!("Incorrect response to request for RecipeRO"),
                                     };
-                                    //TODO: change this to recipe_viewer page
                                     request.respond(recipe_viewer::recipe_viewer(recipe).unwrap())?
                                 }
                             }
@@ -368,11 +361,34 @@ where
                                 // this data comes from the browse page
                                 let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
                                 if form_data.contains_key("recipe_list") {
-                                    tx.send((
-                                        i,
-                                        ThreadMessage::RecipeRW(Uuid::parse_str(form_data["recipe_list"].as_str()).unwrap()),
-                                    ))
-                                    .unwrap();
+                                    let uuid_string = form_data["recipe_list"].as_str();
+                                    trace!("Attempting to view recipe with UUID: {uuid_string}");
+                                    tx.send((i, ThreadMessage::RecipeRW(Uuid::parse_str(uuid_string).unwrap())))
+                                        .unwrap();
+                                    let recipe = match rx.recv().unwrap() {
+                                        ThreadResponse::Recipe(recipe) => recipe,
+                                        //TODO: figure out how to actually provide the
+                                        //offending recipe name and id to users
+                                        ThreadResponse::EditingError(_recipe_id) => {
+                                            return request.respond(error_responses::locked());
+                                        }
+                                        x => {
+                                            trace!("{x:?}");
+                                            panic!("Incorrect response to request for RecipeRW")
+                                        }
+                                    };
+                                    request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
+                                }
+                            }
+                            // from view-recipe
+                            "/edit-recipe-from-viewer" => {
+                                // this data comes from the browse page
+                                let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
+                                if form_data.contains_key("recipe_list") {
+                                    let uuid_string = form_data["recipe_list"].as_str();
+                                    trace!("Attempting to view recipe with UUID: {uuid_string}");
+                                    tx.send((i, ThreadMessage::RecipeRW(Uuid::parse_str(uuid_string).unwrap())))
+                                        .unwrap();
                                     let recipe = match rx.recv().unwrap() {
                                         ThreadResponse::Recipe(recipe) => recipe,
                                         //TODO: figure out how to actually provide the
@@ -392,13 +408,13 @@ where
                             "/new-recipe" => {
                                 // TODO: do we want to allow editing new recipe after creation or just dump
                                 // the user to a viewer page or browser page
-                                todo!()
+                                let recipe = Recipe::new();
+                                request.respond(recipe_editor::recipe_editor(recipe).unwrap())?
                             }
                             // from browse
                             "/filter-tags" => todo!(),
                             // from browse
                             "/reset-tags" => todo!(),
-                            // from recipe_editor
                             // from recipe_editor
                             "/save-recipe-edit" | "/save-recipe" | "/save-new-recipe" => {
                                 let form_data = http_helper::parse_post_form_data(&mut request).unwrap();
@@ -410,17 +426,27 @@ where
                                 // It would be ideal to get a mutable reference to the recipe,
                                 // rather than passing around clones and manually locking but
                                 // thats tricky with threads
-                                tx.send((
-                                    i,
-                                    ThreadMessage::UpdateRecipeReq(Uuid::parse_str(form_data["recipe_id"].as_str()).unwrap()),
-                                ))
-                                .unwrap();
-                                let mut recipe = match rx.recv().unwrap() {
-                                    ThreadResponse::Recipe(recipe) => recipe,
-                                    x => {
-                                        trace!("{x:?}");
-                                        panic!("Incorrect response to request for UpdateRecipeReq");
+                                //
+                                // This is only for existing recipes
+                                // don't need to confirm recipe locking for new recipes
+                                if request.url().path() != "/save-new-recipe" {
+                                    let uuid_string = form_data["recipe_list"].as_str();
+                                    trace!("Attempting to view recipe with UUID: {uuid_string}");
+                                    tx.send((i, ThreadMessage::UpdateRecipeReq(Uuid::parse_str(uuid_string).unwrap())))
+                                        .unwrap();
+                                }
+                                let mut recipe = if request.url().path() != "/save-new-recipe" {
+                                    // This thread message will only happen on existing recipes,
+                                    // based on the tx.send above
+                                    match rx.recv().unwrap() {
+                                        ThreadResponse::Recipe(recipe) => recipe,
+                                        x => {
+                                            trace!("{x:?}");
+                                            panic!("Incorrect response to request for UpdateRecipeReq");
+                                        }
                                     }
+                                } else {
+                                    Recipe::new()
                                 };
                                 //TODO: need to provide a way to specify units
                                 let name = &form_data["name"];

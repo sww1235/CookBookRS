@@ -28,6 +28,12 @@
 				<p>{comments}</p>
 				<p>Recipe from {source}</p>
 			</article>
+			<form method="post">
+				<button formaction="/browse" type="submit">Back to Browse</button>
+				<button formaction="/edit-recipe-from-viewer" type="submit">Edit Recipe</button>
+				<!-- No id since this won't be styled-->
+				<input type="hidden" name="recipe_id" value="{recipe_id}" readonly/>
+			</form>
 		</main>
 		{footer}
 	</body>
