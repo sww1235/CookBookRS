@@ -59,14 +59,10 @@ fn main() -> anyhow::Result<()> {
         .extract()?;
 
     // init logger
-    #[allow(clippy::unwrap_used)]
-    //TODO: investigate to see if it is worth trying to handle these
-    //errors manually
     let logger = Logger::with(LogSpecification::trace())
         .log_to_file(FileSpec::default().suppress_timestamp())
         .format_for_files(flexi_logger::opt_format)
-        .start()
-        .unwrap();
+        .start()?;
     // match on how many times verbose flag is present in commandline
     match config.verbose {
         0 => logger.set_new_spec(LogSpecification::info()),
